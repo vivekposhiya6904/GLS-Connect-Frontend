@@ -4,6 +4,7 @@ import '../dashboard/alumni_home_screen.dart';
 import '../dashboard/faculty_home_screen.dart';
 import '../community/community_screen.dart';
 import '../chat/chat_screen.dart';
+import '../job_post/job_post_screen.dart';
 import '../profile/alumni_profile_screen.dart';
 import '../profile/faculty_profile_screen.dart';
 
@@ -35,7 +36,6 @@ class _MainNavigationState extends State<MainNavigation> {
         FacultyProfileScreen(),
       ];
     } else {
-      // Default → Alumni
       pages = const [
         HomeScreen(),
         CommunityScreen(),
@@ -48,6 +48,8 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false, // ✅ FIXED KEYBOARD ISSUE
+
       body: pages[selectedIndex],
 
       bottomNavigationBar: BottomAppBar(
@@ -71,9 +73,12 @@ class _MainNavigationState extends State<MainNavigation> {
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0D1B2A),
-        onPressed: () {},
+        onPressed: () {
+          showCreateOptions(); // ✅ OPEN MENU
+        },
         child: const Icon(Icons.add, color: Colors.white),
       ),
+
       floatingActionButtonLocation:
       FloatingActionButtonLocation.centerDocked,
     );
@@ -92,6 +97,63 @@ class _MainNavigationState extends State<MainNavigation> {
             ? const Color(0xFF0D1B2A)
             : Colors.grey,
       ),
+    );
+  }
+
+  // 🔥 INSTAGRAM-LIKE MENU
+  void showCreateOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Create",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // JOB OPTION
+              ListTile(
+                leading: const Icon(Icons.work_outline),
+                title: const Text("Post Job"),
+                onTap: () {
+                  Navigator.pop(context);
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PostJobScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              // EVENT OPTION
+              ListTile(
+                leading: const Icon(Icons.event_outlined),
+                title: const Text("Create Event"),
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: Navigate to Event Screen
+                },
+              ),
+
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
     );
   }
 }
