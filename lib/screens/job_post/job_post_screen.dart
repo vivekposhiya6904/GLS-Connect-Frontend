@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 class PostJobScreen extends StatefulWidget {
   @override
@@ -16,17 +14,6 @@ class _PostJobScreenState extends State<PostJobScreen> {
   final description = TextEditingController();
   final link = TextEditingController();
 
-  File? selectedImage;
-
-  Future<void> pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() {
-        selectedImage = File(picked.path);
-      });
-    }
-  }
-
   void submitJob() {
     final jobData = {
       "title": title.text,
@@ -35,7 +22,6 @@ class _PostJobScreenState extends State<PostJobScreen> {
       "salary": salary.text,
       "description": description.text,
       "link": link.text,
-      "image": selectedImage?.path,
     };
 
     Navigator.pop(context, jobData);
@@ -80,40 +66,6 @@ class _PostJobScreenState extends State<PostJobScreen> {
             sectionTitle("Apply Link"),
 
             inputField(link, "Paste apply link"),
-
-            SizedBox(height: 20),
-
-            /// 🔹 SECTION: IMAGE
-            sectionTitle("Upload Job Poster"),
-
-            GestureDetector(
-              onTap: pickImage,
-              child: Container(
-                height: 160,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: selectedImage != null
-                    ? ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.file(
-                    selectedImage!,
-                    fit: BoxFit.cover,
-                  ),
-                )
-                    : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.cloud_upload_outlined, size: 40),
-                    SizedBox(height: 8),
-                    Text("Tap to upload image"),
-                  ],
-                ),
-              ),
-            ),
 
             SizedBox(height: 30),
 
