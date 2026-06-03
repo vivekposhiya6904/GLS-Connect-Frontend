@@ -20,14 +20,14 @@ class HomeScreen extends StatelessWidget {
           title: const Text(
             "GLS Connect",
             style: TextStyle(
-              color: Colors.black,
+              color: Color(0xFF1A3A8F),
               fontWeight: FontWeight.bold,
             ),
           ),
-          iconTheme: const IconThemeData(color: Colors.black),
+          iconTheme: const IconThemeData(color: Color(0xFF1A3A8F)),
 
           bottom: const TabBar(
-            labelColor: Colors.black,
+            labelColor: Color(0xFF1A3A8F),
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.indigo,
             indicatorWeight: 3,
@@ -42,7 +42,7 @@ class HomeScreen extends StatelessWidget {
 
           actions: [
             IconButton(
-              icon: const Icon(Icons.notifications_none, color: Colors.black),
+              icon: const Icon(Icons.notifications_none, color: Color(0xFF1A3A8F)),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -54,7 +54,7 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(width: 5),
             IconButton(
-              icon: const Icon(Icons.search, color: Colors.black),
+              icon: const Icon(Icons.search, color: Color(0xFF1A3A8F)),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -216,7 +216,7 @@ class EventCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color(0xFF1A3A8F).withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -245,7 +245,7 @@ class EventCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
+                        color: Color(0xFF1A3A8F).withOpacity(0.7),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -402,7 +402,7 @@ class _JobListState extends State<JobList> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.black,
+                    color: Color(0xFF1A3A8F),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.tune, color: Colors.white),
@@ -529,7 +529,7 @@ class JobCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color(0xFF1A3A8F).withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -652,7 +652,7 @@ class ProfileCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color(0xFF1A3A8F).withOpacity(0.05),
             blurRadius: 8,
           )
         ],

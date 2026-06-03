@@ -28,7 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final passwordController = TextEditingController();
   final universityNoController = TextEditingController();
 
-  String role = "ALUMNI";
+
 
   bool isLoading = false;
   bool obscurePassword = true;
@@ -53,7 +53,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
         universityNo: universityNoController.text.trim(),
-        role: role,
       );
 
       if (response.statusCode == 200 ||

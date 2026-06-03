@@ -8,29 +8,38 @@ class AuthService {
   // ===============================
   // REGISTER USER
   // ===============================
+
   static Future<http.Response> registerUser({
     required String name,
     required String email,
     required String password,
-    required String role,
     required String universityNo,
   }) async {
 
-    final url = Uri.parse("${ApiConfig.baseUrl}/api/users");
+    final url = Uri.parse(
+      "${ApiConfig.baseUrl}/api/users",
+    );
 
     try {
+
       final response = await http.post(
+
         url,
+
         headers: {
           "Content-Type": "application/json",
         },
+
         body: jsonEncode({
+
           "name": name,
           "email": email,
           "password": password,
           "universityNumber": universityNo,
+
+          // DEFAULT ROLE
           "role": {
-            "roleName": role
+            "roleName": "ALUMNI"
           }
         }),
       );
@@ -38,6 +47,7 @@ class AuthService {
       return response;
 
     } catch (e) {
+
       throw Exception("Network Error: $e");
     }
   }
@@ -45,19 +55,26 @@ class AuthService {
   // ===============================
   // LOGIN USER
   // ===============================
+
   static Future<bool> loginUser({
     required String email,
     required String password,
   }) async {
 
-    final url = Uri.parse("${ApiConfig.baseUrl}/api/users/login");
+    final url = Uri.parse(
+      "${ApiConfig.baseUrl}/api/users/login",
+    );
 
     try {
+
       final response = await http.post(
+
         url,
+
         headers: {
           "Content-Type": "application/json",
         },
+
         body: jsonEncode({
           "email": email,
           "password": password,
@@ -72,7 +89,6 @@ class AuthService {
         final name = data['name'];
         final role = data['role'];
 
-        // 🔥 Save everything locally
         await StorageService.saveToken(token);
         await StorageService.saveUserName(name);
         await StorageService.saveUserRole(role);
@@ -85,6 +101,7 @@ class AuthService {
       return false;
 
     } catch (e) {
+
       throw Exception("Network Error: $e");
     }
   }

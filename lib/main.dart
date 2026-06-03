@@ -1,6 +1,6 @@
 import 'package:alumni_management/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
-import 'screens/auth/login_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,9 +11,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(), // Directly show login
+      theme: AppTheme.lightTheme,
+      home: const SplashScreen(), // Directly show login
     );
   }
 }
