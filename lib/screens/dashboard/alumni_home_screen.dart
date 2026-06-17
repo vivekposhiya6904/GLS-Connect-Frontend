@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../notification/notification_screen.dart';
 import '../search/search_screen.dart';
+import '../../services/job_service.dart';
+import '../../models/job_model.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -323,49 +325,19 @@ class JobList extends StatefulWidget {
 }
 
 class _JobListState extends State<JobList> {
-
-  final List<Map<String, String>> jobs = [
-    {
-      "title": "Flutter Developer",
-      "company": "Tech Solutions Pvt Ltd",
-      "location": "Ahmedabad",
-      "salary": "25k-40k"
-    },
-    {
-      "title": "Backend Developer",
-      "company": "InnovateX",
-      "location": "Remote",
-      "salary": "30k-50k"
-    },
-    {
-      "title": "UI Designer",
-      "company": "Creative Studio",
-      "location": "Mumbai",
-      "salary": "20k-35k"
-    },
-  ];
-
+  late Future<List<JobModel>?> jobsFuture;
   String searchQuery = "";
   String selectedLocation = "All";
   String selectedSalary = "All";
 
   @override
+  void initState() {
+    super.initState();
+    jobsFuture = JobService.getAllJobs();
+  }
+
+  @override
   Widget build(BuildContext context) {
-
-    final filteredJobs = jobs.where((job) {
-      final matchesSearch =
-          job["title"]!.toLowerCase().contains(searchQuery.toLowerCase()) ||
-              job["company"]!.toLowerCase().contains(searchQuery.toLowerCase());
-
-      final matchesLocation =
-          selectedLocation == "All" || job["location"] == selectedLocation;
-
-      final matchesSalary =
-          selectedSalary == "All" || job["salary"] == selectedSalary;
-
-      return matchesSearch && matchesLocation && matchesSalary;
-    }).toList();
-
     return Column(
       children: [
 
@@ -402,7 +374,7 @@ class _JobListState extends State<JobList> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Color(0xFF1A3A8F),
+                    color: const Color(0xFF1A3A8F),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.tune, color: Colors.white),
@@ -414,17 +386,83 @@ class _JobListState extends State<JobList> {
 
         /// JOB LIST
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: filteredJobs.length,
-            itemBuilder: (context, index) {
-              final job = filteredJobs[index];
+          child: FutureBuilder<List<JobModel>?>(
+            future: jobsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-              return JobCard(
-                title: job["title"]!,
-                company: job["company"]!,
-                location: job["location"]!,
-                salary: job["salary"]!,
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      const Text("Failed to load jobs"),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => setState(() {
+                          jobsFuture = JobService.getAllJobs();
+                        }),
+                        child: const Text("Retry"),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final jobs = snapshot.data ?? [];
+
+              if (jobs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.work_outline, size: 48, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      const Text("No jobs available"),
+                    ],
+                  ),
+                );
+              }
+
+              // Filter jobs
+              final filteredJobs = jobs.where((job) {
+                final matchesSearch =
+                    job.jobTitle.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                        job.companyName.toLowerCase().contains(searchQuery.toLowerCase());
+
+                final matchesLocation =
+                    selectedLocation == "All" || job.location == selectedLocation;
+
+                final matchesSalary =
+                    selectedSalary == "All" || job.salary == selectedSalary;
+
+                return matchesSearch && matchesLocation && matchesSalary;
+              }).toList();
+
+              if (filteredJobs.isEmpty) {
+                return const Center(
+                  child: Text("No jobs match your filters"),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: filteredJobs.length,
+                itemBuilder: (context, index) {
+                  final job = filteredJobs[index];
+
+                  return JobCard(
+                    title: job.jobTitle,
+                    company: job.companyName,
+                    location: job.location,
+                    salary: job.salary,
+                    photoUrl: job.photoUrl,
+                  );
+                },
               );
             },
           ),
@@ -454,7 +492,7 @@ class _JobListState extends State<JobList> {
 
               /// LOCATION
               DropdownButtonFormField<String>(
-                value: selectedLocation,
+                initialValue: selectedLocation,
                 decoration: const InputDecoration(
                   labelText: "Location",
                   border: OutlineInputBorder(),
@@ -471,7 +509,7 @@ class _JobListState extends State<JobList> {
 
               /// SALARY
               DropdownButtonFormField<String>(
-                value: selectedSalary,
+                initialValue: selectedSalary,
                 decoration: const InputDecoration(
                   labelText: "Salary",
                   border: OutlineInputBorder(),
@@ -511,6 +549,7 @@ class JobCard extends StatelessWidget {
   final String company;
   final String location;
   final String salary;
+  final String? photoUrl;
 
   const JobCard({
     super.key,
@@ -518,6 +557,7 @@ class JobCard extends StatelessWidget {
     required this.company,
     required this.location,
     required this.salary,
+    this.photoUrl,
   });
 
   @override
@@ -542,12 +582,7 @@ class JobCard extends StatelessWidget {
           ClipRRect(
             borderRadius:
             const BorderRadius.vertical(top: Radius.circular(18)),
-            child: Image.network(
-              "https://picsum.photos/600/300?random=$title",
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
+            child: _buildImage(),
           ),
 
           Padding(
@@ -609,6 +644,42 @@ class JobCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Build image with proper error handling
+  Widget _buildImage() {
+    if (photoUrl == null || photoUrl!.isEmpty) {
+      return Container(
+        height: 180,
+        width: double.infinity,
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 48),
+      );
+    }
+
+    return Image.network(
+      photoUrl!,
+      height: 180,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          height: 180,
+          width: double.infinity,
+          color: Colors.grey[200],
+          child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 48),
+        );
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          height: 180,
+          width: double.infinity,
+          color: Colors.grey[200],
+          child: const Center(child: CircularProgressIndicator()),
+        );
+      },
     );
   }
 }
