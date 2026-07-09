@@ -42,6 +42,8 @@ class JobService {
     required String joiningType,
     required String jobType,
     required String lastDateToApply,
+    String? companyLink,
+    String? companyEmail,
   }) async {
     try {
       final token = await StorageService.getToken();
@@ -63,6 +65,8 @@ class JobService {
           "joiningType": joiningType,
           "jobType": jobType,
           "lastDateToApply": lastDateToApply,
+          "companyLink": companyLink,
+          "companyEmail": companyEmail,
         }),
       );
 
@@ -92,6 +96,8 @@ class JobService {
     required String joiningType,
     required String jobType,
     required String lastDateToApply,
+    String? companyLink,
+    String? companyEmail,
   }) async {
     try {
       final token = await StorageService.getToken();
@@ -113,6 +119,8 @@ class JobService {
           "joiningType": joiningType,
           "jobType": jobType,
           "lastDateToApply": lastDateToApply,
+          "companyLink": companyLink,
+          "companyEmail": companyEmail,
         }),
       );
 

@@ -2,6 +2,7 @@ class JobModel {
   final int? id;
   final int userId;
   final String userName;
+  final String userEmail;
   final String companyName;
   final String jobTitle;
   final String location;
@@ -13,11 +14,16 @@ class JobModel {
   final String jobType;
   final String lastDateToApply;
   final String? photoUrl;
+  final String? companyLink;
+  final String? companyEmail;
+  final String? posterDepartment;
+  final String? posterBatchYear;
 
   JobModel({
     this.id,
     required this.userId,
     required this.userName,
+    required this.userEmail,
     required this.companyName,
     required this.jobTitle,
     required this.location,
@@ -29,6 +35,10 @@ class JobModel {
     required this.jobType,
     required this.lastDateToApply,
     this.photoUrl,
+    this.companyLink,
+    this.companyEmail,
+    this.posterDepartment,
+    this.posterBatchYear,
   });
 
   // Convert JSON → JobModel
@@ -37,6 +47,7 @@ class JobModel {
       id: json['id'],
       userId: json['userId'] ?? 0,
       userName: json['userName'] ?? 'Unknown',
+      userEmail: json['userEmail'] ?? '',
       companyName: json['companyName'] ?? '',
       jobTitle: json['jobTitle'] ?? '',
       location: json['location'] ?? '',
@@ -48,6 +59,10 @@ class JobModel {
       jobType: json['jobType'] ?? '',
       lastDateToApply: json['lastDateToApply'] ?? '',
       photoUrl: json['photoUrl'],
+      companyLink: json['companyLink'],
+      companyEmail: json['companyEmail'],
+      posterDepartment: json['posterDepartment'],
+      posterBatchYear: json['posterBatchYear'],
     );
   }
 
@@ -57,6 +72,7 @@ class JobModel {
       "id": id,
       "userId": userId,
       "userName": userName,
+      "userEmail": userEmail,
       "companyName": companyName,
       "jobTitle": jobTitle,
       "location": location,
@@ -68,7 +84,10 @@ class JobModel {
       "jobType": jobType,
       "lastDateToApply": lastDateToApply,
       "photoUrl": photoUrl,
+      "companyLink": companyLink,
+      "companyEmail": companyEmail,
+      "posterDepartment": posterDepartment,
+      "posterBatchYear": posterBatchYear,
     };
   }
 }
-

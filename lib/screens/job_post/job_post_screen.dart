@@ -13,7 +13,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
   final location = TextEditingController();
   final salary = TextEditingController();
   final description = TextEditingController();
-  final link = TextEditingController();
+  final companyLink = TextEditingController();
+  final companyEmail = TextEditingController();
   final skillsRequired = TextEditingController();
   final experienceRequired = TextEditingController();
   
@@ -50,6 +51,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
         joiningType: joiningType,
         jobType: jobType,
         lastDateToApply: "${selectedDate?.year}-${selectedDate?.month.toString().padLeft(2, '0')}-${selectedDate?.day.toString().padLeft(2, '0')}",
+        companyLink: companyLink.text.isNotEmpty ? companyLink.text : null,
+        companyEmail: companyEmail.text.isNotEmpty ? companyEmail.text : null,
       );
 
       setState(() => isLoading = false);
@@ -106,6 +109,14 @@ class _PostJobScreenState extends State<PostJobScreen> {
             inputField(description, "Enter description*", maxLines: 4),
             inputField(skillsRequired, "Skills Required (Optional)", maxLines: 2),
             inputField(experienceRequired, "Experience Required (Optional)", maxLines: 2),
+
+            const SizedBox(height: 20),
+
+            /// 🔹 SECTION: COMPANY CONTACT DETAILS
+            sectionTitle("Company Contact Details"),
+
+            inputField(companyLink, "Company Website / Apply Link (Optional)"),
+            inputField(companyEmail, "Resume Submission Email (Optional)"),
 
             const SizedBox(height: 20),
 

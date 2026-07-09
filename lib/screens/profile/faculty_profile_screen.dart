@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../utils/storage_service.dart';
 import '../auth/login_screen.dart';
+import '../../models/faculty_profile_model.dart';
+import '../../services/faculty_profile_service.dart';
 
 class FacultyProfileScreen extends StatefulWidget {
   const FacultyProfileScreen({super.key});
@@ -11,36 +13,157 @@ class FacultyProfileScreen extends StatefulWidget {
 
 class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   bool isEditing = false;
+  bool isLoading = true;
+  String username = "";
 
-  // Existing controllers (preserved)
-  final TextEditingController nameController = TextEditingController(text: "Dr. Rajesh Mehta");
-  final TextEditingController departmentController = TextEditingController(text: "Computer Science");
-  final TextEditingController designationController = TextEditingController(text: "Associate Professor");
-  final TextEditingController experienceController = TextEditingController(text: "12");
-  final TextEditingController contactController = TextEditingController(text: "+91 9876543210");
+  // Controllers
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController departmentController = TextEditingController();
+  final TextEditingController designationController = TextEditingController();
+  final TextEditingController experienceController = TextEditingController();
+  final TextEditingController contactController = TextEditingController();
+  final TextEditingController qualificationController = TextEditingController();
+  final TextEditingController specializationController = TextEditingController();
+  final TextEditingController teachingExperienceController = TextEditingController();
+  final TextEditingController industryExperienceController = TextEditingController();
+  final TextEditingController researchAreasController = TextEditingController();
+  final TextEditingController publicationsCountController = TextEditingController();
+  final TextEditingController certificationsController = TextEditingController();
+  final TextEditingController achievementsController = TextEditingController();
+  final TextEditingController biographyController = TextEditingController();
+  final TextEditingController skillsController = TextEditingController();
+  final TextEditingController studentsGuidedController = TextEditingController();
+  final TextEditingController projectsSupervisedController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController linkedInController = TextEditingController();
 
-  // New controllers for additional fields
-  final TextEditingController qualificationController = TextEditingController(text: "Ph.D. in Computer Science");
-  final TextEditingController specializationController = TextEditingController(text: "Machine Learning, AI");
-  final TextEditingController teachingExperienceController = TextEditingController(text: "10 years");
-  final TextEditingController industryExperienceController = TextEditingController(text: "2 years");
-  final TextEditingController researchAreasController = TextEditingController(text: "Deep Learning, NLP, Computer Vision");
-  final TextEditingController publicationsCountController = TextEditingController(text: "35");
-  final TextEditingController certificationsController = TextEditingController(text: "AWS Certified, Google TensorFlow Developer");
-  final TextEditingController achievementsController = TextEditingController(text: "Best Researcher Award 2023, Excellence in Teaching Award");
-  final TextEditingController biographyController = TextEditingController(text: "Passionate educator and researcher with over a decade of experience in computer science education. Published 35+ research papers in top-tier journals and guided 20+ graduate students.");
-  final TextEditingController skillsController = TextEditingController(text: "Python, Java, C++, Machine Learning, Data Science, Flutter");
-  final TextEditingController studentsGuidedController = TextEditingController(text: "25");
-  final TextEditingController projectsSupervisedController = TextEditingController(text: "40");
+  @override
+  void initState() {
+    super.initState();
+    loadAllData();
+  }
 
-  // ================= LOGOUT FUNCTION (UNCHANGED) =================
+  @override
+  void dispose() {
+    nameController.dispose();
+    departmentController.dispose();
+    designationController.dispose();
+    experienceController.dispose();
+    contactController.dispose();
+    qualificationController.dispose();
+    specializationController.dispose();
+    teachingExperienceController.dispose();
+    industryExperienceController.dispose();
+    researchAreasController.dispose();
+    publicationsCountController.dispose();
+    certificationsController.dispose();
+    achievementsController.dispose();
+    biographyController.dispose();
+    skillsController.dispose();
+    studentsGuidedController.dispose();
+    projectsSupervisedController.dispose();
+    emailController.dispose();
+    linkedInController.dispose();
+    super.dispose();
+  }
+
+  Future<void> loadAllData() async {
+    await loadUserName();
+    await loadProfile();
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> loadUserName() async {
+    final name = await StorageService.getUserName();
+    username = name ?? "";
+    nameController.text = username;
+  }
+
+  Future<void> loadProfile() async {
+    final profile = await FacultyProfileService.getProfile();
+
+    if (profile != null) {
+      departmentController.text = profile.department ?? "";
+      designationController.text = profile.designation ?? "";
+      experienceController.text = profile.experienceYears?.toString() ?? "";
+      contactController.text = profile.contactNumber ?? "";
+      qualificationController.text = profile.qualification ?? "";
+      specializationController.text = profile.specialization ?? "";
+      teachingExperienceController.text = profile.teachingExperience ?? "";
+      industryExperienceController.text = profile.industryExperience ?? "";
+      researchAreasController.text = profile.researchInterests ?? "";
+      publicationsCountController.text = profile.publicationsCount ?? "";
+      certificationsController.text = profile.certifications ?? "";
+      achievementsController.text = profile.achievements ?? "";
+      biographyController.text = profile.bio ?? "";
+      skillsController.text = profile.skills ?? "";
+      studentsGuidedController.text = profile.studentsGuided ?? "";
+      projectsSupervisedController.text = profile.projectsSupervised ?? "";
+      emailController.text = profile.email ?? "";
+      linkedInController.text = profile.linkedInUrl ?? "";
+    }
+  }
+
+  Future<void> saveProfile() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final updatedProfile = FacultyProfileModel(
+      department: departmentController.text,
+      designation: designationController.text,
+      qualification: qualificationController.text,
+      specialization: specializationController.text,
+      experienceYears: int.tryParse(experienceController.text),
+      contactNumber: contactController.text,
+      teachingExperience: teachingExperienceController.text,
+      industryExperience: industryExperienceController.text,
+      researchInterests: researchAreasController.text,
+      publicationsCount: publicationsCountController.text,
+      certifications: certificationsController.text,
+      achievements: achievementsController.text,
+      bio: biographyController.text,
+      skills: skillsController.text,
+      studentsGuided: studentsGuidedController.text,
+      projectsSupervised: projectsSupervisedController.text,
+      email: emailController.text,
+      linkedInUrl: linkedInController.text,
+    );
+
+    // Backend PUT updates/creates the profile
+    final success = await FacultyProfileService.updateProfile(updatedProfile, isCreate: false);
+
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+        isEditing = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? "Profile Updated Successfully" : "Failed to update profile"),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+
+      if (success) {
+        loadProfile();
+      }
+    }
+  }
+
+  // ================= LOGOUT FUNCTION =================
   Future<void> logout() async {
     await StorageService.logout();
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
+      (route) => false,
     );
   }
 
@@ -48,308 +171,326 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
-          // Premium Blue Profile Header
-          SliverAppBar(
-            expandedHeight: 280,
-            pinned: true,
-            backgroundColor: const Color(0xFF1A3A8F),
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF1A3A8F),
-                      Color(0xFF2E4DB0),
-                    ],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 40),
-                      // Profile Photo
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : CustomScrollView(
+              slivers: [
+                // Premium Blue Profile Header
+                SliverAppBar(
+                  expandedHeight: 280,
+                  pinned: true,
+                  backgroundColor: const Color(0xFF1A3A8F),
+                  elevation: 0,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF1A3A8F),
+                            Color(0xFF2E4DB0),
+                          ],
+                        ),
+                      ),
+                      child: SafeArea(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 40),
+                            // Profile Photo
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: const CircleAvatar(
+                                radius: 55,
+                                backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=12"),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Name
+                            Text(
+                              username.isNotEmpty ? username : "Faculty Member",
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            // Designation
+                            Text(
+                              designationController.text.isNotEmpty
+                                  ? designationController.text
+                                  : "Associate Professor",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            // Department
+                            Text(
+                              departmentController.text.isNotEmpty
+                                  ? departmentController.text
+                                  : "Computer Science",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white60,
+                              ),
                             ),
                           ],
                         ),
-                        child: const CircleAvatar(
-                          radius: 55,
-                          backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=12"),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Name
-                      Text(
-                        nameController.text,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Designation
-                      Text(
-                        designationController.text,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Department
-                      Text(
-                        departmentController.text,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.white60,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            actions: [
-              // EDIT BUTTON (preserved functionality)
-              IconButton(
-                icon: Icon(isEditing ? Icons.check : Icons.edit, color: Colors.white),
-                onPressed: () {
-                  setState(() {
-                    isEditing = !isEditing;
-                  });
-                },
-              ),
-              // LOGOUT BUTTON (preserved)
-              IconButton(
-                icon: const Icon(Icons.logout, color: Colors.white70),
-                onPressed: logout,
-              ),
-            ],
-          ),
-
-          // Main Content
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // Instagram-style Statistics Row
-                Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatItem(
-                        isEditing ? publicationsCountController.text : "35",
-                        "Publications",
-                        Icons.article_outlined,
-                      ),
-                      Container(
-                        width: 1,
-                        height: 40,
-                        color: Colors.grey[300],
-                      ),
-                      _buildStatItem(
-                        isEditing ? experienceController.text : "12",
-                        "Experience",
-                        Icons.work_outline,
-                      ),
-                      Container(
-                        width: 1,
-                        height: 40,
-                        color: Colors.grey[300],
-                      ),
-                      _buildStatItem(
-                        isEditing ? studentsGuidedController.text : "25",
-                        "Students\nGuided",
-                        Icons.people_outline,
-                      ),
-                    ],
-                  ),
-                ),
-
-                // About Me Section
-                _buildProfileSection(
-                  title: "About Me",
-                  icon: Icons.person_outline,
-                  content: isEditing
-                      ? _buildEditableField(biographyController, "Tell us about yourself", maxLines: 4)
-                      : _buildDisplayText(biographyController.text),
-                ),
-
-                // Academic Information Section
-                _buildProfileSection(
-                  title: "Academic Information",
-                  icon: Icons.school_outlined,
-                  content: Column(
-                    children: [
-                      _buildInfoRow("Qualification", qualificationController, Icons.workspace_premium),
-                      _buildInfoRow("Specialization", specializationController, Icons.science),
-                      _buildInfoRow("Research Areas", researchAreasController, Icons.biotech),
-                    ],
-                  ),
-                ),
-
-                // Education Section
-                _buildProfileSection(
-                  title: "Education",
-                  icon: Icons.menu_book_outlined,
-                  content: _buildInfoRow("Highest Qualification", qualificationController, Icons.school),
-                ),
-
-                // Experience Section
-                _buildProfileSection(
-                  title: "Experience",
-                  icon: Icons.work_history_outlined,
-                  content: Column(
-                    children: [
-                      _buildInfoRow("Teaching Experience", teachingExperienceController, Icons.cast_for_education),
-                      _buildInfoRow("Industry Experience", industryExperienceController, Icons.business_center),
-                    ],
-                  ),
-                ),
-
-                // Research & Publications
-                _buildProfileSection(
-                  title: "Research & Publications",
-                  icon: Icons.analytics_outlined,
-                  content: Column(
-                    children: [
-                      _buildInfoRow("Publications Count", publicationsCountController, Icons.description),
-                      _buildInfoRow("Projects Supervised", projectsSupervisedController, Icons.assignment),
-                    ],
-                  ),
-                ),
-
-                // Skills Section
-                _buildProfileSection(
-                  title: "Skills",
-                  icon: Icons.code_outlined,
-                  content: _buildInfoRow("Technical Skills", skillsController, Icons.computer),
-                ),
-
-                // Certifications Section
-                _buildProfileSection(
-                  title: "Certifications",
-                  icon: Icons.verified_outlined,
-                  content: _buildInfoRow("Professional Certifications", certificationsController, Icons.assignment_turned_in),
-                ),
-
-                // Achievements Section
-                _buildProfileSection(
-                  title: "Achievements & Awards",
-                  icon: Icons.emoji_events_outlined,
-                  content: _buildInfoRow("Recognitions", achievementsController, Icons.star),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Premium Blue Edit Profile Button (when not editing)
-                if (!isEditing)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          isEditing = true;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3A8F),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: const Text(
-                        "Edit Profile",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
-
-                // Save Changes Button when editing
-                if (isEditing)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: ElevatedButton(
+                  actions: [
+                    // EDIT BUTTON
+                    IconButton(
+                      icon: Icon(isEditing ? Icons.close : Icons.edit, color: Colors.white),
                       onPressed: () {
                         setState(() {
-                          isEditing = false;
+                          isEditing = !isEditing;
+                          if (!isEditing) {
+                            loadProfile(); // Reset fields if cancelled
+                          }
                         });
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3A8F),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: const Text(
-                        "Save Changes",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
                     ),
-                  ),
-
-                // Logout Button at Bottom
-                if (!isEditing)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 32),
-                    child: OutlinedButton.icon(
+                    // LOGOUT BUTTON
+                    IconButton(
+                      icon: const Icon(Icons.logout, color: Colors.white70),
                       onPressed: logout,
-                      icon: const Icon(Icons.logout, color: Colors.redAccent),
-                      label: const Text(
-                        "Logout",
-                        style: TextStyle(color: Colors.redAccent, fontSize: 16),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: Colors.redAccent),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    ),
+                  ],
+                ),
+
+                // Main Content
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // Instagram-style Statistics Row
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatItem(
+                              publicationsCountController.text.isNotEmpty
+                                  ? publicationsCountController.text
+                                  : "0",
+                              "Publications",
+                              Icons.article_outlined,
+                            ),
+                            Container(
+                              width: 1,
+                              height: 40,
+                              color: Colors.grey[300],
+                            ),
+                            _buildStatItem(
+                              experienceController.text.isNotEmpty
+                                  ? experienceController.text
+                                  : "0",
+                              "Experience (Yrs)",
+                              Icons.work_outline,
+                            ),
+                            Container(
+                              width: 1,
+                              height: 40,
+                              color: Colors.grey[300],
+                            ),
+                            _buildStatItem(
+                              studentsGuidedController.text.isNotEmpty
+                                  ? studentsGuidedController.text
+                                  : "0",
+                              "Students\nGuided",
+                              Icons.people_outline,
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+
+                      // About Me Section
+                      _buildProfileSection(
+                        title: "About Me",
+                        icon: Icons.person_outline,
+                        content: isEditing
+                            ? _buildEditableField(biographyController, "Tell us about yourself", maxLines: 4)
+                            : _buildDisplayText(biographyController.text),
+                      ),
+
+                      // Academic Information Section
+                      _buildProfileSection(
+                        title: "Academic Information",
+                        icon: Icons.school_outlined,
+                        content: Column(
+                          children: [
+                            _buildInfoRow("Qualification", qualificationController, Icons.workspace_premium),
+                            _buildInfoRow("Specialization", specializationController, Icons.science),
+                            _buildInfoRow("Research Areas", researchAreasController, Icons.biotech),
+                          ],
+                        ),
+                      ),
+
+                      // Contact Information Section
+                      _buildProfileSection(
+                        title: "Contact & Links",
+                        icon: Icons.contact_mail_outlined,
+                        content: Column(
+                          children: [
+                            _buildInfoRow("Email Address", emailController, Icons.email_outlined),
+                            _buildInfoRow("Contact Number", contactController, Icons.phone_android),
+                            _buildInfoRow("LinkedIn Profile URL", linkedInController, Icons.link),
+                          ],
+                        ),
+                      ),
+
+                      // Experience Section
+                      _buildProfileSection(
+                        title: "Experience details",
+                        icon: Icons.work_history_outlined,
+                        content: Column(
+                          children: [
+                            _buildInfoRow("Total Experience (Years)", experienceController, Icons.star_border),
+                            _buildInfoRow("Teaching Experience", teachingExperienceController, Icons.cast_for_education),
+                            _buildInfoRow("Industry Experience", industryExperienceController, Icons.business_center),
+                          ],
+                        ),
+                      ),
+
+                      // Research & Publications
+                      _buildProfileSection(
+                        title: "Research & Publications",
+                        icon: Icons.analytics_outlined,
+                        content: Column(
+                          children: [
+                            _buildInfoRow("Publications Count", publicationsCountController, Icons.description),
+                            _buildInfoRow("Projects Supervised", projectsSupervisedController, Icons.assignment),
+                          ],
+                        ),
+                      ),
+
+                      // Skills Section
+                      _buildProfileSection(
+                        title: "Skills",
+                        icon: Icons.code_outlined,
+                        content: _buildInfoRow("Technical Skills", skillsController, Icons.computer),
+                      ),
+
+                      // Certifications Section
+                      _buildProfileSection(
+                        title: "Certifications",
+                        icon: Icons.verified_outlined,
+                        content: _buildInfoRow("Professional Certifications", certificationsController, Icons.assignment_turned_in),
+                      ),
+
+                      // Achievements Section
+                      _buildProfileSection(
+                        title: "Achievements & Awards",
+                        icon: Icons.emoji_events_outlined,
+                        content: _buildInfoRow("Recognitions", achievementsController, Icons.star),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Premium Blue Edit Profile Button (when not editing)
+                      if (!isEditing)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                isEditing = true;
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1A3A8F),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: const Text(
+                              "Edit Profile",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+
+                      // Save Changes Button when editing
+                      if (isEditing)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: ElevatedButton(
+                            onPressed: saveProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1A3A8F),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: const Text(
+                              "Save Changes",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+
+                      // Logout Button at Bottom
+                      if (!isEditing)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 32),
+                          child: OutlinedButton.icon(
+                            onPressed: logout,
+                            icon: const Icon(Icons.logout, color: Colors.redAccent),
+                            label: const Text(
+                              "Logout",
+                              style: TextStyle(color: Colors.redAccent, fontSize: 16),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: Colors.redAccent),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ]),
                   ),
-              ]),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
