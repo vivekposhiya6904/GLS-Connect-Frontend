@@ -95,12 +95,29 @@ class AllPage extends StatefulWidget {
 
 class _AllPageState extends State<AllPage> {
   late Future<List<JobModel>?> jobsFuture;
+  late Future<List<EventModel>?> eventsFuture;
   String myEmail = "";
+  bool _showPast = false;
+
+  bool _isExpired(String dateStr) {
+    try {
+      if (dateStr.isEmpty) return false;
+      final date = DateTime.parse(dateStr);
+      final today = DateTime.now();
+      final normalizedDate = DateTime(date.year, date.month, date.day);
+      final normalizedToday = DateTime(today.year, today.month, today.day);
+      final diffDays = normalizedToday.difference(normalizedDate).inDays;
+      return diffDays > 3;
+    } catch (e) {
+      return false;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     jobsFuture = JobService.getAllJobs();
+    eventsFuture = EventService.getAllEvents();
     loadMyEmail();
   }
 
@@ -115,38 +132,94 @@ class _AllPageState extends State<AllPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<JobModel>?>(
-      future: jobsFuture,
+    return FutureBuilder<List<dynamic>?>(
+      future: Future.wait([eventsFuture, jobsFuture]),
       builder: (context, snapshot) {
-        final jobs = snapshot.data ?? [];
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: CircularProgressIndicator(),
+          ));
+        }
+
+        final results = snapshot.data ?? [];
+        final events = results.isNotEmpty ? (results[0] as List<EventModel>?) ?? [] : <EventModel>[];
+        final jobs = results.length > 1 ? (results[1] as List<JobModel>?) ?? [] : <JobModel>[];
+
+        final filteredEvents = events.where((e) => _isExpired(e.eventDate) == _showPast).toList();
+        final filteredJobs = jobs.where((j) => _isExpired(j.lastDateToApply) == _showPast).toList();
 
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Filter Toggle Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _showPast ? "Previous Ends" : "Active Feed",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A3A8F),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showPast = !_showPast;
+                    });
+                  },
+                  icon: Icon(_showPast ? Icons.feed_outlined : Icons.history_toggle_off, size: 16),
+                  label: Text(_showPast ? "Show Active" : "Previous Ends"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _showPast ? Colors.amber.shade700 : const Color(0xFF1A3A8F),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
             /// 📅 EVENTS
-            const Text(
-              "Upcoming Events",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            Text(
+              _showPast ? "Past Events (Expired)" : "Upcoming Events",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
             ),
             const SizedBox(height: 10),
-            const EventCard(
-              title: "Alumni Meet 2023",
-              date: "May 15, 2023",
-              location: "Campus Auditorium",
-              isPast: false,
-            ),
-            const EventCard(
-              title: "Networking Night",
-              date: "April 05, 2023",
-              location: "Alumni Hall",
-              isPast: true,
-            ),
+
+            if (filteredEvents.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text("No events scheduled.", style: TextStyle(color: Colors.grey)),
+              )
+            else
+              ...filteredEvents.map((event) {
+                final imgUrl = event.imageUrl != null && event.imageUrl!.isNotEmpty
+                    ? "${ApiConfig.baseUrl}${event.imageUrl}"
+                    : "https://picsum.photos/600/300?random=${event.title}";
+                return EventCard(
+                  title: event.title,
+                  date: event.eventDate,
+                  location: event.location,
+                  imageUrl: imgUrl,
+                  description: event.description,
+                  isPast: _showPast,
+                  targetDepartment: event.targetDepartment,
+                  note: event.note,
+                );
+              }).toList(),
+
             const SizedBox(height: 20),
 
             /// 💼 ACTIVE JOB POSTINGS
-            const Text(
-              "Latest Job Openings",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            Text(
+              _showPast ? "Past Job Openings (Expired)" : "Latest Job Openings",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
             ),
             const SizedBox(height: 10),
 
@@ -155,15 +228,15 @@ class _AllPageState extends State<AllPage> {
                 padding: EdgeInsets.all(20.0),
                 child: CircularProgressIndicator(),
               ))
-            else if (snapshot.hasError || jobs.isEmpty)
+            else if (snapshot.hasError || filteredJobs.isEmpty)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20.0),
-                  child: Text("No jobs available right now.", style: TextStyle(color: Colors.grey)),
+                  child: Text("No jobs available in this category.", style: TextStyle(color: Colors.grey)),
                 ),
               )
             else
-              ...jobs.map((job) {
+              ...filteredJobs.map((job) {
                 return JobCard(
                   title: job.jobTitle,
                   company: job.companyName,
@@ -216,6 +289,8 @@ class MyActivityPage extends StatelessWidget {
           title: "Alumni Meet 2023",
           date: "May 15, 2023",
           location: "Campus Auditorium",
+          imageUrl: "https://picsum.photos/600/300?random=1",
+          description: "An annual meeting for all alumni to gather and connect.",
           isPast: false,
         ),
 
@@ -263,14 +338,22 @@ class EventCard extends StatelessWidget {
   final String title;
   final String date;
   final String location;
+  final String imageUrl;
+  final String description;
   final bool isPast;
+  final String? targetDepartment;
+  final String? note;
 
   const EventCard({
     super.key,
     required this.title,
     required this.date,
     required this.location,
+    required this.imageUrl,
+    required this.description,
     required this.isPast,
+    this.targetDepartment,
+    this.note,
   });
 
   @override
@@ -282,7 +365,7 @@ class EventCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: const Color(0xFF1A3A8F).withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -291,27 +374,43 @@ class EventCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           ClipRRect(
-            borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(18)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
             child: Stack(
               children: [
-                Image.network(
-                  "https://picsum.photos/600/300?random=$title",
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ImageZoomScreen(imageUrl: imageUrl, tag: title),
+                      ),
+                    );
+                  },
+                  child: Hero(
+                    tag: title,
+                    child: Image.network(
+                      imageUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Image.network(
+                        "https://picsum.photos/600/300?random=$title",
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
                 ),
                 if (isPast)
                   Positioned(
                     top: 12,
                     right: 12,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
+                        color: const Color(0xFF1A3A8F).withOpacity(0.7),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -327,13 +426,11 @@ class EventCard extends StatelessWidget {
               ],
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 Text(
                   title,
                   style: const TextStyle(
@@ -341,36 +438,92 @@ class EventCard extends StatelessWidget {
                     fontSize: 15,
                   ),
                 ),
-
-                const SizedBox(height: 8),
-
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today,
-                        size: 14, color: Colors.grey),
+                    const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
                     const SizedBox(width: 6),
                     Text(
                       date,
-                      style: const TextStyle(
-                          color: Colors.grey, fontSize: 12),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 6),
-
                 Row(
                   children: [
-                    const Icon(Icons.location_on,
-                        size: 14, color: Colors.grey),
+                    const Icon(Icons.location_on, size: 14, color: Colors.grey),
                     const SizedBox(width: 6),
                     Text(
                       location,
-                      style: const TextStyle(
-                          color: Colors.grey, fontSize: 12),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ],
                 ),
+                if (targetDepartment != null && targetDepartment!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A3A8F).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.school_outlined, size: 12, color: Color(0xFF1A3A8F)),
+                        const SizedBox(width: 4),
+                        Text(
+                          "Department: $targetDepartment",
+                          style: const TextStyle(
+                            color: Color(0xFF1A3A8F),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (note != null && note!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, size: 14, color: Colors.amber.shade800),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            "Note: $note",
+                            style: TextStyle(
+                              color: Colors.amber.shade900,
+                              fontSize: 11.5,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1032,6 +1185,58 @@ class ProfileCard extends StatelessWidget {
             child: Text(
               name,
               style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ImageZoomScreen extends StatelessWidget {
+  final String imageUrl;
+  final String tag;
+
+  const ImageZoomScreen({super.key, required this.imageUrl, required this.tag});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black.withOpacity(0.95),
+      body: Stack(
+        children: [
+          Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Hero(
+                tag: tag,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Image.network(
+                    "https://picsum.photos/600/300?random=$tag",
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: CircleAvatar(
+                  backgroundColor: Colors.black38,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

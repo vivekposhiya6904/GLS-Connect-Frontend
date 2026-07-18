@@ -97,4 +97,47 @@ class AlumniProfileService {
       return false;
     }
   }
+
+  static Future<AlumniProfileModel?> getProfileByUserId(int userId) async {
+    try {
+      final token = await StorageService.getToken();
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/alumni/user/$userId"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return AlumniProfileModel.fromJson(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      print("🔥 Error in getProfileByUserId(): $e");
+      return null;
+    }
+  }
+
+  static Future<List<AlumniProfileModel>?> getAllAlumniProfiles() async {
+    try {
+      final token = await StorageService.getToken();
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/alumni"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        return jsonList.map((json) => AlumniProfileModel.fromJson(json)).toList();
+      }
+      return null;
+    } catch (e) {
+      print("🔥 Error in getAllAlumniProfiles(): $e");
+      return null;
+    }
+  }
 }

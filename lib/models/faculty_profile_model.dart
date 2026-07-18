@@ -1,4 +1,6 @@
 class FacultyProfileModel {
+  int? userId;
+  String? userName;
   String? department;
   String? designation;
   String? qualification;
@@ -21,6 +23,8 @@ class FacultyProfileModel {
   String? projectsSupervised;
 
   FacultyProfileModel({
+    this.userId,
+    this.userName,
     this.department,
     this.designation,
     this.qualification,
@@ -43,6 +47,8 @@ class FacultyProfileModel {
 
   factory FacultyProfileModel.fromJson(Map<String, dynamic> json) {
     return FacultyProfileModel(
+      userId: json['userId'],
+      userName: json['userName'],
       department: json['department'],
       designation: json['designation'],
       qualification: json['qualification'],
@@ -66,6 +72,8 @@ class FacultyProfileModel {
 
   Map<String, dynamic> toJson() {
     return {
+      'userId': userId,
+      'userName': userName,
       'department': department,
       'designation': designation,
       'qualification': qualification,

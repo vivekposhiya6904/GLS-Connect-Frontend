@@ -3,6 +3,7 @@ import '../../services/alumni_profile_service.dart';
 import '../../models/alumni_profile_model.dart';
 import '../../utils/storage_service.dart';
 import '../auth/login_screen.dart';
+import '../../utils/theme_manager.dart';
 
 class AlumniProfileScreen extends StatefulWidget {
   const AlumniProfileScreen({super.key});
@@ -171,6 +172,8 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
                 _buildProfessionalSection(),
                 const SizedBox(height: 16),
                 _buildContactSection(),
+                const SizedBox(height: 16),
+                _buildSettingsSection(),
                 const SizedBox(height: 24),
                 _buildLogoutButton(),
                 const SizedBox(height: 32),
@@ -607,6 +610,74 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
           ),
           elevation: 0,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.settings_outlined, color: Color(0xFF1A3A8F), size: 22),
+              SizedBox(width: 10),
+              Text(
+                "App Settings",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 30),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    ThemeManager().isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                    color: Colors.grey.shade600,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    "Dark Mode",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              Switch(
+                value: ThemeManager().isDarkMode,
+                onChanged: (val) {
+                  ThemeManager().toggleTheme(val);
+                },
+                activeColor: const Color(0xFF1A3A8F),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

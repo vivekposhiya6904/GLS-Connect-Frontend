@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../dashboard/alumni_home_screen.dart';
 import '../dashboard/faculty_home_screen.dart';
-import '../community/community_screen.dart';
 import '../chat/chat_screen.dart';
 import '../job_post/job_post_screen.dart';
 import '../profile/alumni_profile_screen.dart';
 import '../profile/faculty_profile_screen.dart';
+import '../dashboard/create_event_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   final String userRole;
@@ -31,14 +31,12 @@ class _MainNavigationState extends State<MainNavigation> {
     if (widget.userRole == "FACULTY") {
       pages = const [
         FacultyDashboard(),
-        CommunityScreen(),
         ChatScreen(),
         FacultyProfileScreen(),
       ];
     } else {
       pages = const [
         HomeScreen(),
-        CommunityScreen(),
         ChatScreen(),
         AlumniProfileScreen(),
       ];
@@ -62,10 +60,9 @@ class _MainNavigationState extends State<MainNavigation> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               buildNavItem(Icons.home_outlined, 0),
-              buildNavItem(Icons.groups_outlined, 1),
               const SizedBox(width: 40),
-              buildNavItem(Icons.chat_bubble_outline, 2),
-              buildNavItem(Icons.person_outline, 3),
+              buildNavItem(Icons.chat_bubble_outline, 1),
+              buildNavItem(Icons.person_outline, 2),
             ],
           ),
         ),
@@ -145,7 +142,12 @@ class _MainNavigationState extends State<MainNavigation> {
                 title: const Text("Create Event"),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigate to Event Screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CreateEventScreen(),
+                    ),
+                  );
                 },
               ),
 

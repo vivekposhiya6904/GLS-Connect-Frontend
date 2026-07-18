@@ -6,6 +6,16 @@ import '../../services/job_service.dart';
 import '../../models/job_model.dart';
 import '../../utils/storage_service.dart';
 import '../chat/chat_detail_screen.dart';
+import '../../models/event_model.dart';
+import '../../models/post_model.dart';
+import '../../models/alumni_profile_model.dart';
+import '../../models/faculty_profile_model.dart';
+import '../../services/event_service.dart';
+import '../../services/post_service.dart';
+import '../../services/alumni_profile_service.dart';
+import '../../services/faculty_profile_service.dart';
+import '../../config/api_config.dart';
+import '../profile/profile_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -95,12 +105,29 @@ class AllPage extends StatefulWidget {
 
 class _AllPageState extends State<AllPage> {
   late Future<List<JobModel>?> jobsFuture;
+  late Future<List<EventModel>?> eventsFuture;
   String myEmail = "";
+  bool _showPast = false;
+
+  bool _isExpired(String dateStr) {
+    try {
+      if (dateStr.isEmpty) return false;
+      final date = DateTime.parse(dateStr);
+      final today = DateTime.now();
+      final normalizedDate = DateTime(date.year, date.month, date.day);
+      final normalizedToday = DateTime(today.year, today.month, today.day);
+      final diffDays = normalizedToday.difference(normalizedDate).inDays;
+      return diffDays > 3;
+    } catch (e) {
+      return false;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     jobsFuture = JobService.getAllJobs();
+    eventsFuture = EventService.getAllEvents();
     loadMyEmail();
   }
 
@@ -115,55 +142,106 @@ class _AllPageState extends State<AllPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<JobModel>?>(
-      future: jobsFuture,
+    return FutureBuilder<List<dynamic>?>(
+      future: Future.wait([eventsFuture, jobsFuture]),
       builder: (context, snapshot) {
-        final jobs = snapshot.data ?? [];
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: CircularProgressIndicator(),
+          ));
+        }
+
+        final results = snapshot.data ?? [];
+        final events = results.isNotEmpty ? (results[0] as List<EventModel>?) ?? [] : <EventModel>[];
+        final jobs = results.length > 1 ? (results[1] as List<JobModel>?) ?? [] : <JobModel>[];
+
+        final filteredEvents = events.where((e) => _isExpired(e.eventDate) == _showPast).toList();
+        final filteredJobs = jobs.where((j) => _isExpired(j.lastDateToApply) == _showPast).toList();
 
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Filter Toggle Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _showPast ? "Previous Ends" : "Active Feed",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A3A8F),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showPast = !_showPast;
+                    });
+                  },
+                  icon: Icon(_showPast ? Icons.feed_outlined : Icons.history_toggle_off, size: 16),
+                  label: Text(_showPast ? "Show Active" : "Previous Ends"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _showPast ? Colors.amber.shade700 : const Color(0xFF1A3A8F),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
             /// 📅 EVENTS
-            const Text(
-              "Upcoming Events",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            Text(
+              _showPast ? "Past Events (Expired)" : "Upcoming Events",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
             ),
             const SizedBox(height: 10),
-            const EventCard(
-              title: "Alumni Meet 2023",
-              date: "May 15, 2023",
-              location: "Campus Auditorium",
-              isPast: false,
-            ),
-            const EventCard(
-              title: "Networking Night",
-              date: "April 05, 2023",
-              location: "Alumni Hall",
-              isPast: true,
-            ),
+            
+            if (filteredEvents.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text("No events in this category.", style: TextStyle(color: Colors.grey)),
+              )
+            else
+              ...filteredEvents.map((event) {
+                final imgUrl = event.imageUrl != null && event.imageUrl!.isNotEmpty
+                    ? "${ApiConfig.baseUrl}${event.imageUrl}"
+                    : "https://picsum.photos/600/300?random=${event.title}";
+                return EventCard(
+                  title: event.title,
+                  date: event.eventDate,
+                  location: event.location,
+                  imageUrl: imgUrl,
+                  description: event.description,
+                  isPast: _showPast,
+                  targetDepartment: event.targetDepartment,
+                  note: event.note,
+                );
+              }).toList(),
+
             const SizedBox(height: 20),
 
             /// 💼 ACTIVE JOB POSTINGS
-            const Text(
-              "Latest Job Openings",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            Text(
+              _showPast ? "Past Job Openings (Expired)" : "Latest Job Openings",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
             ),
             const SizedBox(height: 10),
 
-            if (snapshot.connectionState == ConnectionState.waiting)
-              const Center(child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: CircularProgressIndicator(),
-              ))
-            else if (snapshot.hasError || jobs.isEmpty)
+            if (filteredJobs.isEmpty)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20.0),
-                  child: Text("No jobs available right now.", style: TextStyle(color: Colors.grey)),
+                  child: Text("No jobs in this category.", style: TextStyle(color: Colors.grey)),
                 ),
               )
             else
-              ...jobs.map((job) {
+              ...filteredJobs.map((job) {
                 return JobCard(
                   title: job.jobTitle,
                   company: job.companyName,
@@ -202,38 +280,188 @@ class JobsPage extends StatelessWidget {
 }
 
 /// ================= MY ACTIVITY =================
-class MyActivityPage extends StatelessWidget {
+class MyActivityPage extends StatefulWidget {
   const MyActivityPage({super.key});
 
   @override
+  State<MyActivityPage> createState() => _MyActivityPageState();
+}
+
+class _MyActivityPageState extends State<MyActivityPage> {
+  late Future<List<JobModel>?> myJobsFuture;
+  late Future<List<EventModel>?> myEventsFuture;
+  late Future<List<PostModel>?> myPostsFuture;
+  String myEmail = "";
+
+  @override
+  void initState() {
+    super.initState();
+    myEventsFuture = EventService.getMyEvents();
+    myPostsFuture = PostService.getMyPosts();
+    myJobsFuture = _loadMyJobs();
+  }
+
+  Future<List<JobModel>?> _loadMyJobs() async {
+    final email = await StorageService.getUserEmail();
+    myEmail = email ?? "";
+    final allJobs = await JobService.getAllJobs();
+    if (allJobs == null) return null;
+    return allJobs.where((j) => j.userEmail == myEmail).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: const [
-
-        /// EVENT STATUS
-        EventCard(
-          title: "Alumni Meet 2023",
-          date: "May 15, 2023",
-          location: "Campus Auditorium",
-          isPast: false,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F6FA),
+        appBar: const TabBar(
+          labelColor: Color(0xFF1A3A8F),
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Color(0xFF1A3A8F),
+          tabs: [
+            Tab(text: "My Jobs"),
+            Tab(text: "My Events"),
+            Tab(text: "My Posts"),
+          ],
         ),
-
-        /// JOB APPLICATION STATUS
-        JobCard(
-          title: "Flutter Developer",
-          company: "Tech Solutions Pvt Ltd",
-          location: "Ahmedabad",
-          salary: "Applied",
+        body: TabBarView(
+          children: [
+            _buildMyJobsList(),
+            _buildMyEventsList(),
+            _buildMyPostsList(),
+          ],
         ),
+      ),
+    );
+  }
 
-        JobCard(
-          title: "Backend Developer",
-          company: "InnovateX",
-          location: "Remote",
-          salary: "Shortlisted",
-        ),
-      ],
+  Widget _buildMyJobsList() {
+    return FutureBuilder<List<JobModel>?>(
+      future: myJobsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final jobs = snapshot.data ?? [];
+        if (jobs.isEmpty) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Text("You haven't posted any jobs.", style: TextStyle(color: Colors.grey)),
+          ));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: jobs.length,
+          itemBuilder: (context, index) {
+            final job = jobs[index];
+            return JobCard(
+              title: job.jobTitle,
+              company: job.companyName,
+              location: job.location,
+              salary: job.salary,
+              postedByName: job.userName,
+              postedByEmail: job.userEmail,
+              myEmail: myEmail,
+              companyLink: job.companyLink,
+              companyEmail: job.companyEmail,
+              posterDepartment: job.posterDepartment,
+              posterBatchYear: job.posterBatchYear,
+              jobDescription: job.jobDescription,
+              skillsRequired: job.skillsRequired,
+              experienceRequired: job.experienceRequired,
+              joiningType: job.joiningType,
+              jobType: job.jobType,
+              lastDateToApply: job.lastDateToApply,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildMyEventsList() {
+    return FutureBuilder<List<EventModel>?>(
+      future: myEventsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final events = snapshot.data ?? [];
+        if (events.isEmpty) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Text("You haven't created any events.", style: TextStyle(color: Colors.grey)),
+          ));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: events.length,
+          itemBuilder: (context, index) {
+            final event = events[index];
+            final imgUrl = event.imageUrl != null && event.imageUrl!.isNotEmpty
+                ? "${ApiConfig.baseUrl}${event.imageUrl}"
+                : "https://picsum.photos/600/300?random=${event.title}";
+            return EventCard(
+              title: event.title,
+              date: event.eventDate,
+              location: event.location,
+              imageUrl: imgUrl,
+              description: event.description,
+              isPast: false,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildMyPostsList() {
+    return FutureBuilder<List<PostModel>?>(
+      future: myPostsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final posts = snapshot.data ?? [];
+        if (posts.isEmpty) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Text("You haven't shared any posts.", style: TextStyle(color: Colors.grey)),
+          ));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: posts.length,
+          itemBuilder: (context, index) {
+            final post = posts[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                title: Text(post.content, maxLines: 2, overflow: TextOverflow.ellipsis),
+                subtitle: Text(post.createdAt?.split('T').first ?? ''),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () async {
+                    if (post.id != null) {
+                      final success = await PostService.deletePost(post.id!);
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Post deleted")),
+                        );
+                        setState(() {
+                          myPostsFuture = PostService.getMyPosts();
+                        });
+                      }
+                    }
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -244,17 +472,16 @@ class AlumniPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ProfileList(title: "Alumni Directory");
+    return const ProfileList(role: "ALUMNI");
   }
 }
 
-/// ================= FACULTY =================
 class FacultyPage extends StatelessWidget {
   const FacultyPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const ProfileList(title: "Faculty Members");
+    return const ProfileList(role: "FACULTY");
   }
 }
 
@@ -263,14 +490,22 @@ class EventCard extends StatelessWidget {
   final String title;
   final String date;
   final String location;
+  final String imageUrl;
+  final String description;
   final bool isPast;
+  final String? targetDepartment;
+  final String? note;
 
   const EventCard({
     super.key,
     required this.title,
     required this.date,
     required this.location,
+    required this.imageUrl,
+    required this.description,
     required this.isPast,
+    this.targetDepartment,
+    this.note,
   });
 
   @override
@@ -282,7 +517,7 @@ class EventCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1A3A8F).withOpacity(0.05),
+            color: const Color(0xFF1A3A8F).withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -291,27 +526,43 @@ class EventCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           ClipRRect(
-            borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(18)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
             child: Stack(
               children: [
-                Image.network(
-                  "https://picsum.photos/600/300?random=$title",
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ImageZoomScreen(imageUrl: imageUrl, tag: title),
+                      ),
+                    );
+                  },
+                  child: Hero(
+                    tag: title,
+                    child: Image.network(
+                      imageUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Image.network(
+                        "https://picsum.photos/600/300?random=$title",
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
                 ),
                 if (isPast)
                   Positioned(
                     top: 12,
                     right: 12,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Color(0xFF1A3A8F).withOpacity(0.7),
+                        color: const Color(0xFF1A3A8F).withOpacity(0.7),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -327,13 +578,11 @@ class EventCard extends StatelessWidget {
               ],
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 Text(
                   title,
                   style: const TextStyle(
@@ -341,36 +590,92 @@ class EventCard extends StatelessWidget {
                     fontSize: 15,
                   ),
                 ),
-
-                const SizedBox(height: 8),
-
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today,
-                        size: 14, color: Colors.grey),
+                    const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
                     const SizedBox(width: 6),
                     Text(
                       date,
-                      style: const TextStyle(
-                          color: Colors.grey, fontSize: 12),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 6),
-
                 Row(
                   children: [
-                    const Icon(Icons.location_on,
-                        size: 14, color: Colors.grey),
+                    const Icon(Icons.location_on, size: 14, color: Colors.grey),
                     const SizedBox(width: 6),
                     Text(
                       location,
-                      style: const TextStyle(
-                          color: Colors.grey, fontSize: 12),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ],
                 ),
+                if (targetDepartment != null && targetDepartment!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A3A8F).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.school_outlined, size: 12, color: Color(0xFF1A3A8F)),
+                        const SizedBox(width: 4),
+                        Text(
+                          "Department: $targetDepartment",
+                          style: const TextStyle(
+                            color: Color(0xFF1A3A8F),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (note != null && note!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, size: 14, color: Colors.amber.shade800),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            "Note: $note",
+                            style: TextStyle(
+                              color: Colors.amber.shade900,
+                              fontSize: 11.5,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -977,61 +1282,245 @@ class JobCard extends StatelessWidget {
 }
 
 /// ================= PROFILE LIST =================
-class ProfileList extends StatelessWidget {
-  final String title;
+class ProfileList extends StatefulWidget {
+  final String role;
 
-  const ProfileList({super.key, required this.title});
+  const ProfileList({super.key, required this.role});
+
+  @override
+  State<ProfileList> createState() => _ProfileListState();
+}
+
+class _ProfileListState extends State<ProfileList> {
+  late Future<List<dynamic>?> _profilesFuture;
+  String _searchQuery = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfiles();
+  }
+
+  void _loadProfiles() {
+    if (widget.role == "ALUMNI") {
+      _profilesFuture = AlumniProfileService.getAllAlumniProfiles();
+    } else {
+      _profilesFuture = FacultyProfileService.getAllFacultyProfiles();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: const [
-        ProfileCard(name: "Alex Thompson", role: "Software Engineer"),
-        ProfileCard(name: "Jessica Martinez", role: "Product Manager"),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: "Search ${widget.role.toLowerCase()}...",
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (value) {
+              setState(() => _searchQuery = value.toLowerCase());
+            },
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder<List<dynamic>?>(
+            future: _profilesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return const Center(child: Text("Error loading directory"));
+              }
+
+              final list = snapshot.data ?? [];
+              if (list.isEmpty) {
+                return const Center(child: Text("No profiles found."));
+              }
+
+              final filtered = list.where((p) {
+                if (widget.role == "ALUMNI") {
+                  final alumni = p as AlumniProfileModel;
+                  final isFilled = (alumni.degree != null && alumni.degree!.isNotEmpty) ||
+                                   (alumni.companyName != null && alumni.companyName!.isNotEmpty) ||
+                                   (alumni.designation != null && alumni.designation!.isNotEmpty) ||
+                                   (alumni.department != null && alumni.department!.isNotEmpty) ||
+                                   (alumni.batchYear != null && alumni.batchYear! > 0);
+                  if (!isFilled) return false;
+
+                  final name = alumni.userName ?? "";
+                  return name.toLowerCase().contains(_searchQuery);
+                } else {
+                  final faculty = p as FacultyProfileModel;
+                  final isFilled = (faculty.department != null && faculty.department!.isNotEmpty) ||
+                                   (faculty.designation != null && faculty.designation!.isNotEmpty) ||
+                                   (faculty.qualification != null && faculty.qualification!.isNotEmpty) ||
+                                   (faculty.specialization != null && faculty.specialization!.isNotEmpty) ||
+                                   (faculty.experienceYears != null && faculty.experienceYears! > 0);
+                  if (!isFilled) return false;
+
+                  final name = faculty.userName ?? "";
+                  return name.toLowerCase().contains(_searchQuery);
+                }
+              }).toList();
+
+              if (filtered.isEmpty) {
+                return const Center(child: Text("No profiles match your search"));
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final p = filtered[index];
+                  String name = "";
+                  String subtitle = "";
+                  int userId = 0;
+
+                  if (widget.role == "ALUMNI") {
+                    final alumni = p as AlumniProfileModel;
+                    name = alumni.userName ?? "Alumni Member";
+                    subtitle = "${alumni.designation ?? 'Graduate'} at ${alumni.companyName ?? 'GLS'}";
+                    userId = alumni.userId ?? 0;
+                  } else {
+                    final faculty = p as FacultyProfileModel;
+                    name = faculty.userName ?? "Faculty Member";
+                    subtitle = "${faculty.designation ?? 'Professor'} • ${faculty.department ?? 'GLS'}";
+                    userId = faculty.userId ?? 0;
+                  }
+
+                  return ProfileCard(
+                    name: name,
+                    role: subtitle,
+                    userId: userId,
+                    userRole: widget.role,
+                  );
+                },
+              );
+            },
+          ),
+        ),
       ],
     );
   }
 }
 
-/// ================= PROFILE CARD =================
 class ProfileCard extends StatelessWidget {
   final String name;
   final String role;
+  final int userId;
+  final String userRole;
 
   const ProfileCard({
     super.key,
     required this.name,
     required this.role,
+    required this.userId,
+    required this.userRole,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1A3A8F).withOpacity(0.05),
+            color: const Color(0xFF1A3A8F).withOpacity(0.05),
             blurRadius: 8,
           )
         ],
       ),
-      child: Row(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: const CircleAvatar(
+          radius: 22,
+          backgroundColor: Color(0xFFE0E7FF),
+          child: Icon(Icons.person, color: Colors.indigo),
+        ),
+        title: Text(
+          name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          role,
+          style: const TextStyle(fontSize: 12, color: Colors.black54),
+        ),
+        onTap: () {
+          if (userId > 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProfileDetailScreen(
+                  userId: userId,
+                  userName: name,
+                  userRole: userRole,
+                ),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+
+class ImageZoomScreen extends StatelessWidget {
+  final String imageUrl;
+  final String tag;
+
+  const ImageZoomScreen({super.key, required this.imageUrl, required this.tag});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black.withOpacity(0.95),
+      body: Stack(
         children: [
-          const CircleAvatar(
-            radius: 22,
-            backgroundColor: Color(0xFFE0E7FF),
-            child: Icon(Icons.person, color: Colors.indigo),
+          Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Hero(
+                tag: tag,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Image.network(
+                    "https://picsum.photos/600/300?random=$tag",
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: CircleAvatar(
+                  backgroundColor: Colors.black38,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

@@ -102,4 +102,47 @@ class FacultyProfileService {
       return false;
     }
   }
+
+  static Future<FacultyProfileModel?> getProfileByUserId(int userId) async {
+    try {
+      final token = await StorageService.getToken();
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/faculty/user/$userId"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return FacultyProfileModel.fromJson(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      print("🔥 Error in getProfileByUserId(): $e");
+      return null;
+    }
+  }
+
+  static Future<List<FacultyProfileModel>?> getAllFacultyProfiles() async {
+    try {
+      final token = await StorageService.getToken();
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/faculty"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        return jsonList.map((json) => FacultyProfileModel.fromJson(json)).toList();
+      }
+      return null;
+    } catch (e) {
+      print("🔥 Error in getAllFacultyProfiles(): $e");
+      return null;
+    }
+  }
 }

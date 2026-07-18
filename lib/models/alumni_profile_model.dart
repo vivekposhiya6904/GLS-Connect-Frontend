@@ -1,4 +1,6 @@
 class AlumniProfileModel {
+  final int? userId;
+  final String? userName;
   final int? batchYear;
   final String? degree;
   final String? department;
@@ -13,6 +15,8 @@ class AlumniProfileModel {
   final String? currentCity;
 
   AlumniProfileModel({
+    this.userId,
+    this.userName,
     this.batchYear,
     this.degree,
     this.department,
@@ -29,6 +33,8 @@ class AlumniProfileModel {
 
   factory AlumniProfileModel.fromJson(Map<String, dynamic> json) {
     return AlumniProfileModel(
+      userId: json['userId'],
+      userName: json['userName'],
       batchYear: json['batchYear'],
       degree: json['degree'],
       department: json['department'],
@@ -46,6 +52,8 @@ class AlumniProfileModel {
 
   Map<String, dynamic> toJson() {
     return {
+      "userId": userId,
+      "userName": userName,
       "batchYear": batchYear,
       "degree": degree,
       "department": department,
