@@ -4,6 +4,10 @@ import '../../models/alumni_profile_model.dart';
 import '../../utils/storage_service.dart';
 import '../auth/login_screen.dart';
 import '../../utils/theme_manager.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../models/profile_view_model.dart';
+import '../../services/profile_view_service.dart';
+import '../../config/api_config.dart';
 
 class AlumniProfileScreen extends StatefulWidget {
   const AlumniProfileScreen({super.key});
@@ -17,6 +21,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   bool isLoading = true;
 
   String username = "";
+  String? profilePictureUrl;
 
   final batchController = TextEditingController();
   final degreeController = TextEditingController();
@@ -72,6 +77,9 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
     final profile = await AlumniProfileService.getProfile();
 
     if (profile != null) {
+      setState(() {
+        profilePictureUrl = profile.profilePictureUrl;
+      });
       batchController.text = profile.batchYear?.toString() ?? "";
       degreeController.text = profile.degree ?? "";
       departmentController.text = profile.department ?? "";
@@ -101,6 +109,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
       githubUrl: githubController.text,
       contactNumber: contactController.text,
       currentCity: cityController.text,
+      profilePictureUrl: profilePictureUrl,
     );
 
     final success = await AlumniProfileService.updateProfile(updatedProfile);
@@ -127,7 +136,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
@@ -174,6 +183,8 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
                 _buildContactSection(),
                 const SizedBox(height: 16),
                 _buildSettingsSection(),
+                const SizedBox(height: 16),
+                _buildProfileViewsSection(),
                 const SizedBox(height: 24),
                 _buildLogoutButton(),
                 const SizedBox(height: 32),
@@ -199,26 +210,55 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Spacer(),
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+            GestureDetector(
+              onTap: isEditing ? _pickAndUploadImage : null,
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.white,
+                      backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
+                          ? NetworkImage("${ApiConfig.baseUrl}$profilePictureUrl")
+                          : null,
+                      child: profilePictureUrl == null || profilePictureUrl!.isEmpty
+                          ? const Icon(
+                              Icons.person_outline_rounded,
+                              size: 70,
+                              color: Color(0xFF1A3A8F),
+                            )
+                          : null,
+                    ),
                   ),
+                  if (isEditing)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF1A3A8F),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
                 ],
-              ),
-              child: const CircleAvatar(
-                radius: 60,
-                backgroundColor: Colors.white,
-                child: Icon(
-                  Icons.person_outline_rounded,
-                  size: 70,
-                  color: Color(0xFF1A3A8F),
-                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -619,7 +659,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -658,12 +698,12 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
                     size: 20,
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     "Dark Mode",
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                     ),
                   ),
                 ],
@@ -679,6 +719,107 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Uploading profile image...")),
+      );
+      final url = await AlumniProfileService.uploadProfileImage(picked);
+      if (url != null) {
+        setState(() {
+          profilePictureUrl = url;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile image uploaded successfully. Please save profile to commit.")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to upload profile image.")),
+        );
+      }
+    }
+  }
+
+  Widget _buildProfileViewsSection() {
+    return FutureBuilder<List<ProfileViewModel>>(
+      future: ProfileViewService.getProfileViews(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        final list = snapshot.data!;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.visibility_outlined, color: Color(0xFF1A3A8F), size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    "Who Viewed My Profile (${list.length})",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: list.length > 5 ? 5 : list.length,
+                itemBuilder: (context, index) {
+                  final view = list[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          view.viewerName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          view.timestamp.split('T').first,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -13,6 +13,8 @@ class AlumniProfileModel {
   final String? githubUrl;
   final String? contactNumber;
   final String? currentCity;
+  final String? profilePictureUrl;
+  final String? email;
 
   AlumniProfileModel({
     this.userId,
@@ -29,6 +31,8 @@ class AlumniProfileModel {
     this.githubUrl,
     this.contactNumber,
     this.currentCity,
+    this.profilePictureUrl,
+    this.email,
   });
 
   factory AlumniProfileModel.fromJson(Map<String, dynamic> json) {
@@ -47,6 +51,8 @@ class AlumniProfileModel {
       githubUrl: json['githubUrl'],
       contactNumber: json['contactNumber'],
       currentCity: json['currentCity'],
+      profilePictureUrl: json['profilePictureUrl'],
+      email: json['email'],
     );
   }
 
@@ -66,6 +72,8 @@ class AlumniProfileModel {
       "githubUrl": githubUrl,
       "contactNumber": contactNumber,
       "currentCity": currentCity,
+      "profilePictureUrl": profilePictureUrl,
+      "email": email,
     };
   }
 }

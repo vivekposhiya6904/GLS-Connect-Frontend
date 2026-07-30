@@ -48,30 +48,30 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F6FA),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           elevation: 0,
-          title: const Text(
+          title: Text(
             "GLS Connect",
             style: TextStyle(
-              color: Colors.black,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
               fontWeight: FontWeight.bold,
             ),
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.black),
+              icon: Icon(Icons.refresh, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black),
               onPressed: _refreshData,
             ),
             const SizedBox(width: 12),
           ],
-          bottom: const TabBar(
-            labelColor: Colors.black,
+          bottom: TabBar(
+            labelColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.indigo,
-            tabs: [
+            tabs: const [
               Tab(text: "Events"),
               Tab(text: "My Events"),
               Tab(text: "Alumni"),

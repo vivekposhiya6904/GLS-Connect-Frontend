@@ -53,7 +53,7 @@ class _MainNavigationState extends State<MainNavigation> {
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
         child: SizedBox(
           height: 65,
           child: Row(
@@ -69,11 +69,11 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF0D1B2A),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : const Color(0xFF0D1B2A),
         onPressed: () {
           showCreateOptions(); // ✅ OPEN MENU
         },
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.white),
       ),
 
       floatingActionButtonLocation:
@@ -91,7 +91,7 @@ class _MainNavigationState extends State<MainNavigation> {
       icon: Icon(
         icon,
         color: selectedIndex == index
-            ? const Color(0xFF0D1B2A)
+            ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF0D1B2A))
             : Colors.grey,
       ),
     );
@@ -101,7 +101,7 @@ class _MainNavigationState extends State<MainNavigation> {
   void showCreateOptions() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

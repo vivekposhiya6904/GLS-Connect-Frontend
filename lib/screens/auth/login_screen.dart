@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
 import '../router/dashboard_router.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 // ─── GLS Brand Palette ───────────────────────────────────────────────
 const Color glsBlue        = Color(0xFF1A3A8F);
@@ -351,7 +352,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return Center(
       child: GestureDetector(
         onTap: () {
-          // TODO: navigate to forgot password screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+          );
         },
         child: const Text(
           "Forgot password?",

@@ -11,6 +11,7 @@ class FacultyProfileModel {
   String? researchInterests;
   String? bio;
   String? linkedInUrl;
+  String? profilePictureUrl;
 
   // New fields matching the UI
   String? teachingExperience;
@@ -35,6 +36,7 @@ class FacultyProfileModel {
     this.researchInterests,
     this.bio,
     this.linkedInUrl,
+    this.profilePictureUrl,
     this.teachingExperience,
     this.industryExperience,
     this.publicationsCount,
@@ -59,6 +61,7 @@ class FacultyProfileModel {
       researchInterests: json['researchInterests'],
       bio: json['bio'],
       linkedInUrl: json['linkedInUrl'],
+      profilePictureUrl: json['profilePictureUrl'],
       teachingExperience: json['teachingExperience'],
       industryExperience: json['industryExperience'],
       publicationsCount: json['publicationsCount'],
@@ -84,6 +87,7 @@ class FacultyProfileModel {
       'researchInterests': researchInterests,
       'bio': bio,
       'linkedInUrl': linkedInUrl,
+      'profilePictureUrl': profilePictureUrl,
       'teachingExperience': teachingExperience,
       'industryExperience': industryExperience,
       'publicationsCount': publicationsCount,

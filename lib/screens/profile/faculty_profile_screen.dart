@@ -4,6 +4,11 @@ import '../auth/login_screen.dart';
 import '../../models/faculty_profile_model.dart';
 import '../../services/faculty_profile_service.dart';
 import '../../utils/theme_manager.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../services/alumni_profile_service.dart';
+import '../../config/api_config.dart';
+import '../../models/profile_view_model.dart';
+import '../../services/profile_view_service.dart';
 
 class FacultyProfileScreen extends StatefulWidget {
   const FacultyProfileScreen({super.key});
@@ -16,6 +21,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   bool isEditing = false;
   bool isLoading = true;
   String username = "";
+  String? profilePictureUrl;
 
   // Controllers
   final TextEditingController nameController = TextEditingController();
@@ -88,6 +94,9 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     final profile = await FacultyProfileService.getProfile();
 
     if (profile != null) {
+      setState(() {
+        profilePictureUrl = profile.profilePictureUrl;
+      });
       departmentController.text = profile.department ?? "";
       designationController.text = profile.designation ?? "";
       experienceController.text = profile.experienceYears?.toString() ?? "";
@@ -133,6 +142,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
       projectsSupervised: projectsSupervisedController.text,
       email: emailController.text,
       linkedInUrl: linkedInController.text,
+      profilePictureUrl: profilePictureUrl,
     );
 
     // Backend PUT updates/creates the profile
@@ -171,7 +181,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
@@ -200,21 +210,55 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                           children: [
                             const SizedBox(height: 40),
                             // Profile Photo
-                            Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 4),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 5),
+                            GestureDetector(
+                              onTap: isEditing ? _pickAndUploadImage : null,
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 4),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 55,
+                                      backgroundColor: Colors.white,
+                                      backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
+                                          ? NetworkImage("${ApiConfig.baseUrl}$profilePictureUrl")
+                                          : null,
+                                      child: profilePictureUrl == null || profilePictureUrl!.isEmpty
+                                          ? const Icon(
+                                              Icons.person,
+                                              size: 60,
+                                              color: Color(0xFF1A3A8F),
+                                            )
+                                          : null,
+                                    ),
                                   ),
+                                  if (isEditing)
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF1A3A8F),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.camera_alt,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
                                 ],
-                              ),
-                              child: const CircleAvatar(
-                                radius: 55,
-                                backgroundImage: NetworkImage("https://i.pravatar.cc/150?img=12"),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -285,7 +329,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                         margin: const EdgeInsets.only(bottom: 20),
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
@@ -417,6 +461,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                       const SizedBox(height: 16),
                       _buildSettingsSection(),
                       const SizedBox(height: 16),
+                      _buildProfileViewsSection(),
+                      const SizedBox(height: 16),
 
                       // Premium Blue Edit Profile Button (when not editing)
                       if (!isEditing)
@@ -532,7 +578,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -645,7 +691,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -684,12 +730,12 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                     size: 20,
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     "Dark Mode",
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                     ),
                   ),
                 ],
@@ -705,6 +751,107 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Uploading profile image...")),
+      );
+      final url = await AlumniProfileService.uploadProfileImage(picked);
+      if (url != null) {
+        setState(() {
+          profilePictureUrl = url;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile image uploaded successfully. Please save profile to commit.")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to upload profile image.")),
+        );
+      }
+    }
+  }
+
+  Widget _buildProfileViewsSection() {
+    return FutureBuilder<List<ProfileViewModel>>(
+      future: ProfileViewService.getProfileViews(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        final list = snapshot.data!;
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.visibility_outlined, color: Color(0xFF1A3A8F), size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    "Who Viewed My Profile (${list.length})",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: list.length > 5 ? 5 : list.length,
+                itemBuilder: (context, index) {
+                  final view = list[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          view.viewerName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          view.timestamp.split('T').first,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -3,6 +3,9 @@ import '../../models/alumni_profile_model.dart';
 import '../../models/faculty_profile_model.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../services/faculty_profile_service.dart';
+import '../../services/profile_view_service.dart';
+import '../../config/api_config.dart';
+import '../chat/chat_detail_screen.dart';
 
 class ProfileDetailScreen extends StatefulWidget {
   final int userId;
@@ -38,12 +41,18 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         _alumniProfile = profile;
         _isLoading = false;
       });
+      if (profile?.email != null && profile!.email!.isNotEmpty) {
+        ProfileViewService.logProfileView(profile.email!);
+      }
     } else if (widget.userRole == 'FACULTY') {
       final profile = await FacultyProfileService.getProfileByUserId(widget.userId);
       setState(() {
         _facultyProfile = profile;
         _isLoading = false;
       });
+      if (profile?.email != null && profile!.email!.isNotEmpty) {
+        ProfileViewService.logProfileView(profile.email!);
+      }
     } else {
       setState(() {
         _isLoading = false;
@@ -63,6 +72,31 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                   expandedHeight: 250,
                   pinned: true,
                   backgroundColor: const Color(0xFF1A3A8F),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+                      onPressed: () {
+                        final email = widget.userRole == 'ALUMNI'
+                            ? _alumniProfile?.email
+                            : _facultyProfile?.email;
+                        if (email != null && email.isNotEmpty) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatDetailScreen(
+                                name: widget.userName,
+                                receiverEmail: email,
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("User email not found. Cannot start chat.")),
+                          );
+                        }
+                      },
+                    ),
+                  ],
                   flexibleSpace: FlexibleSpaceBar(
                     title: Text(
                       widget.userName,
@@ -83,27 +117,118 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                         child: CircleAvatar(
                           radius: 50,
                           backgroundColor: Colors.white.withOpacity(0.9),
-                          child: Text(
-                            widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'U',
-                            style: const TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1A3A8F),
-                            ),
-                          ),
+                          backgroundImage: (widget.userRole == 'ALUMNI'
+                                  ? _alumniProfile?.profilePictureUrl
+                                  : _facultyProfile?.profilePictureUrl) !=
+                                  null &&
+                                  (widget.userRole == 'ALUMNI'
+                                          ? _alumniProfile?.profilePictureUrl
+                                          : _facultyProfile?.profilePictureUrl)!
+                                      .isNotEmpty
+                              ? NetworkImage(
+                                  "${ApiConfig.baseUrl}${widget.userRole == 'ALUMNI' ? _alumniProfile?.profilePictureUrl : _facultyProfile?.profilePictureUrl}")
+                              : null,
+                          child: (widget.userRole == 'ALUMNI'
+                                      ? _alumniProfile?.profilePictureUrl
+                                      : _facultyProfile?.profilePictureUrl) ==
+                                  null ||
+                                  (widget.userRole == 'ALUMNI'
+                                          ? _alumniProfile?.profilePictureUrl
+                                          : _facultyProfile?.profilePictureUrl)!
+                                      .isEmpty
+                              ? Text(
+                                  widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 40,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1A3A8F),
+                                  ),
+                                )
+                              : null,
                         ),
                       ),
                     ),
                   ),
                 ),
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: widget.userRole == 'ALUMNI'
-                        ? _buildAlumniDetails()
-                        : widget.userRole == 'FACULTY'
-                            ? _buildFacultyDetails()
-                            : _buildFallbackDetails(),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.userName,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A3A8F),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.userRole,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF1A3A8F), size: 28),
+                              onPressed: () {
+                                final email = widget.userRole == 'ALUMNI'
+                                    ? _alumniProfile?.email
+                                    : _facultyProfile?.email;
+                                if (email != null && email.isNotEmpty) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatDetailScreen(
+                                        name: widget.userName,
+                                        receiverEmail: email,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("User email not found. Cannot start chat.")),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: widget.userRole == 'ALUMNI'
+                            ? _buildAlumniDetails()
+                            : widget.userRole == 'FACULTY'
+                                ? _buildFacultyDetails()
+                                : _buildFallbackDetails(),
+                      ),
+                    ],
                   ),
                 ),
               ],

@@ -16,36 +16,44 @@ import '../../services/alumni_profile_service.dart';
 import '../../services/faculty_profile_service.dart';
 import '../../config/api_config.dart';
 import '../profile/profile_detail_screen.dart';
+import '../../services/notification_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 5,
       initialIndex: 0,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F6FA),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           elevation: 0,
-          title: const Text(
+          title: Text(
             "GLS Connect",
             style: TextStyle(
-              color: Color(0xFF1A3A8F),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A3A8F),
               fontWeight: FontWeight.bold,
             ),
           ),
-          iconTheme: const IconThemeData(color: Color(0xFF1A3A8F)),
+          iconTheme: IconThemeData(
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A3A8F),
+          ),
 
-          bottom: const TabBar(
-            labelColor: Color(0xFF1A3A8F),
+          bottom: TabBar(
+            labelColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A3A8F),
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.indigo,
             indicatorWeight: 3,
-            tabs: [
+            tabs: const [
               Tab(text: "All"),
               Tab(text: "Jobs"),
               Tab(text: "My Activity"),
@@ -55,20 +63,63 @@ class HomeScreen extends StatelessWidget {
           ),
 
           actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none, color: Color(0xFF1A3A8F)),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationScreen(),
-                  ),
+            FutureBuilder<int>(
+              future: NotificationService.getUnreadCount(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.notifications_none,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF1A3A8F),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NotificationScreen(),
+                          ),
+                        ).then((_) {
+                          setState(() {});
+                        });
+                      },
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                          ),
+                          child: Text(
+                            '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
             const SizedBox(width: 5),
             IconButton(
-              icon: const Icon(Icons.search, color: Color(0xFF1A3A8F)),
+              icon: Icon(Icons.search, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A3A8F)),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -513,7 +564,7 @@ class EventCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -594,9 +645,9 @@ class EventCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Colors.black54,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
                     ),
                   ),
                 ],
@@ -633,12 +684,12 @@ class EventCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.school_outlined, size: 12, color: Color(0xFF1A3A8F)),
+                        Icon(Icons.school_outlined, size: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.indigo.shade200 : const Color(0xFF1A3A8F)),
                         const SizedBox(width: 4),
                         Text(
                           "Department: $targetDepartment",
-                          style: const TextStyle(
-                            color: Color(0xFF1A3A8F),
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.indigo.shade200 : const Color(0xFF1A3A8F),
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
@@ -653,20 +704,20 @@ class EventCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
+                      color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2C2515) : Colors.amber.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.amber.shade200),
+                      border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.amber.shade800 : Colors.amber.shade200),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.info_outline, size: 14, color: Colors.amber.shade800),
+                        Icon(Icons.info_outline, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.amber.shade200 : Colors.amber.shade800),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             "Note: $note",
                             style: TextStyle(
-                              color: Colors.amber.shade900,
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.amber.shade200 : Colors.amber.shade900,
                               fontSize: 11.5,
                               height: 1.3,
                             ),
@@ -983,7 +1034,7 @@ class JobCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -992,7 +1043,7 @@ class JobCard extends StatelessWidget {
             offset: const Offset(0, 4),
           )
         ],
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1022,10 +1073,10 @@ class JobCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: Colors.black87,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1071,7 +1122,7 @@ class JobCard extends StatelessWidget {
                   children: [
                     const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
                     const SizedBox(width: 4),
-                    Text(location, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                    Text(location, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54, fontSize: 13)),
                   ],
                 ),
                 Row(
@@ -1079,7 +1130,7 @@ class JobCard extends StatelessWidget {
                   children: [
                     const Icon(Icons.currency_rupee_outlined, size: 16, color: Colors.grey),
                     const SizedBox(width: 4),
-                    Text(salary, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                    Text(salary, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54, fontSize: 13)),
                   ],
                 ),
                 if (joiningType != null && joiningType!.isNotEmpty)
@@ -1088,7 +1139,7 @@ class JobCard extends StatelessWidget {
                     children: [
                       const Icon(Icons.flash_on_outlined, size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text("Joining: $joiningType", style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                      Text("Joining: $joiningType", style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54, fontSize: 13)),
                     ],
                   ),
                 if (lastDateToApply != null && lastDateToApply!.isNotEmpty)
@@ -1109,14 +1160,14 @@ class JobCard extends StatelessWidget {
             // Rich Details: Description, Skills, Experience
             if (jobDescription != null && jobDescription!.isNotEmpty) ...[
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 "Job Description",
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
               ),
               const SizedBox(height: 4),
               Text(
                 jobDescription!,
-                style: const TextStyle(color: Colors.black54, fontSize: 13, height: 1.4),
+                style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54, fontSize: 13, height: 1.4),
               ),
             ],
 
@@ -1125,14 +1176,14 @@ class JobCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     "Skills: ",
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
                   ),
                   Expanded(
                     child: Text(
                       skillsRequired!,
-                      style: const TextStyle(color: Colors.black54, fontSize: 13),
+                      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54, fontSize: 13),
                     ),
                   ),
                 ],
@@ -1143,13 +1194,13 @@ class JobCard extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const Text(
+                  Text(
                     "Experience: ",
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
                   ),
                   Text(
                     experienceRequired!,
-                    style: const TextStyle(color: Colors.black54, fontSize: 13),
+                    style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54, fontSize: 13),
                   ),
                 ],
               ),
@@ -1386,17 +1437,20 @@ class _ProfileListState extends State<ProfileList> {
                   String name = "";
                   String subtitle = "";
                   int userId = 0;
+                  String? profilePic;
 
                   if (widget.role == "ALUMNI") {
                     final alumni = p as AlumniProfileModel;
                     name = alumni.userName ?? "Alumni Member";
                     subtitle = "${alumni.designation ?? 'Graduate'} at ${alumni.companyName ?? 'GLS'}";
                     userId = alumni.userId ?? 0;
+                    profilePic = alumni.profilePictureUrl;
                   } else {
                     final faculty = p as FacultyProfileModel;
                     name = faculty.userName ?? "Faculty Member";
                     subtitle = "${faculty.designation ?? 'Professor'} • ${faculty.department ?? 'GLS'}";
                     userId = faculty.userId ?? 0;
+                    profilePic = faculty.profilePictureUrl;
                   }
 
                   return ProfileCard(
@@ -1404,6 +1458,7 @@ class _ProfileListState extends State<ProfileList> {
                     role: subtitle,
                     userId: userId,
                     userRole: widget.role,
+                    profilePictureUrl: profilePic,
                   );
                 },
               );
@@ -1420,6 +1475,7 @@ class ProfileCard extends StatelessWidget {
   final String role;
   final int userId;
   final String userRole;
+  final String? profilePictureUrl;
 
   const ProfileCard({
     super.key,
@@ -1427,6 +1483,7 @@ class ProfileCard extends StatelessWidget {
     required this.role,
     required this.userId,
     required this.userRole,
+    this.profilePictureUrl,
   });
 
   @override
@@ -1445,10 +1502,15 @@ class ProfileCard extends StatelessWidget {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: const CircleAvatar(
+        leading: CircleAvatar(
           radius: 22,
-          backgroundColor: Color(0xFFE0E7FF),
-          child: Icon(Icons.person, color: Colors.indigo),
+          backgroundColor: const Color(0xFFE0E7FF),
+          backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
+              ? NetworkImage("${ApiConfig.baseUrl}$profilePictureUrl")
+              : null,
+          child: profilePictureUrl == null || profilePictureUrl!.isEmpty
+              ? const Icon(Icons.person, color: Colors.indigo)
+              : null,
         ),
         title: Text(
           name,
