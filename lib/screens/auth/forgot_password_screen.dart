@@ -57,9 +57,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       final response = await AuthService.forgotPassword(email);
       setState(() {
         _otpSent = true;
-        _generatedOtp = response['otp'];
       });
-      _showMessage("OTP generated successfully!", isError: false);
+      _showMessage("OTP sent to your email inbox!", isError: false);
+
     } catch (e) {
       _showMessage(e.toString());
     } finally {
@@ -200,33 +200,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                 ),
               ] else ...[
-                if (_generatedOtp != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: glsBlue.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: glsBlue.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline_rounded, color: glsBlue),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            "Your Demo OTP is: $_generatedOtp",
-                            style: const TextStyle(
-                              color: glsBlue,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: glsBlue.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: glsBlue.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.mark_email_read_outlined, color: glsBlue, size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "We've sent a 6-digit OTP to ${_emailController.text.trim()}. Please check your email inbox.",
+                          style: const TextStyle(
+                            color: glsTextDark,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                ],
+                ),
+                const SizedBox(height: 24),
+
 
                 const Text(
                   "6-Digit OTP",

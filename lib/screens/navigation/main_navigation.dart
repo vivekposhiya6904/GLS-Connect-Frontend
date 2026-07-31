@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../dashboard/alumni_home_screen.dart';
 import '../dashboard/faculty_home_screen.dart';
+import '../dashboard/admin_home_screen.dart';
 import '../chat/chat_screen.dart';
+
 import '../job_post/job_post_screen.dart';
 import '../profile/alumni_profile_screen.dart';
 import '../profile/faculty_profile_screen.dart';
@@ -28,7 +30,13 @@ class _MainNavigationState extends State<MainNavigation> {
   void initState() {
     super.initState();
 
-    if (widget.userRole == "FACULTY") {
+    if (widget.userRole == "ADMIN") {
+      pages = const [
+        AdminHomeScreen(),
+        ChatScreen(),
+        AlumniProfileScreen(),
+      ];
+    } else if (widget.userRole == "FACULTY") {
       pages = const [
         FacultyDashboard(),
         ChatScreen(),
