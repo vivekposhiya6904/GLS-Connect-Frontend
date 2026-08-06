@@ -32,33 +32,49 @@ class _HomeScreenState extends State<HomeScreen> {
       length: 5,
       initialIndex: 0,
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: const Color(0xFFF4F7FF),
 
         appBar: AppBar(
-          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-          elevation: 0,
-          title: Text(
-            "GLS Connect",
-            style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A3A8F),
-              fontWeight: FontWeight.bold,
-            ),
+          backgroundColor: const Color(0xFF1A3A8F),
+          elevation: 2,
+          title: Row(
+            children: [
+              const Icon(Icons.school_rounded, color: Colors.amber, size: 26),
+              const SizedBox(width: 10),
+              const Text(
+                "GLS Connect",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber),
+                ),
+                child: const Text(
+                  "ALUMNI",
+                  style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
-          iconTheme: IconThemeData(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A3A8F),
-          ),
+          iconTheme: const IconThemeData(color: Colors.white),
 
-          bottom: TabBar(
-            labelColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A3A8F),
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.indigo,
+          bottom: const TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: Colors.amber,
             indicatorWeight: 3,
-            tabs: const [
-              Tab(text: "All"),
-              Tab(text: "Jobs"),
-              Tab(text: "My Activity"),
-              Tab(text: "Alumni"),
-              Tab(text: "Faculty"),
+            isScrollable: true,
+            labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            tabs: [
+              Tab(text: "All", icon: Icon(Icons.dynamic_feed_rounded, size: 18)),
+              Tab(text: "Jobs", icon: Icon(Icons.work_rounded, size: 18)),
+              Tab(text: "My Activity", icon: Icon(Icons.history_rounded, size: 18)),
+              Tab(text: "Alumni", icon: Icon(Icons.people_alt_rounded, size: 18)),
+              Tab(text: "Faculty", icon: Icon(Icons.badge_rounded, size: 18)),
             ],
           ),
 
@@ -71,11 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   alignment: Alignment.center,
                   children: [
                     IconButton(
-                      icon: Icon(
-                        Icons.notifications_none,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : const Color(0xFF1A3A8F),
+                      icon: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.white,
                       ),
                       onPressed: () {
                         Navigator.push(
@@ -95,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(2),
                           decoration: const BoxDecoration(
-                            color: Colors.red,
+                            color: Colors.amber,
                             shape: BoxShape.circle,
                           ),
                           constraints: const BoxConstraints(
@@ -105,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text(
                             '$unreadCount',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: Color(0xFF1A3A8F),
                               fontSize: 8,
                               fontWeight: FontWeight.bold,
                             ),
@@ -119,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 5),
             IconButton(
-              icon: Icon(Icons.search, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A3A8F)),
+              icon: const Icon(Icons.search_rounded, color: Colors.white),
               onPressed: () {
                 Navigator.push(
                   context,

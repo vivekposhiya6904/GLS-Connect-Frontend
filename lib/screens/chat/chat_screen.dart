@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../config/api_config.dart';
 import '../../utils/storage_service.dart';
+import '../../services/encryption_service.dart';
 import 'chat_detail_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -191,35 +192,29 @@ class _ChatScreenState extends State<ChatScreen> {
 
         final sender = chat["sender"]?.toString() ?? "";
         final receiver = chat["receiver"]?.toString() ?? "";
-        final content = chat["content"]?.toString() ?? "";
-        final timestamp =
-            chat["timestamp"]?.toString() ?? "";
+        final rawContent = chat["content"]?.toString() ?? "";
+        final decryptedContent = EncryptionService.decrypt(rawContent, sender, receiver);
+        final timestamp = chat["timestamp"]?.toString() ?? "";
 
-        // 🔥 Correct other user logic
-        final otherUser =
-        sender == myEmail ? receiver : sender;
-
-        final unread =
-            unreadCounts[otherUser] ?? 0;
+        // Correct other user logic
+        final otherUser = sender.toLowerCase() == myEmail.toLowerCase() ? receiver : sender;
+        final unread = unreadCounts[otherUser.toLowerCase()] ?? unreadCounts[otherUser] ?? 0;
 
         return ListTile(
           leading: const CircleAvatar(
             backgroundColor: Color(0xFFEAEAEA),
-            child:
-            Icon(Icons.person, color: Colors.black),
+            child: Icon(Icons.person, color: Colors.black),
           ),
 
           title: Text(
             otherUser,
             style: TextStyle(
-              fontWeight: unread > 0
-                  ? FontWeight.bold
-                  : FontWeight.normal,
+              fontWeight: unread > 0 ? FontWeight.bold : FontWeight.normal,
             ),
           ),
 
           subtitle: Text(
-            content,
+            decryptedContent,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

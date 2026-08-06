@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../../config/api_config.dart';
+import '../../utils/storage_service.dart';
 
 import '../dashboard/alumni_home_screen.dart';
 import '../dashboard/faculty_home_screen.dart';
@@ -25,6 +30,8 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int selectedIndex = 0;
   late List<Widget> pages;
+  Timer? _unreadTimer;
+  int _totalUnreadCount = 0;
 
   @override
   void initState() {
@@ -49,12 +56,52 @@ class _MainNavigationState extends State<MainNavigation> {
         AlumniProfileScreen(),
       ];
     }
+
+    _fetchUnreadTotal();
+    _unreadTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _fetchUnreadTotal();
+    });
+  }
+
+  @override
+  void dispose() {
+    _unreadTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchUnreadTotal() async {
+    try {
+      final token = await StorageService.getToken();
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/chat/unread"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        int total = 0;
+        data.forEach((_, count) {
+          if (count is int) total += count;
+        });
+
+        if (mounted) {
+          setState(() {
+            _totalUnreadCount = total;
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false, // ✅ FIXED KEYBOARD ISSUE
+      resizeToAvoidBottomInset: false,
 
       body: pages[selectedIndex],
 
@@ -69,7 +116,7 @@ class _MainNavigationState extends State<MainNavigation> {
             children: [
               buildNavItem(Icons.home_outlined, 0),
               const SizedBox(width: 40),
-              buildNavItem(Icons.chat_bubble_outline, 1),
+              buildNavItem(Icons.chat_bubble_outline, 1, badgeCount: _totalUnreadCount),
               buildNavItem(Icons.person_outline, 2),
             ],
           ),
@@ -79,33 +126,62 @@ class _MainNavigationState extends State<MainNavigation> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : const Color(0xFF0D1B2A),
         onPressed: () {
-          showCreateOptions(); // ✅ OPEN MENU
+          showCreateOptions();
         },
-        child: Icon(Icons.add, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.white),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
 
-      floatingActionButtonLocation:
-      FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
-  Widget buildNavItem(IconData icon, int index) {
-    return IconButton(
-      onPressed: () {
-        setState(() {
-          selectedIndex = index;
-        });
-      },
-      icon: Icon(
-        icon,
-        color: selectedIndex == index
-            ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF0D1B2A))
-            : Colors.grey,
-      ),
+  Widget buildNavItem(IconData icon, int index, {int badgeCount = 0}) {
+    final isSelected = selectedIndex == index;
+    final color = isSelected
+        ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF0D1B2A))
+        : Colors.grey;
+
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          onPressed: () {
+            setState(() {
+              selectedIndex = index;
+            });
+            if (index == 1) {
+              _fetchUnreadTotal();
+            }
+          },
+          icon: Icon(icon, color: color),
+        ),
+        if (badgeCount > 0 && index == 1)
+          Positioned(
+            right: 4,
+            top: 4,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.redAccent,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text(
+                badgeCount > 99 ? '99+' : '$badgeCount',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
-  // 🔥 INSTAGRAM-LIKE MENU
   void showCreateOptions() {
     showModalBottomSheet(
       context: context,
@@ -128,13 +204,11 @@ class _MainNavigationState extends State<MainNavigation> {
               ),
               const SizedBox(height: 20),
 
-              // JOB OPTION
               ListTile(
                 leading: const Icon(Icons.work_outline),
                 title: const Text("Post Job"),
                 onTap: () {
                   Navigator.pop(context);
-
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -144,7 +218,6 @@ class _MainNavigationState extends State<MainNavigation> {
                 },
               ),
 
-              // EVENT OPTION
               ListTile(
                 leading: const Icon(Icons.event_outlined),
                 title: const Text("Create Event"),
