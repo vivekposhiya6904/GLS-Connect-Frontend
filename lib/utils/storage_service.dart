@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/chat_service.dart';
 
 class StorageService {
 
@@ -94,6 +95,9 @@ class StorageService {
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    try {
+      ChatService().disconnect();
+    } catch (_) {}
     print("🗑️ User logged out, all data cleared");
   }
 }
