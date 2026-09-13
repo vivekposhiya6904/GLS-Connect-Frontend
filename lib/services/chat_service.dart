@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../config/api_config.dart';
 import '../utils/storage_service.dart';
@@ -229,6 +230,7 @@ class ChatService {
   void sendMessage({
     required String receiver,
     required String content,
+    String? timestamp,
   }) {
     if (_stompClient == null || !_stompClient!.connected) {
       debugPrint("❌ ChatService.sendMessage failed: Not connected to WebSocket server");
@@ -240,6 +242,7 @@ class ChatService {
     final payload = {
       "receiver": targetReceiver,
       "content": content,
+      if (timestamp != null) "timestamp": timestamp,
     };
 
     debugPrint("📤 CHAT SEND: sender=$_connectedUserEmail, receiver=$targetReceiver, destination=/app/chat.send, payload=$payload");
@@ -282,4 +285,35 @@ class ChatService {
   }
 
   bool get isConnected => _stompClient?.connected ?? false;
+
+  Future<Map<String, int>> getUnreadCounts() async {
+    try {
+      final token = await StorageService.getToken();
+      if (token == null) return {};
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/chat/unread"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        final Map<String, int> result = {};
+        data.forEach((key, count) {
+          if (count is int) result[key] = count;
+        });
+        return result;
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  Future<int> getUnreadCount() async {
+    try {
+      final counts = await getUnreadCounts();
+      return counts.values.fold<int>(0, (int sum, int count) => sum + count);
+    } catch (_) {}
+    return 0;
+  }
 }

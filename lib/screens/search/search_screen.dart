@@ -331,23 +331,27 @@ class _SearchScreenState extends State<SearchScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        iconTheme:
-        const IconThemeData(color: Colors.black),
+        backgroundColor: const Color(0xFF1A3A8F),
+        elevation: 2,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: TextField(
           autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          cursorColor: Colors.amber,
           decoration: const InputDecoration(
-            hintText:
-            "Search events, alumni, faculty...",
+            hintText: "Search events, alumni, faculty...",
+            hintStyle: TextStyle(color: Colors.white70),
             border: InputBorder.none,
           ),
           onChanged: performSearch,
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.black,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.indigo,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.amber,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: "Events"),
             Tab(text: "Alumni"),

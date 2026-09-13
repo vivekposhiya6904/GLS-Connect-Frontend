@@ -8,6 +8,7 @@ import '../../config/api_config.dart';
 import '../../utils/storage_service.dart';
 
 import '../dashboard/alumni_home_screen.dart';
+import '../dashboard/student_home_screen.dart';
 import '../dashboard/faculty_home_screen.dart';
 import '../dashboard/admin_home_screen.dart';
 import '../chat/chat_screen.dart';
@@ -40,17 +41,22 @@ class _MainNavigationState extends State<MainNavigation> {
   void initState() {
     super.initState();
 
-    if (widget.userRole == "ADMIN") {
+    final roleUpper = widget.userRole.toUpperCase();
+    if (roleUpper == "ADMIN") {
       pages = const [
         AdminHomeScreen(),
-        ChatScreen(),
-        AlumniProfileScreen(),
       ];
-    } else if (widget.userRole == "FACULTY") {
+    } else if (roleUpper == "FACULTY") {
       pages = const [
         FacultyDashboard(),
         ChatScreen(),
         FacultyProfileScreen(),
+      ];
+    } else if (roleUpper == "STUDENT") {
+      pages = const [
+        StudentHomeScreen(),
+        ChatScreen(),
+        AlumniProfileScreen(),
       ];
     } else {
       pages = const [
@@ -60,14 +66,16 @@ class _MainNavigationState extends State<MainNavigation> {
       ];
     }
 
-    _fetchUnreadTotal();
+    if (roleUpper != "ADMIN") {
+      _fetchUnreadTotal();
 
-    _unreadTimer = Timer.periodic(
-      const Duration(seconds: 3),
-      (_) {
-        _fetchUnreadTotal();
-      },
-    );
+      _unreadTimer = Timer.periodic(
+        const Duration(seconds: 3),
+        (_) {
+          _fetchUnreadTotal();
+        },
+      );
+    }
   }
 
   @override
@@ -115,6 +123,7 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final roleUpper = widget.userRole.toUpperCase();
 
     return PopScope(
         canPop: selectedIndex == 0,
@@ -128,7 +137,7 @@ class _MainNavigationState extends State<MainNavigation> {
         child: Scaffold(
       resizeToAvoidBottomInset: false,
       body: pages[selectedIndex],
-      bottomNavigationBar: Container(
+      bottomNavigationBar: roleUpper == "ADMIN" ? null : Container(
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           boxShadow: [

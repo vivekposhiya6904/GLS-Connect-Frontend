@@ -36,6 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool isSearchMode = false;
   String searchText = "";
   String myEmail = "";
+  String myRole = "";
 
   @override
   void initState() {
@@ -45,6 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> initData() async {
     myEmail = (await StorageService.getUserEmail() ?? "").trim().toLowerCase();
+    myRole = (await StorageService.getUserRole() ?? "").trim().toUpperCase();
     await loadData();
 
     if (myEmail.isNotEmpty) {
@@ -198,10 +200,23 @@ class _ChatScreenState extends State<ChatScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (mounted) {
-          final usersList = (data as List)
-              .where((user) =>
-                  (user['email']?.toString() ?? "").trim().toLowerCase() != myEmail)
-              .toList();
+          final usersList = (data as List).where((user) {
+            final email = (user['email']?.toString() ?? "").trim().toLowerCase();
+            final role = (user['role']?.toString() ?? "").trim().toUpperCase();
+
+            // 1. Exclude self
+            if (email == myEmail) return false;
+
+            // 2. ADMIN must not participate in user chat
+            if (role == 'ADMIN') return false;
+
+            // 3. Remove Alumni from chat user lists in Faculty and Alumni screens
+            if ((myRole == 'ALUMNI' || myRole == 'FACULTY') && role == 'ALUMNI') {
+              return false;
+            }
+
+            return true;
+          }).toList();
 
           final Map<String, String> names = {};
           final Map<String, String> roles = {};

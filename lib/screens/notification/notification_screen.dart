@@ -45,13 +45,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        elevation: 0,
-        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
-        title: Text(
+        backgroundColor: const Color(0xFF1A3A8F),
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
           "Notifications",
           style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),

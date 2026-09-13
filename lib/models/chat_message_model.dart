@@ -54,7 +54,8 @@ class ChatMessageModel {
     DateTime parseTimestamp(dynamic ts) {
       if (ts == null) return DateTime.now();
       try {
-        return DateTime.parse(ts.toString());
+        final parsed = DateTime.parse(ts.toString());
+        return parsed.isUtc ? parsed.toLocal() : parsed;
       } catch (_) {
         return DateTime.now();
       }

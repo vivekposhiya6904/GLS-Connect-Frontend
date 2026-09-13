@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/event_model.dart';
-import '../models/post_model.dart';
 import '../utils/storage_service.dart';
 
 class AdminUserDto {

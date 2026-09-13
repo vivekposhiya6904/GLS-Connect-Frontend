@@ -20,12 +20,55 @@ class JobService {
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(response.body);
-        return jsonList.map((json) => JobModel.fromJson(json)).toList();
+        final jobs = jsonList.map((json) => JobModel.fromJson(json)).toList();
+        jobs.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+        return jobs;
       }
 
       return null;
     } catch (e) {
       print("❌ Error fetching jobs: $e");
+      return null;
+    }
+  }
+
+  /// Get current user's posted jobs from backend
+  static Future<List<JobModel>?> getMyJobs() async {
+    try {
+      final token = await StorageService.getToken();
+
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/jobs/my"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token"
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        final jobs = jsonList.map((json) => JobModel.fromJson(json)).toList();
+        jobs.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+        return jobs;
+      }
+
+      // Fallback: filter all jobs by user's email
+      final email = await StorageService.getUserEmail();
+      if (email != null && email.isNotEmpty) {
+        final all = await getAllJobs();
+        return all?.where((j) => j.userEmail.trim().toLowerCase() == email.trim().toLowerCase()).toList();
+      }
+
+      return null;
+    } catch (e) {
+      print("❌ Error fetching my jobs: $e");
+      try {
+        final email = await StorageService.getUserEmail();
+        if (email != null && email.isNotEmpty) {
+          final all = await getAllJobs();
+          return all?.where((j) => j.userEmail.trim().toLowerCase() == email.trim().toLowerCase()).toList();
+        }
+      } catch (_) {}
       return null;
     }
   }

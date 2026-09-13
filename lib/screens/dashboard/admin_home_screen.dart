@@ -5,8 +5,11 @@ import '../../services/job_service.dart';
 import '../../models/event_model.dart';
 import '../../models/job_model.dart';
 import '../../config/api_config.dart';
+import '../../utils/salary_helper.dart';
 import 'create_event_screen.dart';
 import '../job_post/job_post_screen.dart';
+import '../../utils/storage_service.dart';
+import '../auth/login_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -69,7 +72,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     final query = _userSearchController.text.toLowerCase().trim();
     setState(() {
       _filteredUsers = _allUsers.where((u) {
-        final matchesRole = _selectedRoleFilter == 'ALL' || u.roleName.toUpperCase() == _selectedRoleFilter;
+        final matchesRole = _selectedRoleFilter == 'ALL' ||
+            u.roleName.toUpperCase() == _selectedRoleFilter ||
+            (_selectedRoleFilter == 'STUDENT' && u.roleName.toUpperCase() == 'USER');
         final matchesQuery = query.isEmpty ||
             u.name.toLowerCase().contains(query) ||
             u.email.toLowerCase().contains(query);
@@ -135,7 +140,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final passwordCtrl = TextEditingController();
-    String selectedRole = 'ALUMNI';
+    String selectedRole = 'STUDENT';
     String selectedDept = 'MCA';
 
     await showDialog(
@@ -176,7 +181,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                 DropdownButton<String>(
                   value: selectedRole,
                   isExpanded: true,
-                  items: ['ALUMNI', 'FACULTY', 'USER', 'ADMIN'].map((r) {
+                  items: ['STUDENT', 'FACULTY', 'ALUMNI'].map((r) {
                     return DropdownMenuItem(value: r, child: Text(r));
                   }).toList(),
                   onChanged: (val) {
@@ -376,7 +381,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               TextField(controller: companyCtrl, decoration: const InputDecoration(labelText: "Company Name")),
               TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: "Job Title")),
               TextField(controller: locationCtrl, decoration: const InputDecoration(labelText: "Location")),
-              TextField(controller: salaryCtrl, decoration: const InputDecoration(labelText: "Salary Package")),
+              TextField(controller: salaryCtrl, decoration: const InputDecoration(labelText: "Annual Salary (LPA, e.g. 6 LPA)")),
               TextField(controller: expCtrl, decoration: const InputDecoration(labelText: "Experience Required")),
               TextField(controller: skillsCtrl, decoration: const InputDecoration(labelText: "Skills Required")),
               TextField(controller: descCtrl, maxLines: 3, decoration: const InputDecoration(labelText: "Job Description")),
@@ -395,7 +400,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                 companyName: companyCtrl.text.trim(),
                 jobTitle: titleCtrl.text.trim(),
                 location: locationCtrl.text.trim(),
-                salary: salaryCtrl.text.trim(),
+                salary: SalaryHelper.formatLpa(salaryCtrl.text.trim()),
                 jobDescription: descCtrl.text.trim(),
                 skillsRequired: skillsCtrl.text.trim(),
                 experienceRequired: expCtrl.text.trim(),
@@ -421,68 +426,129 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FF),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A3A8F),
-        elevation: 2,
-        title: Row(
+  // Action: Logout with confirmation dialog
+  Future<void> _confirmLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
           children: [
-            const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 28),
-            const SizedBox(width: 10),
-            const Text(
-              "Admin Portal",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber),
-              ),
-              child: const Text(
-                "ADMIN",
-                style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-            ),
+            Icon(Icons.logout_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text("Logout", style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
+        content: const Text("Are you sure you want to log out of the Admin Portal?"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            onPressed: _loadDashboardData,
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Logout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.amber,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          tabs: const [
-            Tab(text: "Overview", icon: Icon(Icons.dashboard_rounded, size: 20)),
-            Tab(text: "Users", icon: Icon(Icons.people_alt_rounded, size: 20)),
-            Tab(text: "Events", icon: Icon(Icons.event_rounded, size: 20)),
-            Tab(text: "Jobs", icon: Icon(Icons.work_rounded, size: 20)),
-          ],
-        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF1A3A8F)))
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOverviewTab(),
-                _buildUsersTab(),
-                _buildEventsTab(),
-                _buildJobsTab(),
-              ],
+    );
+
+    if (confirm == true && mounted) {
+      setState(() {
+        _allUsers.clear();
+        _filteredUsers.clear();
+        _pendingEvents.clear();
+        _approvedEvents.clear();
+        _allJobs.clear();
+      });
+
+      await StorageService.logout();
+
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: _tabController.index == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _tabController.index != 0) {
+          _tabController.animateTo(0);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F7FF),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1A3A8F),
+          elevation: 2,
+          title: Row(
+            children: [
+              const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 28),
+              const SizedBox(width: 10),
+              const Text(
+                "Admin Portal",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber),
+                ),
+                child: const Text(
+                  "ADMIN",
+                  style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, color: Colors.white),
+              tooltip: "Logout",
+              onPressed: _confirmLogout,
             ),
+          ],
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.amber,
+            indicatorWeight: 3,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            tabs: const [
+              Tab(text: "Overview", icon: Icon(Icons.dashboard_rounded, size: 20)),
+              Tab(text: "Users", icon: Icon(Icons.people_alt_rounded, size: 20)),
+              Tab(text: "Events", icon: Icon(Icons.event_rounded, size: 20)),
+              Tab(text: "Jobs", icon: Icon(Icons.work_rounded, size: 20)),
+            ],
+          ),
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF1A3A8F)))
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildOverviewTab(),
+                  _buildUsersTab(),
+                  _buildEventsTab(),
+                  _buildJobsTab(),
+                ],
+              ),
+      ),
     );
   }
 
@@ -493,7 +559,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     final totalUsers = _allUsers.length;
     final alumniCount = _allUsers.where((u) => u.roleName.toUpperCase() == 'ALUMNI').length;
     final facultyCount = _allUsers.where((u) => u.roleName.toUpperCase() == 'FACULTY').length;
-    final studentCount = _allUsers.where((u) => u.roleName.toUpperCase() == 'USER').length;
+    final studentCount = _allUsers.where((u) => u.roleName.toUpperCase() == 'STUDENT' || u.roleName.toUpperCase() == 'USER').length;
 
     return RefreshIndicator(
       onRefresh: _loadDashboardData,
@@ -532,29 +598,113 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           ),
           const SizedBox(height: 24),
 
-          // User Distribution Summary
-          const Text(
-            "User Role Breakdown",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 1,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+          const SizedBox(height: 20),
+
+          // 2. Pending Moderation Alert (if any)
+          if (_pendingEvents.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Row(
                 children: [
-                  _userRoleRow("Alumni Members", "$alumniCount", Colors.indigo),
-                  const Divider(),
-                  _userRoleRow("Faculty Members", "$facultyCount", Colors.teal),
-                  const Divider(),
-                  _userRoleRow("Students / General Users", "$studentCount", Colors.blueGrey),
+                  Icon(Icons.pending_actions_rounded, color: Colors.amber.shade900, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${_pendingEvents.length} Event(s) Pending Approval",
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber.shade900, fontSize: 14),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          "Faculty submitted new events that need review.",
+                          style: TextStyle(color: Colors.black87, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _tabController.animateTo(2), // Switch to Events tab
+                    child: const Text("Review", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
                 ],
               ),
             ),
+            const SizedBox(height: 20),
+          ],
+
+          // 3. Recent Registered Users (Non-duplicate useful section)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Recently Registered Users",
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
+              ),
+              TextButton(
+                onPressed: () => _tabController.animateTo(1), // Switch to Users tab
+                child: const Text("View All", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 6),
+          Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 1,
+            child: _allUsers.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Center(child: Text("No users registered yet.")),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _allUsers.length > 4 ? 4 : _allUsers.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, idx) {
+                      final u = _allUsers[idx];
+                      final role = u.roleName.toUpperCase();
+                      final color = role == 'ALUMNI'
+                          ? Colors.indigo
+                          : role == 'FACULTY'
+                              ? Colors.teal
+                              : role == 'ADMIN'
+                                  ? Colors.amber.shade900
+                                  : Colors.blueGrey;
+                      return ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          backgroundColor: color.withOpacity(0.15),
+                          child: Text(
+                            u.name.isNotEmpty ? u.name[0].toUpperCase() : "U",
+                            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        title: Text(u.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text("${u.email} • ${u.department}"),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: color),
+                          ),
+                          child: Text(
+                            role,
+                            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 20),
 
           // Quick Action Buttons
           const Text(
@@ -621,25 +771,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     );
   }
 
-  Widget _userRoleRow(String role, String count, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(radius: 5, backgroundColor: color),
-              const SizedBox(width: 10),
-              Text(role, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-            ],
-          ),
-          Text(count, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
-        ],
-      ),
-    );
-  }
-
   // ─────────────────────────────────────────────────────────────────
   // 2. USERS TAB
   // ─────────────────────────────────────────────────────────────────
@@ -693,13 +824,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: ['ALL', 'ALUMNI', 'FACULTY', 'USER', 'ADMIN'].map((role) {
+                  children: ['ALL', 'ALUMNI', 'FACULTY', 'STUDENT', 'ADMIN'].map((role) {
                     final isSelected = _selectedRoleFilter == role;
                     return Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: FilterChip(
                         selected: isSelected,
-                        label: Text(role == 'USER' ? 'STUDENT/USER' : role),
+                        label: Text(role),
                         selectedColor: const Color(0xFF1A3A8F),
                         labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 11),
                         onSelected: (_) {
@@ -718,65 +849,75 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         ),
 
         Expanded(
-          child: _filteredUsers.isEmpty
-              ? const Center(child: Text("No users match your filters", style: TextStyle(color: Colors.grey)))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _filteredUsers.length,
-                  itemBuilder: (context, index) {
-                    final u = _filteredUsers[index];
-                    final isAlumni = u.roleName.toUpperCase() == 'ALUMNI';
-                    final isFaculty = u.roleName.toUpperCase() == 'FACULTY';
+          child: RefreshIndicator(
+            onRefresh: _loadDashboardData,
+            child: _filteredUsers.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 80),
+                      Center(child: Text("No users match your filters", style: TextStyle(color: Colors.grey))),
+                    ],
+                  )
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _filteredUsers.length,
+                    itemBuilder: (context, index) {
+                      final u = _filteredUsers[index];
+                      final isAlumni = u.roleName.toUpperCase() == 'ALUMNI';
+                      final isFaculty = u.roleName.toUpperCase() == 'FACULTY';
 
-                    final roleColor = isAlumni
-                        ? Colors.indigo
-                        : isFaculty
-                            ? Colors.teal
-                            : u.roleName.toUpperCase() == 'ADMIN'
-                                ? Colors.amber.shade900
-                                : Colors.blueGrey;
+                      final roleColor = isAlumni
+                          ? Colors.indigo
+                          : isFaculty
+                              ? Colors.teal
+                              : u.roleName.toUpperCase() == 'ADMIN'
+                                  ? Colors.amber.shade900
+                                  : Colors.blueGrey;
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 1,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: roleColor.withOpacity(0.15),
-                          child: Text(
-                            u.name.isNotEmpty ? u.name[0].toUpperCase() : 'U',
-                            style: TextStyle(color: roleColor, fontWeight: FontWeight.bold),
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 1,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: roleColor.withValues(alpha: 0.15),
+                            child: Text(
+                              u.name.isNotEmpty ? u.name[0].toUpperCase() : 'U',
+                              style: TextStyle(color: roleColor, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          title: Text(u.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(u.email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: roleColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  u.roleName,
+                                  style: TextStyle(color: roleColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                          isThreeLine: true,
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                            onPressed: () => _confirmDeleteUser(u),
+                            tooltip: "Remove User",
                           ),
                         ),
-                        title: Text(u.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(u.email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: roleColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                u.roleName,
-                                style: TextStyle(color: roleColor, fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                        isThreeLine: true,
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-                          onPressed: () => _confirmDeleteUser(u),
-                          tooltip: "Remove User",
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+          ),
         ),
       ],
     );
@@ -807,73 +948,77 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
       }
     }).toList();
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Pending Section
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              "Pending Approvals (${_pendingEvents.length})",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (_pendingEvents.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text("No pending events to approve.", style: TextStyle(color: Colors.grey, fontSize: 13)),
-          )
-        else
-          ..._pendingEvents.map((event) => _pendingEventCard(event)),
+    return RefreshIndicator(
+      onRefresh: _loadDashboardData,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Pending Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Pending Approvals (${_pendingEvents.length})",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_pendingEvents.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text("No pending events to approve.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+            )
+          else
+            ..._pendingEvents.map((event) => _pendingEventCard(event)),
 
-        const SizedBox(height: 24),
-        const Divider(),
-        const SizedBox(height: 8),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 8),
 
-        // Upcoming Events Section
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              "Upcoming Events (${upcomingEvents.length})",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A3A8F)),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline, color: Color(0xFF1A3A8F)),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEventScreen())).then((_) => _loadDashboardData()),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (upcomingEvents.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text("No upcoming events found.", style: TextStyle(color: Colors.grey, fontSize: 13)),
-          )
-        else
-          ...upcomingEvents.map((event) => _approvedEventCard(event, isUpcoming: true)),
+          // Upcoming Events Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Upcoming Events (${upcomingEvents.length})",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A3A8F)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: Color(0xFF1A3A8F)),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEventScreen())).then((_) => _loadDashboardData()),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (upcomingEvents.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text("No upcoming events found.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+            )
+          else
+            ...upcomingEvents.map((event) => _approvedEventCard(event, isUpcoming: true)),
 
-        const SizedBox(height: 24),
-        const Divider(),
-        const SizedBox(height: 8),
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 8),
 
-        // Past Events Section
-        Text(
-          "Past Events (${pastEvents.length})",
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-        ),
-        const SizedBox(height: 8),
-        if (pastEvents.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text("No past events recorded.", style: TextStyle(color: Colors.grey, fontSize: 13)),
-          )
-        else
-          ...pastEvents.map((event) => _approvedEventCard(event, isUpcoming: false)),
-      ],
+          // Past Events Section
+          Text(
+            "Past Events (${pastEvents.length})",
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          if (pastEvents.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text("No past events recorded.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+            )
+          else
+            ...pastEvents.map((event) => _approvedEventCard(event, isUpcoming: false)),
+        ],
+      ),
     );
   }
 
@@ -1017,28 +1162,32 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   // 4. JOBS TAB
   // ─────────────────────────────────────────────────────────────────
   Widget _buildJobsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              "Job Postings (${_allJobs.length})",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline, color: Color(0xFF1A3A8F)),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PostJobScreen())).then((_) => _loadDashboardData()),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (_allJobs.isEmpty)
-          const Center(child: Padding(padding: EdgeInsets.all(24), child: Text("No job posts found", style: TextStyle(color: Colors.grey))))
-        else
-          ..._allJobs.map((job) => _jobCard(job)),
-      ],
+    return RefreshIndicator(
+      onRefresh: _loadDashboardData,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Job Postings (${_allJobs.length})",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: Color(0xFF1A3A8F)),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PostJobScreen())).then((_) => _loadDashboardData()),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_allJobs.isEmpty)
+            const Center(child: Padding(padding: EdgeInsets.all(24), child: Text("No job posts found", style: TextStyle(color: Colors.grey))))
+          else
+            ..._allJobs.map((job) => _jobCard(job)),
+        ],
+      ),
     );
   }
 
@@ -1090,7 +1239,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               children: [
                 if (job.salary.isNotEmpty)
                   Chip(
-                    label: Text("💰 ${job.salary}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    label: Text("💰 ${SalaryHelper.formatLpa(job.salary)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     backgroundColor: Colors.green.withOpacity(0.1),
                     visualDensity: VisualDensity.compact,
                   ),

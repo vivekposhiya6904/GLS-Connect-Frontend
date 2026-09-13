@@ -24,7 +24,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _isLoading = false;
   bool _otpSent = false;
   bool _obscurePassword = true;
-  String? _generatedOtp;
 
   @override
   void dispose() {
@@ -54,7 +53,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await AuthService.forgotPassword(email);
+      await AuthService.forgotPassword(email);
       setState(() {
         _otpSent = true;
       });

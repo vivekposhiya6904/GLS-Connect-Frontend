@@ -318,7 +318,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     final encryptedContent =
         EncryptionService.encrypt(text, myEmail!, targetEmail);
-    final tempId = "temp_${DateTime.now().millisecondsSinceEpoch}";
+    final sendTime = DateTime.now();
+    final clientTimestampStr = sendTime.toIso8601String();
+    final tempId = "temp_${sendTime.millisecondsSinceEpoch}";
 
     final localMsg = ChatMessageModel(
       id: tempId,
@@ -326,7 +328,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       receiver: targetEmail,
       content: text,
       status: MessageStatus.sent,
-      timestamp: DateTime.now(),
+      timestamp: sendTime,
     );
 
     // Optimistically render locally
@@ -337,6 +339,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _chatService.sendMessage(
         receiver: targetEmail,
         content: encryptedContent,
+        timestamp: clientTimestampStr,
       );
       isSending = false;
     } else {
@@ -351,6 +354,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           body: jsonEncode({
             "receiver": targetEmail,
             "content": encryptedContent,
+            "timestamp": clientTimestampStr,
           }),
         );
       } catch (_) {}

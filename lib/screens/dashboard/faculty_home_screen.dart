@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/event_model.dart';
 import '../../services/event_service.dart';
-import '../../config/api_config.dart';
-import 'alumni_home_screen.dart';
+import '../../utils/date_helper.dart';
+import '../../widgets/event_card.dart';
+import 'alumni_home_screen.dart' show ProfileList;
 
 class FacultyDashboard extends StatefulWidget {
   const FacultyDashboard({super.key});
@@ -17,17 +18,7 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
   bool _showPast = false;
 
   bool _isExpired(String dateStr) {
-    try {
-      if (dateStr.isEmpty) return false;
-      final date = DateTime.parse(dateStr.split('T')[0]);
-      final today = DateTime.now();
-      final normalizedDate = DateTime(date.year, date.month, date.day);
-      final normalizedToday = DateTime(today.year, today.month, today.day);
-      final diffDays = normalizedToday.difference(normalizedDate).inDays;
-      return diffDays > 3;
-    } catch (e) {
-      return false;
-    }
+    return DateHelper.isExpired(dateStr);
   }
 
   @override
@@ -163,8 +154,8 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
                 child: Center(
                   child: Text(
                     isMyTab
-                        ? "You haven't created any events."
-                        : "No events in this category.",
+                        ? "No events created yet."
+                        : "No events available.",
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ),
@@ -207,18 +198,8 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
               );
             }
             final event = events[isMyTab ? index : index - 1];
-            final imgUrl = event.imageUrl != null && event.imageUrl!.trim().isNotEmpty
-                ? (event.imageUrl!.startsWith("http") ? event.imageUrl! : "${ApiConfig.baseUrl}${event.imageUrl}")
-                : "https://picsum.photos/600/300?random=${event.title}";
             return EventCard(
-              title: event.title,
-              date: event.eventDate,
-              location: event.location,
-              imageUrl: imgUrl,
-              description: event.description,
-              isPast: _showPast,
-              targetDepartment: event.targetDepartment,
-              note: event.note,
+              event: event,
             );
           },
         );
