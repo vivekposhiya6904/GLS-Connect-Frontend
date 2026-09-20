@@ -4,6 +4,7 @@ import '../../models/event_model.dart';
 import '../../screens/chat/chat_detail_screen.dart';
 import '../../utils/date_helper.dart';
 import '../../utils/storage_service.dart';
+import 'create_event_screen.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final EventModel event;
@@ -57,6 +58,24 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         elevation: 0,
         title: const Text("Event Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          if (isMyEvent)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: Colors.white),
+              tooltip: "Edit Event",
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateEventScreen(eventToEdit: widget.event),
+                  ),
+                );
+                if (result == true && mounted) {
+                  Navigator.pop(context, true);
+                }
+              },
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

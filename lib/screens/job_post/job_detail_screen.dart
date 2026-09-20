@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/job_model.dart';
 import '../../screens/chat/chat_detail_screen.dart';
 import '../../utils/date_helper.dart';
 import '../../utils/salary_helper.dart';
 import '../../utils/storage_service.dart';
+import 'job_post_screen.dart';
 
 class JobDetailScreen extends StatefulWidget {
   final JobModel job;
@@ -48,6 +50,24 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         elevation: 0,
         title: const Text("Job Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          if (isMyJob)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: Colors.white),
+              tooltip: "Edit Job",
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PostJobScreen(jobToEdit: widget.job),
+                  ),
+                );
+                if (result == true && mounted) {
+                  Navigator.pop(context, true);
+                }
+              },
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -347,21 +367,44 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             child: ElevatedButton.icon(
               onPressed: (isExpired || isMyJob)
                   ? null
-                  : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatDetailScreen(
-                            name: widget.job.userName,
-                            receiverEmail: widget.job.userEmail,
-                          ),
-                        ),
+                  : () async {
+                      final emailToUse = (widget.job.companyEmail != null && widget.job.companyEmail!.trim().isNotEmpty)
+                          ? widget.job.companyEmail!.trim()
+                          : widget.job.userEmail.trim();
+
+                      if (emailToUse.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("No contact email provided for this job.")),
+                        );
+                        return;
+                      }
+
+                      final Uri emailLaunchUri = Uri(
+                        scheme: 'mailto',
+                        path: emailToUse,
+                        queryParameters: {
+                          'subject': 'Application for ${widget.job.jobTitle} position at ${widget.job.companyName}',
+                        },
                       );
+
+                      try {
+                        if (await canLaunchUrl(emailLaunchUri)) {
+                          await launchUrl(emailLaunchUri);
+                        } else {
+                          await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Email client opened for: $emailToUse")),
+                          );
+                        }
+                      }
                     },
               icon: Icon(
                 isExpired
                     ? Icons.block_rounded
-                    : (isMyJob ? Icons.person_rounded : Icons.chat_bubble_outline),
+                    : (isMyJob ? Icons.person_rounded : Icons.mail_outline_rounded),
                 size: 18,
               ),
               label: Text(

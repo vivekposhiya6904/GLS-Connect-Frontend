@@ -287,6 +287,11 @@ class _EventsPageState extends State<EventsPage> {
                 return EventCard(
                   event: event,
                   myEmail: myEmail,
+                  onRefresh: () {
+                    setState(() {
+                      eventsFuture = EventService.getAllEvents();
+                    });
+                  },
                 );
               }),
           ],
@@ -472,6 +477,7 @@ class _JobListState extends State<JobList> {
   String searchQuery = "";
   String selectedLocation = "All";
   String selectedSalary = "All";
+  bool showPast = false;
   String myEmail = "";
 
   @override
@@ -638,33 +644,40 @@ class _JobListState extends State<JobList> {
 
                 final matchesSalary = SalaryHelper.matchesFilter(job.salary, selectedSalary);
 
-                return matchesSearch &&
-                    matchesLocation &&
-                    matchesSalary;
+                final isExpired = DateHelper.isExpired(job.lastDateToApply);
+                final matchesPast = showPast ? true : !isExpired;
+
+                return matchesSearch && matchesLocation && matchesSalary && matchesPast;
               }).toList();
 
               if (filteredJobs.isEmpty) {
                 return const Center(
-                  child: Text(
-                    "No jobs match your filters",
-                  ),
+                  child: Text("No jobs match your filters"),
                 );
               }
 
-              return ListView.builder(
-                padding:
-                const EdgeInsets.all(16),
-                itemCount: filteredJobs.length,
-                itemBuilder:
-                    (context, index) {
-                  final job =
-                  filteredJobs[index];
-
-                  return JobCard(
-                    job: job,
-                    myEmail: myEmail,
-                  );
+              return RefreshIndicator(
+                onRefresh: () async {
+                  setState(() {
+                    jobsFuture = JobService.getAllJobs();
+                  });
                 },
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredJobs.length,
+                  itemBuilder: (context, index) {
+                    final job = filteredJobs[index];
+                    return JobCard(
+                      job: job,
+                      myEmail: myEmail,
+                      onRefresh: () {
+                        setState(() {
+                          jobsFuture = JobService.getAllJobs();
+                        });
+                      },
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -674,105 +687,109 @@ class _JobListState extends State<JobList> {
   }
 
   /// 🔥 FILTER BOTTOM SHEET
-  void _openFilterSheet(
-      BuildContext context) {
+  void _openFilterSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Filters",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              /// LOCATION
-              DropdownButtonFormField<String>(
-                initialValue: selectedLocation,
-                decoration:
-                const InputDecoration(
-                  labelText: "Location",
-                  border:
-                  OutlineInputBorder(),
-                ),
-                items: [
-                  "All",
-                  "Ahmedabad",
-                  "Remote",
-                  "Mumbai",
-                ]
-                    .map(
-                      (e) =>
-                      DropdownMenuItem(
-                        value: e,
-                        child: Text(e),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Filter Jobs",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-
-                  setState(() {
-                    selectedLocation =
-                        value;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 15),
-
-              /// SALARY
-              DropdownButtonFormField<String>(
-                initialValue: selectedSalary,
-                decoration:
-                const InputDecoration(
-                  labelText: "Salary (LPA)",
-                  border:
-                  OutlineInputBorder(),
-                ),
-                items: SalaryHelper.filterOptions
-                    .map(
-                      (e) =>
-                      DropdownMenuItem(
-                        value: e,
-                        child: Text(e),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
                       ),
-                )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) return;
+                    ],
+                  ),
+                  const Divider(),
+                  const SizedBox(height: 10),
 
-                  setState(() {
-                    selectedSalary = value;
-                  });
-                },
+                  /// LOCATION
+                  DropdownButtonFormField<String>(
+                    value: selectedLocation,
+                    decoration: InputDecoration(
+                      labelText: "Location",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    items: ["All", "Ahmedabad", "Remote", "Mumbai", "Bangalore", "Delhi", "Pune"]
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) setSheetState(() => selectedLocation = value);
+                    },
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  /// SALARY
+                  DropdownButtonFormField<String>(
+                    value: selectedSalary,
+                    decoration: InputDecoration(
+                      labelText: "Salary (LPA)",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    items: SalaryHelper.filterOptions
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) setSheetState(() => selectedSalary = value);
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  /// SHOW PAST JOBS SWITCH
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Show Past Jobs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      Switch(
+                        value: showPast,
+                        onChanged: (val) => setSheetState(() => showPast = val),
+                        activeColor: const Color(0xFF1A3A8F),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// APPLY BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A3A8F),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        setState(() {});
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
               ),
-
-              const SizedBox(height: 20),
-
-              /// APPLY BUTTON
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    setState(() {});
-                  },
-                  child:
-                  const Text("Apply Filters"),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

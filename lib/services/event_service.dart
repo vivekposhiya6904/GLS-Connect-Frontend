@@ -107,4 +107,62 @@ class EventService {
       return false;
     }
   }
+
+  static Future<bool> updateEvent({
+    required int eventId,
+    required String title,
+    required String description,
+    required String location,
+    required String eventDate,
+    required String targetDepartment,
+    String? note,
+    XFile? imageFile,
+  }) async {
+    try {
+      final token = await StorageService.getToken();
+      if (token == null) return false;
+
+      final request = http.MultipartRequest(
+        'PUT',
+        Uri.parse("${ApiConfig.baseUrl}/api/events/$eventId"),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.fields['title'] = title;
+      request.fields['description'] = description;
+      request.fields['location'] = location;
+      request.fields['eventDate'] = eventDate;
+      request.fields['targetDepartment'] = targetDepartment;
+      request.fields['note'] = note ?? '';
+
+      if (imageFile != null) {
+        if (kIsWeb) {
+          final bytes = await imageFile.readAsBytes();
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'image',
+              bytes,
+              filename: imageFile.name,
+            ),
+          );
+        } else {
+          request.files.add(
+            await http.MultipartFile.fromPath('image', imageFile.path),
+          );
+        }
+      }
+
+      final response = await request.send();
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("✅ Event updated successfully");
+        return true;
+      }
+      print("❌ Failed to update event: ${response.statusCode}");
+      return false;
+    } catch (e) {
+      print("❌ Error updating event: $e");
+      return false;
+    }
+  }
 }

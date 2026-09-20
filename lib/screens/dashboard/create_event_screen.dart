@@ -2,10 +2,13 @@ import 'dart:io' show File;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
+import '../../models/event_model.dart';
 import '../../services/event_service.dart';
 
 class CreateEventScreen extends StatefulWidget {
-  const CreateEventScreen({super.key});
+  final EventModel? eventToEdit;
+
+  const CreateEventScreen({super.key, this.eventToEdit});
 
   @override
   State<CreateEventScreen> createState() => _CreateEventScreenState();
@@ -32,6 +35,26 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.eventToEdit != null) {
+      final e = widget.eventToEdit!;
+      _titleController.text = e.title;
+      _descController.text = e.description;
+      _locationController.text = e.location;
+      _noteController.text = e.note ?? "";
+      if (e.targetDepartment != null && _departments.contains(e.targetDepartment)) {
+        _selectedDepartment = e.targetDepartment!;
+      }
+      try {
+        if (e.eventDate.isNotEmpty) {
+          _selectedDate = DateTime.parse(e.eventDate);
+        }
+      } catch (_) {}
+    }
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
@@ -53,8 +76,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
@@ -80,21 +103,34 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
     final dateStr = "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
 
-    final success = await EventService.createEvent(
-      title: title,
-      description: desc,
-      location: loc,
-      eventDate: dateStr,
-      targetDepartment: _selectedDepartment,
-      note: _noteController.text.trim(),
-      imageFile: _imageFile,
-    );
+    final bool isEditing = widget.eventToEdit != null;
+    final success = isEditing
+        ? await EventService.updateEvent(
+            eventId: widget.eventToEdit!.id!,
+            title: title,
+            description: desc,
+            location: loc,
+            eventDate: dateStr,
+            targetDepartment: _selectedDepartment,
+            note: _noteController.text.trim(),
+            imageFile: _imageFile,
+          )
+        : await EventService.createEvent(
+            title: title,
+            description: desc,
+            location: loc,
+            eventDate: dateStr,
+            targetDepartment: _selectedDepartment,
+            note: _noteController.text.trim(),
+            imageFile: _imageFile,
+          );
 
     setState(() => _isLoading = false);
 
     if (success) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Event created successfully!")),
+        SnackBar(content: Text(isEditing ? "Event updated successfully!" : "Event created successfully!")),
       );
       Navigator.pop(context, true);
     } else {

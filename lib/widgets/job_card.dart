@@ -8,11 +8,13 @@ import '../utils/salary_helper.dart';
 class JobCard extends StatelessWidget {
   final JobModel job;
   final String myEmail;
+  final VoidCallback? onRefresh;
 
   const JobCard({
     super.key,
     required this.job,
     this.myEmail = "",
+    this.onRefresh,
   });
 
   @override
@@ -46,13 +48,16 @@ class JobCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => JobDetailScreen(job: job),
               ),
             );
+            if (result == true) {
+              onRefresh?.call();
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(16),

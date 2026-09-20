@@ -8,11 +8,13 @@ import '../utils/date_helper.dart';
 class EventCard extends StatelessWidget {
   final EventModel event;
   final String myEmail;
+  final VoidCallback? onRefresh;
 
   const EventCard({
     super.key,
     required this.event,
     this.myEmail = "",
+    this.onRefresh,
   });
 
   @override
@@ -52,13 +54,16 @@ class EventCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => EventDetailScreen(event: event),
               ),
             );
+            if (result == true) {
+              onRefresh?.call();
+            }
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

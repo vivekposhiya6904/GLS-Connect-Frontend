@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../models/job_model.dart';
 import '../../services/job_service.dart';
 
 class PostJobScreen extends StatefulWidget {
-  const PostJobScreen({super.key});
+  final JobModel? jobToEdit;
+
+  const PostJobScreen({super.key, this.jobToEdit});
 
   @override
   State<PostJobScreen> createState() => _PostJobScreenState();
@@ -26,6 +29,30 @@ class _PostJobScreenState extends State<PostJobScreen> {
   DateTime? selectedDate;
   bool _dateError = false;
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.jobToEdit != null) {
+      final j = widget.jobToEdit!;
+      title.text = j.jobTitle;
+      company.text = j.companyName;
+      location.text = j.location;
+      salary.text = j.salary;
+      description.text = j.jobDescription;
+      companyLink.text = j.companyLink ?? "";
+      companyEmail.text = j.companyEmail ?? "";
+      skillsRequired.text = j.skillsRequired;
+      experienceRequired.text = j.experienceRequired;
+      joiningType = j.joiningType.isNotEmpty ? j.joiningType : "Immediate";
+      jobType = j.jobType.isNotEmpty ? j.jobType : "Full Time";
+      try {
+        if (j.lastDateToApply.isNotEmpty) {
+          selectedDate = DateTime.parse(j.lastDateToApply);
+        }
+      } catch (_) {}
+    }
+  }
 
   @override
   void dispose() {
@@ -64,30 +91,49 @@ class _PostJobScreenState extends State<PostJobScreen> {
           ? cleanSalary
           : "$cleanSalary LPA";
 
-      final success = await JobService.createJob(
-        companyName: company.text.trim(),
-        jobTitle: title.text.trim(),
-        location: location.text.trim(),
-        salary: lpaFormatted,
-        jobDescription: description.text.trim(),
-        skillsRequired: skillsRequired.text.trim(),
-        experienceRequired: experienceRequired.text.trim(),
-        joiningType: joiningType,
-        jobType: jobType,
-        lastDateToApply:
-            "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}",
-        companyLink: companyLink.text.trim(),
-        companyEmail: companyEmail.text.trim(),
-      );
+      final dateStr =
+          "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}";
+
+      final bool isEditing = widget.jobToEdit != null;
+      final success = isEditing
+          ? await JobService.updateJob(
+              jobId: widget.jobToEdit!.id!,
+              companyName: company.text.trim(),
+              jobTitle: title.text.trim(),
+              location: location.text.trim(),
+              salary: lpaFormatted,
+              jobDescription: description.text.trim(),
+              skillsRequired: skillsRequired.text.trim(),
+              experienceRequired: experienceRequired.text.trim(),
+              joiningType: joiningType,
+              jobType: jobType,
+              lastDateToApply: dateStr,
+              companyLink: companyLink.text.trim(),
+              companyEmail: companyEmail.text.trim(),
+            )
+          : await JobService.createJob(
+              companyName: company.text.trim(),
+              jobTitle: title.text.trim(),
+              location: location.text.trim(),
+              salary: lpaFormatted,
+              jobDescription: description.text.trim(),
+              skillsRequired: skillsRequired.text.trim(),
+              experienceRequired: experienceRequired.text.trim(),
+              joiningType: joiningType,
+              jobType: jobType,
+              lastDateToApply: dateStr,
+              companyLink: companyLink.text.trim(),
+              companyEmail: companyEmail.text.trim(),
+            );
 
       setState(() => isLoading = false);
 
       if (success) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Job posted successfully!"),
-            backgroundColor: Color(0xFF1A3A8F),
+          SnackBar(
+            content: Text(isEditing ? "Job updated successfully!" : "Job posted successfully!"),
+            backgroundColor: const Color(0xFF1A3A8F),
           ),
         );
         Navigator.pop(context, true);
@@ -119,7 +165,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A3A8F),
         elevation: 0,
-        title: const Text("Post Job", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(widget.jobToEdit != null ? "Edit Job" : "Post Job", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Form(

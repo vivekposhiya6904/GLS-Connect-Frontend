@@ -298,25 +298,6 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                       ),
                     ),
                   ),
-                  actions: [
-                    // EDIT BUTTON
-                    IconButton(
-                      icon: Icon(isEditing ? Icons.close : Icons.edit, color: Colors.white),
-                      onPressed: () {
-                        setState(() {
-                          isEditing = !isEditing;
-                          if (!isEditing) {
-                            loadProfile(); // Reset fields if cancelled
-                          }
-                        });
-                      },
-                    ),
-                    // LOGOUT BUTTON
-                    IconButton(
-                      icon: const Icon(Icons.logout, color: Colors.white70),
-                      onPressed: logout,
-                    ),
-                  ],
                 ),
 
                 // Main Content
@@ -458,9 +439,6 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                         content: _buildInfoRow("Recognitions", achievementsController, Icons.star),
                       ),
 
-                      const SizedBox(height: 16),
-                      _buildSettingsSection(),
-                      const SizedBox(height: 16),
                       _buildProfileViewsSection(),
                       const SizedBox(height: 16),
 
@@ -686,73 +664,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     );
   }
 
-  Widget _buildSettingsSection() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.settings_outlined, color: Color(0xFF1A3A8F), size: 22),
-              SizedBox(width: 10),
-              Text(
-                "App Settings",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    ThemeManager().isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                    color: Colors.grey.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Dark Mode",
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-              Switch(
-                value: ThemeManager().isDarkMode,
-                onChanged: (val) {
-                  ThemeManager().toggleTheme(val);
-                },
-                activeColor: const Color(0xFF1A3A8F),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../models/alumni_profile_model.dart';
 import '../../utils/storage_service.dart';
@@ -149,27 +150,6 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
             flexibleSpace: FlexibleSpaceBar(
               background: _buildProfileHeader(),
             ),
-            actions: [
-              IconButton(
-                icon: Icon(
-                  isEditing ? Icons.save_outlined : Icons.edit_outlined,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                onPressed: () async {
-                  if (isEditing) {
-                    await saveProfile();
-                  }
-                  setState(() {
-                    isEditing = !isEditing;
-                  });
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout_outlined, color: Colors.white),
-                onPressed: _handleLogout,
-              ),
-            ],
           ),
           SliverToBoxAdapter(
             child: Column(
@@ -182,11 +162,13 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
                 const SizedBox(height: 16),
                 _buildContactSection(),
                 const SizedBox(height: 16),
-                _buildSettingsSection(),
-                const SizedBox(height: 16),
                 _buildProfileViewsSection(),
                 const SizedBox(height: 24),
-                _buildLogoutButton(),
+                _buildEditProfileButton(),
+                if (!isEditing) ...[
+                  const SizedBox(height: 12),
+                  _buildLogoutButton(),
+                ],
                 const SizedBox(height: 32),
               ],
             ),
@@ -627,6 +609,40 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
     );
   }
 
+  Widget _buildEditProfileButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          if (isEditing) {
+            await saveProfile();
+          }
+          setState(() {
+            isEditing = !isEditing;
+          });
+        },
+        icon: Icon(isEditing ? Icons.check_circle_outline : Icons.edit_outlined, color: Colors.white),
+        label: Text(
+          isEditing ? "Save Changes" : "Edit Profile",
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isEditing ? Colors.green.shade700 : const Color(0xFF1A3A8F),
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
+
   Widget _buildLogoutButton() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -654,74 +670,6 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
     );
   }
 
-  Widget _buildSettingsSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.settings_outlined, color: Color(0xFF1A3A8F), size: 22),
-              SizedBox(width: 10),
-              Text(
-                "App Settings",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    ThemeManager().isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                    color: Colors.grey.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Dark Mode",
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-              Switch(
-                value: ThemeManager().isDarkMode,
-                onChanged: (val) {
-                  ThemeManager().toggleTheme(val);
-                },
-                activeColor: const Color(0xFF1A3A8F),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
@@ -734,10 +682,13 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
         setState(() {
           profilePictureUrl = url;
         });
+        await saveProfile();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile image uploaded successfully. Please save profile to commit.")),
+          const SnackBar(content: Text("Profile image uploaded successfully!")),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Failed to upload profile image.")),
         );
