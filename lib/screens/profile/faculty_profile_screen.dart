@@ -3,7 +3,6 @@ import '../../utils/storage_service.dart';
 import '../auth/login_screen.dart';
 import '../../models/faculty_profile_model.dart';
 import '../../services/faculty_profile_service.dart';
-import '../../utils/theme_manager.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../config/api_config.dart';

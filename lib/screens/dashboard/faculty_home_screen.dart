@@ -3,18 +3,17 @@ import '../../models/event_model.dart';
 import '../../services/event_service.dart';
 import '../../utils/date_helper.dart';
 import '../../widgets/event_card.dart';
-import 'alumni_home_screen.dart' show ProfileList;
+import 'alumni_home_screen.dart' show ProfileList, JobList, MyActivityPage;
 
 class FacultyDashboard extends StatefulWidget {
   const FacultyDashboard({super.key});
 
   @override
-  State<FacultyDashboard> createState() => _FacultyDashboardState();
+  State<FacultyDashboard> createState() => FacultyDashboardState();
 }
 
-class _FacultyDashboardState extends State<FacultyDashboard> {
+class FacultyDashboardState extends State<FacultyDashboard> {
   late Future<List<EventModel>?> _eventsFuture;
-  late Future<List<EventModel>?> _myEventsFuture;
   bool _showPast = false;
 
   bool _isExpired(String dateStr) {
@@ -24,20 +23,21 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
   @override
   void initState() {
     super.initState();
-    _refreshData();
+    refreshData();
   }
 
-  void _refreshData() {
-    setState(() {
-      _eventsFuture = EventService.getAllEvents();
-      _myEventsFuture = EventService.getMyEvents();
-    });
+  void refreshData() {
+    if (mounted) {
+      setState(() {
+        _eventsFuture = EventService.getAllEvents();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F7FF),
         appBar: AppBar(
@@ -67,23 +67,17 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
               ),
             ],
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-              onPressed: _refreshData,
-              tooltip: "Refresh Data",
-            ),
-            const SizedBox(width: 8),
-          ],
           bottom: const TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
             indicatorColor: Colors.amber,
             indicatorWeight: 3,
+            isScrollable: true,
             labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             tabs: [
               Tab(text: "Events", icon: Icon(Icons.event_rounded, size: 18)),
-              Tab(text: "My Events", icon: Icon(Icons.stars_rounded, size: 18)),
+              Tab(text: "Jobs", icon: Icon(Icons.work_rounded, size: 18)),
+              Tab(text: "My Activity", icon: Icon(Icons.history_rounded, size: 18)),
               Tab(text: "Alumni", icon: Icon(Icons.people_alt_rounded, size: 18)),
               Tab(text: "Faculty", icon: Icon(Icons.badge_rounded, size: 18)),
             ],
@@ -92,7 +86,8 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
         body: TabBarView(
           children: [
             _buildEventListTab(_eventsFuture, false),
-            _buildEventListTab(_myEventsFuture, true),
+            const JobList(),
+            const MyActivityPage(),
             const ProfileList(role: "ALUMNI"),
             const ProfileList(role: "FACULTY"),
           ],
@@ -200,6 +195,7 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
             final event = events[isMyTab ? index : index - 1];
             return EventCard(
               event: event,
+              onRefresh: refreshData,
             );
           },
         );

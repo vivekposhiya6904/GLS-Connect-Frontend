@@ -37,6 +37,8 @@ class _MainNavigationState extends State<MainNavigation> {
   Timer? _unreadTimer;
   int _totalUnreadCount = 0;
 
+  final GlobalKey<FacultyDashboardState> _facultyDashboardKey = GlobalKey<FacultyDashboardState>();
+
   @override
   void initState() {
     super.initState();
@@ -47,10 +49,10 @@ class _MainNavigationState extends State<MainNavigation> {
         AdminHomeScreen(),
       ];
     } else if (roleUpper == "FACULTY") {
-      pages = const [
-        FacultyDashboard(),
-        ChatScreen(),
-        FacultyProfileScreen(),
+      pages = [
+        FacultyDashboard(key: _facultyDashboardKey),
+        const ChatScreen(),
+        const FacultyProfileScreen(),
       ];
     } else if (roleUpper == "STUDENT") {
       pages = const [
@@ -360,15 +362,18 @@ class _MainNavigationState extends State<MainNavigation> {
                 title: const Text(
                   "Post Job",
                 ),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
 
-                  Navigator.push(
+                  final res = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => PostJobScreen(),
                     ),
                   );
+                  if (res == true || res == null) {
+                    _facultyDashboardKey.currentState?.refreshData();
+                  }
                 },
               ),
               ListTile(
@@ -378,15 +383,18 @@ class _MainNavigationState extends State<MainNavigation> {
                 title: const Text(
                   "Create Event",
                 ),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
 
-                  Navigator.push(
+                  final res = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const CreateEventScreen(),
                     ),
                   );
+                  if (res == true || res == null) {
+                    _facultyDashboardKey.currentState?.refreshData();
+                  }
                 },
               ),
               const SizedBox(height: 10),
