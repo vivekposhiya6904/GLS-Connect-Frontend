@@ -193,7 +193,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
           children: [
             const Spacer(),
             GestureDetector(
-              onTap: isEditing ? _pickAndUploadImage : null,
+              onTap: _pickAndUploadImage,
               child: Stack(
                 children: [
                   Container(
@@ -212,7 +212,9 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
                       radius: 60,
                       backgroundColor: Colors.white,
                       backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
-                          ? NetworkImage("${ApiConfig.baseUrl}$profilePictureUrl")
+                          ? NetworkImage(profilePictureUrl!.startsWith("http")
+                              ? profilePictureUrl!
+                              : "${ApiConfig.baseUrl}$profilePictureUrl")
                           : null,
                       child: profilePictureUrl == null || profilePictureUrl!.isEmpty
                           ? const Icon(
@@ -223,23 +225,22 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
                           : null,
                     ),
                   ),
-                  if (isEditing)
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF1A3A8F),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 18,
-                        ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1A3A8F),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 18,
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -674,23 +675,32 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (picked != null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Uploading profile image...")),
+        const SnackBar(content: Text("Uploading profile picture...")),
       );
       final url = await AlumniProfileService.uploadProfileImage(picked);
       if (url != null) {
+        if (!mounted) return;
         setState(() {
           profilePictureUrl = url;
         });
         await saveProfile();
+        await loadProfile();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile image uploaded successfully!")),
+          const SnackBar(
+            content: Text("Profile picture updated successfully!"),
+            backgroundColor: Colors.green,
+          ),
         );
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to upload profile image.")),
+          const SnackBar(
+            content: Text("Failed to upload profile picture. Please try again."),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

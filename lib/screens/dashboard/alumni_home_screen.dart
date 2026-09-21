@@ -176,10 +176,10 @@ class EventList extends StatefulWidget {
   const EventList({super.key});
 
   @override
-  State<EventList> createState() => _EventListState();
+  State<EventList> createState() => EventListState();
 }
 
-class _EventListState extends State<EventList> {
+class EventListState extends State<EventList> {
   late Future<List<EventModel>?> eventsFuture;
   String searchQuery = "";
   String selectedDepartment = "All";
@@ -189,8 +189,16 @@ class _EventListState extends State<EventList> {
   @override
   void initState() {
     super.initState();
-    eventsFuture = EventService.getAllEvents();
+    refreshData();
     loadMyEmail();
+  }
+
+  void refreshData() {
+    if (mounted) {
+      setState(() {
+        eventsFuture = EventService.getAllEvents();
+      });
+    }
   }
 
   Future<void> loadMyEmail() async {
@@ -438,7 +446,8 @@ class JobsPage extends StatelessWidget {
 
 /// ================= MY ACTIVITY =================
 class MyActivityPage extends StatefulWidget {
-  const MyActivityPage({super.key});
+  final bool showPosts;
+  const MyActivityPage({super.key, this.showPosts = true});
 
   @override
   State<MyActivityPage> createState() => _MyActivityPageState();
@@ -454,7 +463,9 @@ class _MyActivityPageState extends State<MyActivityPage> {
   void initState() {
     super.initState();
     myEventsFuture = EventService.getMyEvents();
-    myPostsFuture = PostService.getMyPosts();
+    if (widget.showPosts) {
+      myPostsFuture = PostService.getMyPosts();
+    }
     myJobsFuture = _loadMyJobs();
   }
 
@@ -469,24 +480,24 @@ class _MyActivityPageState extends State<MyActivityPage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: widget.showPosts ? 3 : 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F6FA),
-        appBar: const TabBar(
-          labelColor: Color(0xFF1A3A8F),
+        backgroundColor: const Color(0xFFF4F7FF),
+        appBar: TabBar(
+          labelColor: const Color(0xFF1A3A8F),
           unselectedLabelColor: Colors.grey,
-          indicatorColor: Color(0xFF1A3A8F),
+          indicatorColor: const Color(0xFF1A3A8F),
           tabs: [
-            Tab(text: "My Jobs"),
-            Tab(text: "My Events"),
-            Tab(text: "My Posts"),
+            const Tab(text: "My Jobs"),
+            const Tab(text: "My Events"),
+            if (widget.showPosts) const Tab(text: "My Posts"),
           ],
         ),
         body: TabBarView(
           children: [
             _buildMyJobsList(),
             _buildMyEventsList(),
-            _buildMyPostsList(),
+            if (widget.showPosts) _buildMyPostsList(),
           ],
         ),
       ),
@@ -502,10 +513,21 @@ class _MyActivityPageState extends State<MyActivityPage> {
         }
         final jobs = snapshot.data ?? [];
         if (jobs.isEmpty) {
-          return const Center(child: Padding(
-            padding: EdgeInsets.all(20.0),
-            child: Text("You haven't posted any jobs.", style: TextStyle(color: Colors.grey)),
-          ));
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.work_outline, size: 52, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text("No Job Posts Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                  SizedBox(height: 6),
+                  Text("Jobs you post will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                ],
+              ),
+            ),
+          );
         }
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -536,10 +558,21 @@ class _MyActivityPageState extends State<MyActivityPage> {
         }
         final events = snapshot.data ?? [];
         if (events.isEmpty) {
-          return const Center(child: Padding(
-            padding: EdgeInsets.all(20.0),
-            child: Text("You haven't created any events.", style: TextStyle(color: Colors.grey)),
-          ));
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.event_note_outlined, size: 52, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text("No Events Created Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                  SizedBox(height: 6),
+                  Text("Events you create will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                ],
+              ),
+            ),
+          );
         }
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -570,10 +603,21 @@ class _MyActivityPageState extends State<MyActivityPage> {
         }
         final posts = snapshot.data ?? [];
         if (posts.isEmpty) {
-          return const Center(child: Padding(
-            padding: EdgeInsets.all(20.0),
-            child: Text("You haven't shared any posts.", style: TextStyle(color: Colors.grey)),
-          ));
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.dynamic_feed_outlined, size: 52, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text("No Posts Shared Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                  SizedBox(height: 6),
+                  Text("Posts you share will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                ],
+              ),
+            ),
+          );
         }
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -1093,7 +1137,9 @@ class ProfileCard extends StatelessWidget {
           radius: 22,
           backgroundColor: const Color(0xFFE0E7FF),
           backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
-              ? NetworkImage("${ApiConfig.baseUrl}$profilePictureUrl")
+              ? NetworkImage(profilePictureUrl!.startsWith("http")
+                  ? profilePictureUrl!
+                  : "${ApiConfig.baseUrl}$profilePictureUrl")
               : null,
           child: profilePictureUrl == null || profilePictureUrl!.isEmpty
               ? const Icon(Icons.person, color: Colors.indigo)

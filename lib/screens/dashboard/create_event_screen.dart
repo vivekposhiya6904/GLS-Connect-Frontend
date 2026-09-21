@@ -2,6 +2,7 @@ import 'dart:io' show File;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
+import '../../config/api_config.dart';
 import '../../models/event_model.dart';
 import '../../services/event_service.dart';
 
@@ -134,19 +135,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       );
       Navigator.pop(context, true);
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to create event")),
+        SnackBar(content: Text(isEditing ? "Failed to update event" : "Failed to create event")),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isEditing = widget.eventToEdit != null;
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A3A8F),
-        title: const Text("Create Event", style: TextStyle(color: Colors.white)),
+        title: Text(isEditing ? "Edit Event" : "Create Event", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
@@ -157,9 +160,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Event Details",
-                    style: TextStyle(
+                  Text(
+                    isEditing ? "Edit Event Details" : "Event Details",
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1A3A8F),
@@ -259,14 +262,24 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         border: Border.all(color: Colors.grey.shade300),
                       ),
                       child: _imageFile == null
-                          ? const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.image_outlined, size: 40, color: Colors.grey),
-                                SizedBox(height: 8),
-                                Text("Upload Event Image (Optional)", style: TextStyle(color: Colors.grey)),
-                              ],
-                            )
+                          ? (isEditing && widget.eventToEdit?.imageUrl != null && widget.eventToEdit!.imageUrl!.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    widget.eventToEdit!.imageUrl!.startsWith("http")
+                                        ? widget.eventToEdit!.imageUrl!
+                                        : "${ApiConfig.baseUrl}${widget.eventToEdit!.imageUrl}",
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.image_outlined, size: 40, color: Colors.grey),
+                                    SizedBox(height: 8),
+                                    Text("Upload Event Image (Optional)", style: TextStyle(color: Colors.grey)),
+                                  ],
+                                ))
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: kIsWeb
@@ -289,9 +302,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        "Create Event",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      child: Text(
+                        isEditing ? "Update Event" : "Create Event",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),
                   ),

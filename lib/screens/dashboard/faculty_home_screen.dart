@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/event_model.dart';
-import '../../services/event_service.dart';
-import '../../utils/date_helper.dart';
-import '../../widgets/event_card.dart';
-import 'alumni_home_screen.dart' show ProfileList, JobList, MyActivityPage;
+import 'alumni_home_screen.dart' show EventList, EventListState, ProfileList, JobList, MyActivityPage;
 
 class FacultyDashboard extends StatefulWidget {
   const FacultyDashboard({super.key});
@@ -13,25 +9,10 @@ class FacultyDashboard extends StatefulWidget {
 }
 
 class FacultyDashboardState extends State<FacultyDashboard> {
-  late Future<List<EventModel>?> _eventsFuture;
-  bool _showPast = false;
-
-  bool _isExpired(String dateStr) {
-    return DateHelper.isExpired(dateStr);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    refreshData();
-  }
+  final GlobalKey<EventListState> _eventListKey = GlobalKey<EventListState>();
 
   void refreshData() {
-    if (mounted) {
-      setState(() {
-        _eventsFuture = EventService.getAllEvents();
-      });
-    }
+    _eventListKey.currentState?.refreshData();
   }
 
   @override
@@ -85,121 +66,14 @@ class FacultyDashboardState extends State<FacultyDashboard> {
         ),
         body: TabBarView(
           children: [
-            _buildEventListTab(_eventsFuture, false),
+            EventList(key: _eventListKey),
             const JobList(),
-            const MyActivityPage(),
+            const MyActivityPage(showPosts: false),
             const ProfileList(role: "ALUMNI"),
             const ProfileList(role: "FACULTY"),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildEventListTab(Future<List<EventModel>?> future, bool isMyTab) {
-    return FutureBuilder<List<EventModel>?>(
-      future: future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF1A3A8F)));
-        }
-
-        if (snapshot.hasError) {
-          return const Center(child: Text("Error loading events", style: TextStyle(color: Colors.grey)));
-        }
-
-        final allEvents = snapshot.data ?? [];
-        final events = isMyTab
-            ? allEvents
-            : allEvents.where((e) => _isExpired(e.eventDate) == _showPast).toList();
-
-        if (events.isEmpty) {
-          return Column(
-            children: [
-              if (!isMyTab) ...[
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _showPast ? "Past Events Archive" : "Active Events",
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _showPast = !_showPast;
-                          });
-                        },
-                        icon: Icon(_showPast ? Icons.feed_outlined : Icons.history_toggle_off, size: 16),
-                        label: Text(_showPast ? "Show Active" : "Past Events"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _showPast ? Colors.amber.shade800 : const Color(0xFF1A3A8F),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              Expanded(
-                child: Center(
-                  child: Text(
-                    isMyTab
-                        ? "No events created yet."
-                        : "No events available.",
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ),
-            ],
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: events.length + (!isMyTab ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (!isMyTab && index == 0) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _showPast ? "Past Events Archive" : "Active Events",
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _showPast = !_showPast;
-                        });
-                      },
-                      icon: Icon(_showPast ? Icons.feed_outlined : Icons.history_toggle_off, size: 16),
-                      label: Text(_showPast ? "Show Active" : "Past Events"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _showPast ? Colors.amber.shade800 : const Color(0xFF1A3A8F),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            final event = events[isMyTab ? index : index - 1];
-            return EventCard(
-              event: event,
-              onRefresh: refreshData,
-            );
-          },
-        );
-      },
     );
   }
 }
