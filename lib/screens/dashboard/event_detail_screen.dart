@@ -8,8 +8,13 @@ import 'create_event_screen.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final EventModel event;
+  final bool isAdmin;
 
-  const EventDetailScreen({super.key, required this.event});
+  const EventDetailScreen({
+    super.key,
+    required this.event,
+    this.isAdmin = false,
+  });
 
   @override
   State<EventDetailScreen> createState() => _EventDetailScreenState();
@@ -59,7 +64,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         title: const Text("Event Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (isMyEvent)
+          if (isMyEvent || widget.isAdmin)
             IconButton(
               icon: const Icon(Icons.edit_outlined, color: Colors.white),
               tooltip: "Edit Event",

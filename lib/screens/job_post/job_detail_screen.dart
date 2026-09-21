@@ -9,8 +9,13 @@ import 'job_post_screen.dart';
 
 class JobDetailScreen extends StatefulWidget {
   final JobModel job;
+  final bool isAdmin;
 
-  const JobDetailScreen({super.key, required this.job});
+  const JobDetailScreen({
+    super.key,
+    required this.job,
+    this.isAdmin = false,
+  });
 
   @override
   State<JobDetailScreen> createState() => _JobDetailScreenState();
@@ -51,7 +56,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         title: const Text("Job Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (isMyJob)
+          if (isMyJob || widget.isAdmin)
             IconButton(
               icon: const Icon(Icons.edit_outlined, color: Colors.white),
               tooltip: "Edit Job",

@@ -6,9 +6,12 @@ import '../../models/event_model.dart';
 import '../../models/job_model.dart';
 import '../../config/api_config.dart';
 import '../../utils/salary_helper.dart';
-import 'create_event_screen.dart';
-import '../job_post/job_post_screen.dart';
+import '../../utils/date_helper.dart';
 import '../../utils/storage_service.dart';
+import 'create_event_screen.dart';
+import 'event_detail_screen.dart';
+import '../job_post/job_post_screen.dart';
+import '../job_post/job_detail_screen.dart';
 import '../auth/login_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
@@ -22,15 +25,17 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   late TabController _tabController;
   bool _isLoading = false;
 
+  AdminStatsModel? _stats;
   List<AdminUserDto> _allUsers = [];
   List<AdminUserDto> _filteredUsers = [];
-
-  String _selectedRoleFilter = 'ALL';
   final TextEditingController _userSearchController = TextEditingController();
+  String _userRoleFilter = 'ALL'; // ALL, ALUMNI, FACULTY, STUDENT
 
-  List<EventModel> _pendingEvents = [];
-  List<EventModel> _approvedEvents = [];
+  List<EventModel> _allEvents = [];
+  String _eventFilter = 'UPCOMING'; // UPCOMING, PAST, ALL
+
   List<JobModel> _allJobs = [];
+  String _jobFilter = 'ACTIVE'; // ACTIVE, PAST, ALL
 
   @override
   void initState() {
@@ -49,16 +54,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   Future<void> _loadDashboardData() async {
     setState(() => _isLoading = true);
     try {
+      final stats = await AdminService.getAdminStats();
       final users = await AdminService.getAllUsers();
-      final pending = await AdminService.getPendingEvents();
-      final approved = await EventService.getAllEvents() ?? [];
+      final events = await EventService.getAllEvents() ?? [];
       final jobs = await JobService.getAllJobs() ?? [];
 
       setState(() {
+        _stats = stats;
         _allUsers = users;
-        _applyUserFilters();
-        _pendingEvents = pending;
-        _approvedEvents = approved;
+        _applyUserSearch();
+        _allEvents = events;
         _allJobs = jobs;
       });
     } catch (e) {
@@ -68,13 +73,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     }
   }
 
-  void _applyUserFilters() {
+  void _applyUserSearch() {
     final query = _userSearchController.text.toLowerCase().trim();
     setState(() {
       _filteredUsers = _allUsers.where((u) {
-        final matchesRole = _selectedRoleFilter == 'ALL' ||
-            u.roleName.toUpperCase() == _selectedRoleFilter ||
-            (_selectedRoleFilter == 'STUDENT' && u.roleName.toUpperCase() == 'USER');
+        final role = u.roleName.toUpperCase();
+        final matchesRole = _userRoleFilter == 'ALL' ||
+            role == _userRoleFilter ||
+            (_userRoleFilter == 'STUDENT' && (role == 'STUDENT' || role == 'USER'));
         final matchesQuery = query.isEmpty ||
             u.name.toLowerCase().contains(query) ||
             u.email.toLowerCase().contains(query);
@@ -84,6 +90,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   }
 
   void _showMessage(String msg, {bool isError = true}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
@@ -93,49 +100,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     );
   }
 
-  // Helper for rendering event images cleanly
-  Widget _buildNetworkImage(String? relativeOrFullUrl, {double height = 180}) {
-    if (relativeOrFullUrl == null || relativeOrFullUrl.trim().isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    String fullUrl = relativeOrFullUrl.trim();
-    if (!fullUrl.startsWith("http")) {
-      fullUrl = "${ApiConfig.baseUrl}$fullUrl";
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          height: height,
-          width: double.infinity,
-          color: Colors.grey[200],
-          child: Image.network(
-            fullUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                height: height,
-                color: Colors.grey[200],
-                child: const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.broken_image_rounded, color: Colors.grey, size: 36),
-                    SizedBox(height: 4),
-                    Text("Image not available", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Action: Add User Dialog
+  // ─────────────────────────────────────────────────────────────────
+  // USER MANAGEMENT ACTIONS
+  // ─────────────────────────────────────────────────────────────────
   Future<void> _showAddUserDialog() async {
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
@@ -152,7 +119,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
             children: [
               Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF1A3A8F)),
               SizedBox(width: 10),
-              Text("Add New User", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text("Add New User", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             ],
           ),
           content: SingleChildScrollView(
@@ -243,19 +210,28 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     );
   }
 
-  // Action: Delete User
   Future<void> _confirmDeleteUser(AdminUserDto user) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Delete User"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+            SizedBox(width: 8),
+            Text("Delete User", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Text("Are you sure you want to remove ${user.name} (${user.email})? This action cannot be undone."),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: const Text("Delete User", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -264,6 +240,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     if (confirm == true) {
       final success = await AdminService.deleteUser(user.id);
       if (success) {
+        setState(() {
+          _allUsers.removeWhere((u) => u.id == user.id);
+          _filteredUsers.removeWhere((u) => u.id == user.id);
+        });
         _showMessage("User ${user.name} removed successfully", isError: false);
         _loadDashboardData();
       } else {
@@ -272,41 +252,28 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     }
   }
 
-  // Action: Approve Event
-  Future<void> _approveEvent(int id) async {
-    final success = await AdminService.approveEvent(id);
-    if (success) {
-      _showMessage("Event approved successfully", isError: false);
-      _loadDashboardData();
-    } else {
-      _showMessage("Failed to approve event");
-    }
-  }
-
-  // Action: Reject Event
-  Future<void> _rejectEvent(int id) async {
-    final success = await AdminService.rejectEvent(id);
-    if (success) {
-      _showMessage("Event rejected", isError: false);
-      _loadDashboardData();
-    } else {
-      _showMessage("Failed to reject event");
-    }
-  }
-
-  // Action: Delete Event
+  // ─────────────────────────────────────────────────────────────────
+  // EVENT ACTIONS
+  // ─────────────────────────────────────────────────────────────────
   Future<void> _confirmDeleteEvent(EventModel event) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Delete Event"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_forever_rounded, color: Colors.redAccent, size: 28),
+            SizedBox(width: 8),
+            Text("Delete Event", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Text("Are you sure you want to delete '${event.title}'?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -323,19 +290,28 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     }
   }
 
-  // Action: Delete Job
+  // ─────────────────────────────────────────────────────────────────
+  // JOB ACTIONS
+  // ─────────────────────────────────────────────────────────────────
   Future<void> _confirmDeleteJob(JobModel job) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Delete Job Post"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_forever_rounded, color: Colors.redAccent, size: 28),
+            SizedBox(width: 8),
+            Text("Delete Job Post", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Text("Are you sure you want to delete '${job.jobTitle}' at '${job.companyName}'?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -352,81 +328,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     }
   }
 
-  // Action: Edit Job Dialog
-  Future<void> _showEditJobDialog(JobModel job) async {
-    if (job.id == null) return;
-    final companyCtrl = TextEditingController(text: job.companyName);
-    final titleCtrl = TextEditingController(text: job.jobTitle);
-    final locationCtrl = TextEditingController(text: job.location);
-    final salaryCtrl = TextEditingController(text: job.salary);
-    final descCtrl = TextEditingController(text: job.jobDescription);
-    final skillsCtrl = TextEditingController(text: job.skillsRequired);
-    final expCtrl = TextEditingController(text: job.experienceRequired);
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.edit_rounded, color: Color(0xFF1A3A8F)),
-            SizedBox(width: 10),
-            Text("Edit Job Post", style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: companyCtrl, decoration: const InputDecoration(labelText: "Company Name")),
-              TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: "Job Title")),
-              TextField(controller: locationCtrl, decoration: const InputDecoration(labelText: "Location")),
-              TextField(controller: salaryCtrl, decoration: const InputDecoration(labelText: "Annual Salary (LPA, e.g. 6 LPA)")),
-              TextField(controller: expCtrl, decoration: const InputDecoration(labelText: "Experience Required")),
-              TextField(controller: skillsCtrl, decoration: const InputDecoration(labelText: "Skills Required")),
-              TextField(controller: descCtrl, maxLines: 3, decoration: const InputDecoration(labelText: "Job Description")),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A3A8F)),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              setState(() => _isLoading = true);
-              final success = await JobService.updateJob(
-                jobId: job.id!,
-                companyName: companyCtrl.text.trim(),
-                jobTitle: titleCtrl.text.trim(),
-                location: locationCtrl.text.trim(),
-                salary: SalaryHelper.formatLpa(salaryCtrl.text.trim()),
-                jobDescription: descCtrl.text.trim(),
-                skillsRequired: skillsCtrl.text.trim(),
-                experienceRequired: expCtrl.text.trim(),
-                joiningType: job.joiningType,
-                jobType: job.jobType,
-                lastDateToApply: job.lastDateToApply,
-                companyLink: job.companyLink,
-                companyEmail: job.companyEmail,
-              );
-
-              if (success) {
-                _showMessage("Job updated successfully!", isError: false);
-                _loadDashboardData();
-              } else {
-                _showMessage("Failed to update job");
-                setState(() => _isLoading = false);
-              }
-            },
-            child: const Text("Save Changes", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Action: Logout with confirmation dialog
+  // ─────────────────────────────────────────────────────────────────
+  // LOGOUT
+  // ─────────────────────────────────────────────────────────────────
   Future<void> _confirmLogout() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -458,16 +362,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     );
 
     if (confirm == true && mounted) {
-      setState(() {
-        _allUsers.clear();
-        _filteredUsers.clear();
-        _pendingEvents.clear();
-        _approvedEvents.clear();
-        _allJobs.clear();
-      });
-
       await StorageService.logout();
-
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -556,10 +451,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   // 1. OVERVIEW TAB
   // ─────────────────────────────────────────────────────────────────
   Widget _buildOverviewTab() {
-    final totalUsers = _allUsers.length;
-    final alumniCount = _allUsers.where((u) => u.roleName.toUpperCase() == 'ALUMNI').length;
-    final facultyCount = _allUsers.where((u) => u.roleName.toUpperCase() == 'FACULTY').length;
-    final studentCount = _allUsers.where((u) => u.roleName.toUpperCase() == 'STUDENT' || u.roleName.toUpperCase() == 'USER').length;
+    final stats = _stats ?? AdminStatsModel();
 
     return RefreshIndicator(
       onRefresh: _loadDashboardData,
@@ -567,178 +459,47 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            "Overall System Statistics",
+            "System Dashboard Statistics",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          // Total Metric Cards
+          // Row 1: Users & Alumni
           Row(
             children: [
-              Expanded(child: _metricCard("Total Alumni", "$alumniCount", Icons.school_rounded, Colors.indigo)),
+              Expanded(child: _metricCard("Total Users", "${stats.totalUsers}", Icons.people_alt_rounded, Colors.blue)),
               const SizedBox(width: 12),
-              Expanded(child: _metricCard("Total Faculty", "$facultyCount", Icons.badge_rounded, Colors.teal)),
+              Expanded(child: _metricCard("Total Alumni", "${stats.totalAlumni}", Icons.school_rounded, Colors.indigo)),
             ],
           ),
           const SizedBox(height: 12),
+
+          // Row 2: Faculty & Students
           Row(
             children: [
-              Expanded(child: _metricCard("Total Students", "$studentCount", Icons.person_rounded, Colors.blueGrey)),
+              Expanded(child: _metricCard("Total Faculty", "${stats.totalFaculty}", Icons.badge_rounded, Colors.teal)),
               const SizedBox(width: 12),
-              Expanded(child: _metricCard("Total Users", "$totalUsers", Icons.people_alt_rounded, Colors.blue)),
+              Expanded(child: _metricCard("Total Students", "${stats.totalStudents}", Icons.person_rounded, Colors.blueGrey)),
             ],
           ),
           const SizedBox(height: 12),
+
+          // Row 3: Total Jobs & Active Jobs
           Row(
             children: [
-              Expanded(child: _metricCard("Active Events", "${_approvedEvents.length}", Icons.event_available_rounded, Colors.green)),
+              Expanded(child: _metricCard("Total Jobs", "${stats.totalJobs}", Icons.work_rounded, Colors.brown)),
               const SizedBox(width: 12),
-              Expanded(child: _metricCard("Total Jobs", "${_allJobs.length}", Icons.work_outline_rounded, Colors.brown)),
+              Expanded(child: _metricCard("Active Jobs", "${stats.activeJobs}", Icons.business_center_rounded, Colors.green)),
             ],
-          ),
-          const SizedBox(height: 24),
-
-          const SizedBox(height: 20),
-
-          // 2. Pending Moderation Alert (if any)
-          if (_pendingEvents.isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.shade300),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.pending_actions_rounded, color: Colors.amber.shade900, size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "${_pendingEvents.length} Event(s) Pending Approval",
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber.shade900, fontSize: 14),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          "Faculty submitted new events that need review.",
-                          style: TextStyle(color: Colors.black87, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => _tabController.animateTo(2), // Switch to Events tab
-                    child: const Text("Review", style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // 3. Recent Registered Users (Non-duplicate useful section)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Recently Registered Users",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
-              ),
-              TextButton(
-                onPressed: () => _tabController.animateTo(1), // Switch to Users tab
-                child: const Text("View All", style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 1,
-            child: _allUsers.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Center(child: Text("No users registered yet.")),
-                  )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _allUsers.length > 4 ? 4 : _allUsers.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, idx) {
-                      final u = _allUsers[idx];
-                      final role = u.roleName.toUpperCase();
-                      final color = role == 'ALUMNI'
-                          ? Colors.indigo
-                          : role == 'FACULTY'
-                              ? Colors.teal
-                              : role == 'ADMIN'
-                                  ? Colors.amber.shade900
-                                  : Colors.blueGrey;
-                      return ListTile(
-                        dense: true,
-                        leading: CircleAvatar(
-                          backgroundColor: color.withOpacity(0.15),
-                          child: Text(
-                            u.name.isNotEmpty ? u.name[0].toUpperCase() : "U",
-                            style: TextStyle(color: color, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        title: Text(u.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("${u.email} • ${u.department}"),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: color.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: color),
-                          ),
-                          child: Text(
-                            role,
-                            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          const SizedBox(height: 20),
-
-          // Quick Action Buttons
-          const Text(
-            "Admin Actions",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
           ),
           const SizedBox(height: 12),
+
+          // Row 4: Total Events & Active Events
           Row(
             children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A3A8F),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  onPressed: _showAddUserDialog,
-                  icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
-                  label: const Text("Add User", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ),
+              Expanded(child: _metricCard("Total Events", "${stats.totalEvents}", Icons.event_rounded, Colors.purple)),
               const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber.shade800,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEventScreen())).then((_) => _loadDashboardData()),
-                  icon: const Icon(Icons.add_circle_outline, color: Colors.white),
-                  label: const Text("Create Event", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ),
+              Expanded(child: _metricCard("Active Events", "${stats.activeEvents}", Icons.event_available_rounded, Colors.deepOrange)),
             ],
           ),
         ],
@@ -751,8 +512,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -760,12 +527,28 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
-              Icon(icon, color: color, size: 22),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 10),
+          Text(
+            count,
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: color),
+          ),
         ],
       ),
     );
@@ -780,74 +563,100 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         Container(
           padding: const EdgeInsets.all(12),
           color: Colors.white,
-          child: Column(
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _userSearchController,
-                      onChanged: (_) => _applyUserFilters(),
-                      decoration: InputDecoration(
-                        hintText: "Search by name or email...",
-                        prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                        suffixIcon: _userSearchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _userSearchController.clear();
-                                  _applyUserFilters();
-                                },
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: const Color(0xFFF4F7FF),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      ),
-                    ),
+              Expanded(
+                child: TextField(
+                  controller: _userSearchController,
+                  onChanged: (_) => _applyUserSearch(),
+                  decoration: InputDecoration(
+                    hintText: "Search by name or email...",
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    suffixIcon: _userSearchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _userSearchController.clear();
+                              _applyUserSearch();
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: const Color(0xFFF4F7FF),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A3A8F),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    onPressed: _showAddUserDialog,
-                    icon: const Icon(Icons.add, color: Colors.white, size: 20),
-                    label: const Text("Add User", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: ['ALL', 'ALUMNI', 'FACULTY', 'STUDENT', 'ADMIN'].map((role) {
-                    final isSelected = _selectedRoleFilter == role;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: FilterChip(
-                        selected: isSelected,
-                        label: Text(role),
-                        selectedColor: const Color(0xFF1A3A8F),
-                        labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 11),
-                        onSelected: (_) {
-                          setState(() {
-                            _selectedRoleFilter = role;
-                            _applyUserFilters();
-                          });
-                        },
-                      ),
-                    );
-                  }).toList(),
                 ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A3A8F),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: _showAddUserDialog,
+                icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                label: const Text("Add User", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               ),
             ],
           ),
         ),
-
+        // Role Section Filters (All, Alumni, Faculty, Students)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          color: Colors.white,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _filterChip(
+                  label: "All Users",
+                  isSelected: _userRoleFilter == 'ALL',
+                  onSelected: () {
+                    setState(() {
+                      _userRoleFilter = 'ALL';
+                      _applyUserSearch();
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                _filterChip(
+                  label: "Alumni",
+                  isSelected: _userRoleFilter == 'ALUMNI',
+                  onSelected: () {
+                    setState(() {
+                      _userRoleFilter = 'ALUMNI';
+                      _applyUserSearch();
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                _filterChip(
+                  label: "Faculty",
+                  isSelected: _userRoleFilter == 'FACULTY',
+                  onSelected: () {
+                    setState(() {
+                      _userRoleFilter = 'FACULTY';
+                      _applyUserSearch();
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                _filterChip(
+                  label: "Students",
+                  isSelected: _userRoleFilter == 'STUDENT',
+                  onSelected: () {
+                    setState(() {
+                      _userRoleFilter = 'STUDENT';
+                      _applyUserSearch();
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: _loadDashboardData,
@@ -856,7 +665,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: const [
                       SizedBox(height: 80),
-                      Center(child: Text("No users match your filters", style: TextStyle(color: Colors.grey))),
+                      Center(child: Text("No users match your search query", style: TextStyle(color: Colors.grey))),
                     ],
                   )
                 : ListView.builder(
@@ -865,49 +674,62 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                     itemCount: _filteredUsers.length,
                     itemBuilder: (context, index) {
                       final u = _filteredUsers[index];
-                      final isAlumni = u.roleName.toUpperCase() == 'ALUMNI';
-                      final isFaculty = u.roleName.toUpperCase() == 'FACULTY';
+                      final role = u.roleName.toUpperCase();
+                      final isAlumni = role == 'ALUMNI';
+                      final isFaculty = role == 'FACULTY';
+                      final isAdmin = role == 'ADMIN';
 
                       final roleColor = isAlumni
                           ? Colors.indigo
                           : isFaculty
                               ? Colors.teal
-                              : u.roleName.toUpperCase() == 'ADMIN'
+                              : isAdmin
                                   ? Colors.amber.shade900
                                   : Colors.blueGrey;
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 1,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 1.5,
                         child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           leading: CircleAvatar(
+                            radius: 22,
                             backgroundColor: roleColor.withValues(alpha: 0.15),
                             child: Text(
                               u.name.isNotEmpty ? u.name[0].toUpperCase() : 'U',
-                              style: TextStyle(color: roleColor, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: roleColor, fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                           ),
-                          title: Text(u.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          title: Text(u.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              const SizedBox(height: 2),
                               Text(u.email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: roleColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  u.roleName,
-                                  style: TextStyle(color: roleColor, fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: roleColor.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: roleColor.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Text(
+                                      role,
+                                      style: TextStyle(color: roleColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  if (u.department.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    Text("• ${u.department}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  ],
+                                ],
                               ),
                             ],
                           ),
-                          isThreeLine: true,
                           trailing: IconButton(
                             icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
                             onPressed: () => _confirmDeleteUser(u),
@@ -924,344 +746,487 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // 3. EVENTS TAB (With Image Display, Pending, Upcoming & Past Events)
+  // 3. EVENTS TAB (With Upcoming / Past / All Filters)
   // ─────────────────────────────────────────────────────────────────
   Widget _buildEventsTab() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    final upcomingEvents = _approvedEvents.where((e) {
-      try {
-        final d = DateTime.parse(e.eventDate.split('T')[0]);
-        return d.isAfter(today.subtract(const Duration(days: 1)));
-      } catch (_) {
-        return true;
-      }
-    }).toList();
+    List<EventModel> displayEvents = [];
+    if (_eventFilter == 'UPCOMING') {
+      displayEvents = _allEvents.where((e) {
+        try {
+          final d = DateTime.parse(e.eventDate.split('T')[0]);
+          return !d.isBefore(today);
+        } catch (_) {
+          return true;
+        }
+      }).toList();
+    } else if (_eventFilter == 'PAST') {
+      displayEvents = _allEvents.where((e) {
+        try {
+          final d = DateTime.parse(e.eventDate.split('T')[0]);
+          return d.isBefore(today);
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+    } else {
+      displayEvents = List.from(_allEvents);
+    }
 
-    final pastEvents = _approvedEvents.where((e) {
-      try {
-        final d = DateTime.parse(e.eventDate.split('T')[0]);
-        return d.isBefore(today);
-      } catch (_) {
-        return false;
-      }
-    }).toList();
-
-    return RefreshIndicator(
-      onRefresh: _loadDashboardData,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Pending Section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      children: [
+        // Filter Bar & Create Event Button
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          color: Colors.white,
+          child: Row(
             children: [
-              Text(
-                "Pending Approvals (${_pendingEvents.length})",
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (_pendingEvents.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text("No pending events to approve.", style: TextStyle(color: Colors.grey, fontSize: 13)),
-            )
-          else
-            ..._pendingEvents.map((event) => _pendingEventCard(event)),
-
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 8),
-
-          // Upcoming Events Section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Upcoming Events (${upcomingEvents.length})",
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A3A8F)),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline, color: Color(0xFF1A3A8F)),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEventScreen())).then((_) => _loadDashboardData()),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (upcomingEvents.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text("No upcoming events found.", style: TextStyle(color: Colors.grey, fontSize: 13)),
-            )
-          else
-            ...upcomingEvents.map((event) => _approvedEventCard(event, isUpcoming: true)),
-
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 8),
-
-          // Past Events Section
-          Text(
-            "Past Events (${pastEvents.length})",
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-          ),
-          const SizedBox(height: 8),
-          if (pastEvents.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text("No past events recorded.", style: TextStyle(color: Colors.grey, fontSize: 13)),
-            )
-          else
-            ...pastEvents.map((event) => _approvedEventCard(event, isUpcoming: false)),
-        ],
-      ),
-    );
-  }
-
-  Widget _pendingEventCard(EventModel event) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: Colors.orange.withOpacity(0.4))),
-      elevation: 1.5,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: Colors.orange.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                  child: const Text("PENDING", style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(event.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Colors.black87)),
-
-            // Image display for Pending Event
-            if (event.imageUrl != null && event.imageUrl!.trim().isNotEmpty) ...[
-              _buildNetworkImage(event.imageUrl, height: 180),
-            ],
-
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
-                Text(event.location, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                const SizedBox(width: 12),
-                const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
-                Text(event.eventDate.split('T')[0], style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
-            if (event.createdByName != null) ...[
-              const SizedBox(height: 4),
-              Text("Organized by: ${event.createdByName}", style: const TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic)),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  onPressed: event.id == null ? null : () => _rejectEvent(event.id!),
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text("Reject"),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: event.id == null ? null : () => _approveEvent(event.id!),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text("Approve", style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _approvedEventCard(EventModel event, {required bool isUpcoming}) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      elevation: 1.5,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: isUpcoming ? Colors.green.withOpacity(0.15) : Colors.grey.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              isUpcoming ? "UPCOMING" : "PAST",
-                              style: TextStyle(color: isUpcoming ? Colors.green : Colors.grey[700], fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
+                      _filterChip(
+                        label: "Upcoming",
+                        isSelected: _eventFilter == 'UPCOMING',
+                        onSelected: () => setState(() => _eventFilter = 'UPCOMING'),
                       ),
-                      const SizedBox(height: 4),
-                      Text(event.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        label: "Past",
+                        isSelected: _eventFilter == 'PAST',
+                        onSelected: () => setState(() => _eventFilter = 'PAST'),
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        label: "All Events",
+                        isSelected: _eventFilter == 'ALL',
+                        onSelected: () => setState(() => _eventFilter = 'ALL'),
+                      ),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-                  onPressed: () => _confirmDeleteEvent(event),
-                  tooltip: "Delete Event",
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A3A8F),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CreateEventScreen()),
+                ).then((_) => _loadDashboardData()),
+                icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                label: const Text("New Event", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+            ],
+          ),
+        ),
+
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadDashboardData,
+            child: displayEvents.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 80),
+                      Center(child: Text("No events found", style: TextStyle(color: Colors.grey))),
+                    ],
+                  )
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: displayEvents.length,
+                    itemBuilder: (context, index) {
+                      final event = displayEvents[index];
+                      return _eventCard(event);
+                    },
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _eventCard(EventModel event) {
+    final isExpired = DateHelper.isExpired(event.eventDate);
+    final statusText = isExpired ? "PAST" : "UPCOMING";
+    final badgeColor = isExpired ? Colors.grey : Colors.green;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 1.5,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => EventDetailScreen(event: event, isAdmin: true),
+            ),
+          );
+          if (result == true) {
+            _loadDashboardData();
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: badgeColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
+                              ),
+                              child: Text(
+                                statusText,
+                                style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            if (event.targetDepartment != null && event.targetDepartment!.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Text("• ${event.targetDepartment}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A3A8F)),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => CreateEventScreen(eventToEdit: event)),
+                    ).then((_) => _loadDashboardData()),
+                    tooltip: "Edit Event",
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                    onPressed: () => _confirmDeleteEvent(event),
+                    tooltip: "Delete Event",
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                event.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
+              ),
+
+              // Network Image Preview
+              if (event.imageUrl != null && event.imageUrl!.trim().isNotEmpty) ...[
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    event.imageUrl!.startsWith("http")
+                        ? event.imageUrl!
+                        : "${ApiConfig.baseUrl}${event.imageUrl!}",
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
                 ),
               ],
-            ),
 
-            // Image display for Approved Event
-            if (event.imageUrl != null && event.imageUrl!.trim().isNotEmpty) ...[
-              _buildNetworkImage(event.imageUrl, height: 180),
-            ],
-
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
-                Text(event.location, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                const SizedBox(width: 12),
-                const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
-                Text(event.eventDate.split('T')[0], style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    DateHelper.formatFriendlyDate(event.eventDate),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      event.location,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              if (event.createdByName != null && event.createdByName!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  "Organized by: ${event.createdByName}",
+                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
+                ),
               ],
-            ),
-            if (event.createdByName != null) ...[
-              const SizedBox(height: 4),
-              Text("Organized by: ${event.createdByName}", style: const TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic)),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // 4. JOBS TAB
+  // 4. JOBS TAB (With Active / Expired / All Filters)
   // ─────────────────────────────────────────────────────────────────
   Widget _buildJobsTab() {
-    return RefreshIndicator(
-      onRefresh: _loadDashboardData,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    List<JobModel> displayJobs = [];
+    if (_jobFilter == 'ACTIVE') {
+      displayJobs = _allJobs.where((j) {
+        try {
+          if (j.lastDateToApply.isEmpty) return true;
+          final d = DateTime.parse(j.lastDateToApply.split('T')[0]);
+          return !d.isBefore(today);
+        } catch (_) {
+          return true;
+        }
+      }).toList();
+    } else if (_jobFilter == 'PAST') {
+      displayJobs = _allJobs.where((j) {
+        try {
+          if (j.lastDateToApply.isEmpty) return false;
+          final d = DateTime.parse(j.lastDateToApply.split('T')[0]);
+          return d.isBefore(today);
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+    } else {
+      displayJobs = List.from(_allJobs);
+    }
+
+    return Column(
+      children: [
+        // Filter Bar & Post Job Button
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          color: Colors.white,
+          child: Row(
             children: [
-              Text(
-                "Job Postings (${_allJobs.length})",
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _filterChip(
+                        label: "Active Jobs",
+                        isSelected: _jobFilter == 'ACTIVE',
+                        onSelected: () => setState(() => _jobFilter = 'ACTIVE'),
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        label: "Expired Jobs",
+                        isSelected: _jobFilter == 'PAST',
+                        onSelected: () => setState(() => _jobFilter = 'PAST'),
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        label: "All Jobs",
+                        isSelected: _jobFilter == 'ALL',
+                        onSelected: () => setState(() => _jobFilter = 'ALL'),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline, color: Color(0xFF1A3A8F)),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PostJobScreen())).then((_) => _loadDashboardData()),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A3A8F),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => PostJobScreen()),
+                ).then((_) => _loadDashboardData()),
+                icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                label: const Text("Post Job", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          if (_allJobs.isEmpty)
-            const Center(child: Padding(padding: EdgeInsets.all(24), child: Text("No job posts found", style: TextStyle(color: Colors.grey))))
-          else
-            ..._allJobs.map((job) => _jobCard(job)),
-        ],
-      ),
+        ),
+
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadDashboardData,
+            child: displayJobs.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 80),
+                      Center(child: Text("No jobs found", style: TextStyle(color: Colors.grey))),
+                    ],
+                  )
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: displayJobs.length,
+                    itemBuilder: (context, index) {
+                      final job = displayJobs[index];
+                      return _jobCard(job);
+                    },
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _jobCard(JobModel job) {
+    final isExpired = DateHelper.isExpired(job.lastDateToApply);
+    final statusText = isExpired ? "EXPIRED" : "ACTIVE";
+    final badgeColor = isExpired ? Colors.grey : Colors.green;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 1.5,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.indigo.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.work_rounded, color: Colors.indigo, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(job.jobTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text("${job.companyName} • ${job.location}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A3A8F)),
-                  onPressed: () => _showEditJobDialog(job),
-                  tooltip: "Edit Job",
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-                  onPressed: () => _confirmDeleteJob(job),
-                  tooltip: "Delete Job",
-                ),
-              ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => JobDetailScreen(job: job, isAdmin: true),
             ),
-            const SizedBox(height: 10),
-            Text(job.jobDescription, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Colors.black87)),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                if (job.salary.isNotEmpty)
-                  Chip(
-                    label: Text("💰 ${SalaryHelper.formatLpa(job.salary)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                    backgroundColor: Colors.green.withOpacity(0.1),
-                    visualDensity: VisualDensity.compact,
+          );
+          if (result == true) {
+            _loadDashboardData();
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A3A8F).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.work_rounded, color: Color(0xFF1A3A8F), size: 24),
                   ),
-                if (job.experienceRequired.isNotEmpty)
-                  Chip(
-                    label: Text("⏳ ${job.experienceRequired}", style: const TextStyle(fontSize: 11)),
-                    backgroundColor: Colors.blue.withOpacity(0.1),
-                    visualDensity: VisualDensity.compact,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(job.jobTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A))),
+                        const SizedBox(height: 2),
+                        Text("${job.companyName} • ${job.location}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: badgeColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            statusText,
+                            style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                if (job.jobType.isNotEmpty)
-                  Chip(
-                    label: Text("📌 ${job.jobType}", style: const TextStyle(fontSize: 11)),
-                    backgroundColor: Colors.orange.withOpacity(0.1),
-                    visualDensity: VisualDensity.compact,
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A3A8F)),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PostJobScreen(jobToEdit: job)),
+                    ).then((_) => _loadDashboardData()),
+                    tooltip: "Edit Job",
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                    onPressed: () => _confirmDeleteJob(job),
+                    tooltip: "Delete Job",
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(job.jobDescription, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  if (job.salary.isNotEmpty)
+                    Chip(
+                      label: Text("💰 ${SalaryHelper.formatLpa(job.salary)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      backgroundColor: Colors.green.withValues(alpha: 0.1),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  if (job.experienceRequired.isNotEmpty)
+                    Chip(
+                      label: Text("⏳ ${job.experienceRequired}", style: const TextStyle(fontSize: 11)),
+                      backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  if (job.jobType.isNotEmpty)
+                    Chip(
+                      label: Text("📌 ${job.jobType}", style: const TextStyle(fontSize: 11)),
+                      backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                ],
+              ),
+              if (job.userName.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text("Posted by ${job.userName} (${job.userEmail})", style: const TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic)),
               ],
-            ),
-            const SizedBox(height: 6),
-            Text("Posted by ${job.userName} (${job.userEmail})", style: const TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic)),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _filterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onSelected,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: const Color(0xFF1A3A8F),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : const Color(0xFF0F172A),
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
+      ),
+      onSelected: (_) => onSelected(),
     );
   }
 }

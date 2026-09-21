@@ -30,6 +30,41 @@ class AdminUserDto {
   }
 }
 
+class AdminStatsModel {
+  final int totalUsers;
+  final int totalAlumni;
+  final int totalFaculty;
+  final int totalStudents;
+  final int totalJobs;
+  final int activeJobs;
+  final int totalEvents;
+  final int activeEvents;
+
+  AdminStatsModel({
+    this.totalUsers = 0,
+    this.totalAlumni = 0,
+    this.totalFaculty = 0,
+    this.totalStudents = 0,
+    this.totalJobs = 0,
+    this.activeJobs = 0,
+    this.totalEvents = 0,
+    this.activeEvents = 0,
+  });
+
+  factory AdminStatsModel.fromJson(Map<String, dynamic> json) {
+    return AdminStatsModel(
+      totalUsers: json['totalUsers'] ?? 0,
+      totalAlumni: json['totalAlumni'] ?? 0,
+      totalFaculty: json['totalFaculty'] ?? 0,
+      totalStudents: json['totalStudents'] ?? 0,
+      totalJobs: json['totalJobs'] ?? 0,
+      activeJobs: json['activeJobs'] ?? 0,
+      totalEvents: json['totalEvents'] ?? 0,
+      activeEvents: json['activeEvents'] ?? 0,
+    );
+  }
+}
+
 class AdminService {
   static Future<Map<String, String>> _getHeaders() async {
     final token = await StorageService.getToken();
@@ -37,6 +72,25 @@ class AdminService {
       "Content-Type": "application/json",
       "Authorization": "Bearer $token",
     };
+  }
+
+  // Get Admin Statistics
+  static Future<AdminStatsModel?> getAdminStats() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/admin/stats"),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return AdminStatsModel.fromJson(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      print("❌ Error in getAdminStats: $e");
+      return null;
+    }
   }
 
   // Get all users
