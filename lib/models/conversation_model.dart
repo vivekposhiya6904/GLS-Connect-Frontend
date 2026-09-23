@@ -46,7 +46,10 @@ class ConversationModel {
     }
 
     return ConversationModel(
-      id: json["conversationId"]?.toString() ?? "${sender}_$receiver",
+      id: json["conversationId"]?.toString() ??
+          (sender.compareTo(receiver) <= 0
+              ? "${sender}_$receiver"
+              : "${receiver}_$sender"),
       otherUserEmail: otherUser,
       lastMessage: json["content"]?.toString() ?? "",
       lastMessageStatus: parseStatus(json["status"]),

@@ -11,7 +11,11 @@ class ApiConfig {
       return _customBaseUrl;
     }
 
+    // If you want to change the Base url only change the return base url with
+    // the ip address of your it will run on the emulator with out any other
+    // changes
+
     // Android Emulator and physical Android device
-    return "http://192.168.0.32:8080";
+    return "http://192.168.0.32:8080"; // change this ip address with your ip adress
   }
 }

@@ -138,7 +138,10 @@ class _MainNavigationState extends State<MainNavigation> {
         },
         child: Scaffold(
       resizeToAvoidBottomInset: false,
-      body: pages[selectedIndex],
+      body: IndexedStack(
+        index: selectedIndex,
+        children: pages,
+      ),
       bottomNavigationBar: roleUpper == "ADMIN" ? null : Container(
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E1E1E) : Colors.white,

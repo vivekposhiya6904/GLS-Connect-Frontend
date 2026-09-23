@@ -202,18 +202,13 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) {
           final usersList = (data as List).where((user) {
             final email = (user['email']?.toString() ?? "").trim().toLowerCase();
-            final role = (user['role']?.toString() ?? "").trim().toUpperCase();
+            final role = ((user['roleName'] ?? user['role'])?.toString() ?? "").trim().toUpperCase();
 
             // 1. Exclude self
             if (email == myEmail) return false;
 
             // 2. ADMIN must not participate in user chat
             if (role == 'ADMIN') return false;
-
-            // 3. Remove Alumni from chat user lists in Faculty and Alumni screens
-            if ((myRole == 'ALUMNI' || myRole == 'FACULTY') && role == 'ALUMNI') {
-              return false;
-            }
 
             return true;
           }).toList();
@@ -223,7 +218,7 @@ class _ChatScreenState extends State<ChatScreen> {
           for (var u in usersList) {
             final email = (u['email']?.toString() ?? "").trim().toLowerCase();
             final name = (u['name']?.toString() ?? "").trim();
-            final role = (u['role']?.toString() ?? "").trim();
+            final role = ((u['roleName'] ?? u['role'])?.toString() ?? "").trim();
             if (email.isNotEmpty && name.isNotEmpty) {
               names[email] = name;
             }
@@ -257,7 +252,7 @@ class _ChatScreenState extends State<ChatScreen> {
         filteredUsers = allUsers.where((user) {
           final name = (user['name']?.toString() ?? "").toLowerCase();
           final email = (user['email']?.toString() ?? "").toLowerCase();
-          final role = (user['role']?.toString() ?? "").toLowerCase();
+          final role = ((user['roleName'] ?? user['role'])?.toString() ?? "").toLowerCase();
           return name.contains(query) || email.contains(query) || role.contains(query);
         }).toList();
       }
@@ -265,6 +260,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _openSearch() {
+    fetchAllUsers();
     setState(() {
       isSearchMode = true;
       filteredUsers = allUsers;
@@ -586,7 +582,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildConversationList(bool isDark, Color primaryColor) {
-    return ListView.separated(
+    return RefreshIndicator(
+      onRefresh: () => loadData(showLoading: false),
+      color: primaryColor,
+      child: ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       padding: const EdgeInsets.symmetric(vertical: 6),
       itemCount: conversations.length,
@@ -715,8 +714,9 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         );
       },
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSearchUserList(bool isDark, Color primaryColor) {
     if (filteredUsers.isEmpty) {
@@ -761,7 +761,7 @@ class _ChatScreenState extends State<ChatScreen> {
         final user = filteredUsers[index];
         final email = (user["email"]?.toString() ?? "").trim().toLowerCase();
         final name = (user["name"]?.toString() ?? "").trim();
-        final role = (user["role"]?.toString() ?? "").trim();
+        final role = ((user["roleName"] ?? user["role"])?.toString() ?? "").trim();
         final isOnline = onlineStatusMap[email] ?? false;
         final displayName = name.isNotEmpty ? name : email;
 
