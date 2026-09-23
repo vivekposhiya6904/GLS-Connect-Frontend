@@ -1,20 +1,17 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
-  static const String _customBaseUrl = String.fromEnvironment('API_BASE_URL');
-  static const bool isEmulator = bool.fromEnvironment('IS_EMULATOR', defaultValue: false);
+  // Optional override:
+  // flutter run --dart-define=API_BASE_URL=http://10.76.161.155:8080
+  static const String _customBaseUrl =
+  String.fromEnvironment('API_BASE_URL');
 
   static String get baseUrl {
     if (_customBaseUrl.isNotEmpty) {
       return _customBaseUrl;
     }
-    if (isEmulator) {
-      return "http://10.0.2.2:8080";
-    }
-    if (kIsWeb) {
-      return "http://localhost:8080";
-    }
-    return "http://localhost:8080";
+
+    // Android Emulator and physical Android device
+    return "http://192.168.0.32:8080";
   }
 }
-
