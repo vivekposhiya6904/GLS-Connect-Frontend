@@ -20,6 +20,7 @@ import '../../widgets/event_card.dart';
 import '../../widgets/job_card.dart';
 import '../../utils/date_helper.dart';
 import '../../utils/city_constants.dart';
+import '../../utils/salary_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -812,7 +813,7 @@ class _JobListState extends State<JobList> {
                     (selectedLocation.contains("Delhi") && job.location.toLowerCase().contains("delhi"));
 
                 final matchesSalary =
-                    selectedSalary == "All" || job.salary == selectedSalary;
+                    SalaryHelper.matchesFilter(job.salary, selectedSalary);
 
                 final isExpired = DateHelper.isExpired(job.lastDateToApply);
                 final matchesPast = showPast ? true : !isExpired;
@@ -910,11 +911,11 @@ class _JobListState extends State<JobList> {
                   DropdownButtonFormField<String>(
                     value: selectedSalary,
                     decoration: InputDecoration(
-                      labelText: "Salary",
+                      labelText: "Salary (LPA)",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     ),
-                    items: ["All", "20k-35k", "25k-40k", "30k-50k"]
+                    items: SalaryHelper.filterOptions
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
                     onChanged: (value) {

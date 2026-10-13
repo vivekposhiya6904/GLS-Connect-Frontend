@@ -234,7 +234,7 @@ class _EventsPageState extends State<EventsPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _showPast ? "Previous Ends" : "Active Feed",
+                  _showPast ? "Previous Events" : "Active Feed",
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -256,7 +256,7 @@ class _EventsPageState extends State<EventsPage> {
                   label: Text(
                     _showPast
                         ? "Show Active"
-                        : "Previous Ends",
+                        : "Previous Events",
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _showPast
