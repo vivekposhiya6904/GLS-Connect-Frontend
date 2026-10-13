@@ -17,6 +17,7 @@ import '../../widgets/event_card.dart';
 import '../../widgets/job_card.dart';
 import '../notification/notification_screen.dart';
 import '../../utils/city_constants.dart';
+import 'alumni_home_screen.dart' show EventList;
 
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({super.key});
@@ -27,7 +28,7 @@ class StudentHomeScreen extends StatelessWidget {
       length: 5,
       initialIndex: 0,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F6FA),
+        backgroundColor: const Color(0xFFF4F7FF),
         appBar: AppBar(
           backgroundColor: const Color(0xFF1A3A8F),
           elevation: 2,
@@ -47,7 +48,7 @@ class StudentHomeScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
+                  color: Colors.amber.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.amber),
                 ),
@@ -107,189 +108,13 @@ class StudentHomeScreen extends StatelessWidget {
 }
 
 /// ================= EVENTS =================
-class EventsPage extends StatefulWidget {
+/// ================= EVENTS =================
+class EventsPage extends StatelessWidget {
   const EventsPage({super.key});
 
   @override
-  State<EventsPage> createState() => _EventsPageState();
-}
-
-class _EventsPageState extends State<EventsPage> {
-  late Future<List<EventModel>?> eventsFuture;
-  String myEmail = "";
-  bool _showPast = false;
-
-  bool _isExpired(String dateStr) {
-    return DateHelper.isExpired(dateStr);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  void _loadData() {
-    eventsFuture = EventService.getAllEvents();
-    loadMyEmail();
-  }
-
-  Future<void> loadMyEmail() async {
-    final email = await StorageService.getUserEmail();
-    if (mounted) {
-      setState(() {
-        myEmail = email ?? "";
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<EventModel>?>(
-      future: eventsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: Colors.red,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Failed to load events",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "${snapshot.error}",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        final events = snapshot.data ?? [];
-
-        if (events.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Text(
-                "No events available.",
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-            ),
-          );
-        }
-
-        final filteredEvents = events
-            .where(
-              (event) => _isExpired(event.eventDate) == _showPast,
-            )
-            .toList();
-
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Filter Toggle Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _showPast ? "Previous Events" : "Active Feed",
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A3A8F),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showPast = !_showPast;
-                    });
-                  },
-                  icon: Icon(
-                    _showPast
-                        ? Icons.feed_outlined
-                        : Icons.history_toggle_off,
-                    size: 16,
-                  ),
-                  label: Text(
-                    _showPast
-                        ? "Show Active"
-                        : "Previous Events",
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _showPast
-                        ? Colors.amber.shade700
-                        : const Color(0xFF1A3A8F),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            if (filteredEvents.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32),
-                  child: Text(
-                    "No events available.",
-                    style: TextStyle(
-                      color: Colors.grey,
-                    ),
-                  ),
-                ),
-              )
-            else
-              ...filteredEvents.map((event) {
-                return EventCard(
-                  event: event,
-                  myEmail: myEmail,
-                  onRefresh: () {
-                    setState(() {
-                      eventsFuture = EventService.getAllEvents();
-                    });
-                  },
-                );
-              }),
-          ],
-        );
-      },
-    );
+    return const EventList();
   }
 }
 

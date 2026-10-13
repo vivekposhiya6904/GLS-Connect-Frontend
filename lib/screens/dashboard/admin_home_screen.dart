@@ -571,10 +571,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                   onChanged: (_) => _applyUserSearch(),
                   decoration: InputDecoration(
                     hintText: "Search by name or email...",
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF1A3A8F)),
                     suffixIcon: _userSearchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear),
+                            icon: const Icon(Icons.clear_rounded, size: 20),
                             onPressed: () {
                               _userSearchController.clear();
                               _applyUserSearch();
@@ -584,7 +584,18 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                     filled: true,
                     fillColor: const Color(0xFFF4F7FF),
                     contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 1.5),
+                    ),
                   ),
                 ),
               ),
@@ -593,7 +604,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1A3A8F),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: _showAddUserDialog,
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),

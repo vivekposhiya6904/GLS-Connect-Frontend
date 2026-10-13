@@ -172,6 +172,7 @@ class EventList extends StatefulWidget {
 class EventListState extends State<EventList> {
   late Future<List<EventModel>?> eventsFuture;
   String searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
   String selectedDepartment = "All";
   bool showPast = false;
   String myEmail = "";
@@ -181,6 +182,12 @@ class EventListState extends State<EventList> {
     super.initState();
     refreshData();
     loadMyEmail();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void refreshData() {
@@ -295,14 +302,32 @@ class EventListState extends State<EventList> {
               /// SEARCH BAR
               Expanded(
                 child: TextField(
+                  controller: _searchController,
                   decoration: InputDecoration(
                     hintText: "Search events...",
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFF1A3A8F)),
+                    suffixIcon: searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => searchQuery = "");
+                            },
+                          )
+                        : null,
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 1.5),
                     ),
                   ),
                   onChanged: (value) {
@@ -968,11 +993,18 @@ class ProfileList extends StatefulWidget {
 class _ProfileListState extends State<ProfileList> {
   late Future<List<dynamic>?> _profilesFuture;
   String _searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadProfiles();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _loadProfiles() {
@@ -985,23 +1017,43 @@ class _ProfileListState extends State<ProfileList> {
 
   @override
   Widget build(BuildContext context) {
+    final roleLabel = widget.role == "ALUMNI" ? "Alumni" : "Faculty";
+
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(12),
           child: TextField(
+            controller: _searchController,
             decoration: InputDecoration(
-              hintText: "Search ${widget.role.toLowerCase()}...",
-              prefixIcon: const Icon(Icons.search),
+              hintText: "Search $roleLabel by name, department, role...",
+              prefixIcon: const Icon(Icons.search, color: Color(0xFF1A3A8F)),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 20),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = "");
+                      },
+                    )
+                  : null,
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 1.5),
               ),
             ),
             onChanged: (value) {
-              setState(() => _searchQuery = value.toLowerCase());
+              setState(() => _searchQuery = value.trim().toLowerCase());
             },
           ),
         ),
@@ -1019,71 +1071,103 @@ class _ProfileListState extends State<ProfileList> {
 
               final list = snapshot.data ?? [];
               if (list.isEmpty) {
-                return const Center(child: Text("No profiles found."));
+                return Center(child: Text("No $roleLabel profiles found."));
               }
 
               final filtered = list.where((p) {
+                if (_searchQuery.isEmpty) return true;
+
                 if (widget.role == "ALUMNI") {
                   final alumni = p as AlumniProfileModel;
-                  final isFilled = (alumni.degree != null && alumni.degree!.isNotEmpty) ||
-                                   (alumni.companyName != null && alumni.companyName!.isNotEmpty) ||
-                                   (alumni.designation != null && alumni.designation!.isNotEmpty) ||
-                                   (alumni.department != null && alumni.department!.isNotEmpty) ||
-                                   (alumni.batchYear != null && alumni.batchYear! > 0);
-                  if (!isFilled) return false;
-
-                  final name = alumni.userName ?? "";
-                  return name.toLowerCase().contains(_searchQuery);
+                  final name = alumni.userName?.toLowerCase() ?? "";
+                  final company = alumni.companyName?.toLowerCase() ?? "";
+                  final designation = alumni.designation?.toLowerCase() ?? "";
+                  final dept = alumni.department?.toLowerCase() ?? "";
+                  final degree = alumni.degree?.toLowerCase() ?? "";
+                  final skills = alumni.skills?.toLowerCase() ?? "";
+                  final city = alumni.currentCity?.toLowerCase() ?? "";
+                  return name.contains(_searchQuery) ||
+                      company.contains(_searchQuery) ||
+                      designation.contains(_searchQuery) ||
+                      dept.contains(_searchQuery) ||
+                      degree.contains(_searchQuery) ||
+                      skills.contains(_searchQuery) ||
+                      city.contains(_searchQuery);
                 } else {
                   final faculty = p as FacultyProfileModel;
-                  final isFilled = (faculty.department != null && faculty.department!.isNotEmpty) ||
-                                   (faculty.designation != null && faculty.designation!.isNotEmpty) ||
-                                   (faculty.qualification != null && faculty.qualification!.isNotEmpty) ||
-                                   (faculty.specialization != null && faculty.specialization!.isNotEmpty) ||
-                                   (faculty.experienceYears != null && faculty.experienceYears! > 0);
-                  if (!isFilled) return false;
-
-                  final name = faculty.userName ?? "";
-                  return name.toLowerCase().contains(_searchQuery);
+                  final name = faculty.userName?.toLowerCase() ?? "";
+                  final dept = faculty.department?.toLowerCase() ?? "";
+                  final designation = faculty.designation?.toLowerCase() ?? "";
+                  final qualification = faculty.qualification?.toLowerCase() ?? "";
+                  final specialization = faculty.specialization?.toLowerCase() ?? "";
+                  final skills = faculty.skills?.toLowerCase() ?? "";
+                  return name.contains(_searchQuery) ||
+                      dept.contains(_searchQuery) ||
+                      designation.contains(_searchQuery) ||
+                      qualification.contains(_searchQuery) ||
+                      specialization.contains(_searchQuery) ||
+                      skills.contains(_searchQuery);
                 }
               }).toList();
 
               if (filtered.isEmpty) {
-                return const Center(child: Text("No profiles match your search"));
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                        const SizedBox(height: 12),
+                        Text(
+                          "No $roleLabel match your search",
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: filtered.length,
-                itemBuilder: (context, index) {
-                  final p = filtered[index];
-                  String name = "";
-                  String subtitle = "";
-                  int userId = 0;
-                  String? profilePic;
-
-                  if (widget.role == "ALUMNI") {
-                    final alumni = p as AlumniProfileModel;
-                    name = alumni.userName ?? "Alumni Member";
-                    subtitle = "${alumni.designation ?? 'Graduate'} at ${alumni.companyName ?? 'GLS'}";
-                    userId = alumni.userId ?? 0;
-                    profilePic = alumni.profilePictureUrl;
-                  } else {
-                    final faculty = p as FacultyProfileModel;
-                    name = faculty.userName ?? "Faculty Member";
-                    subtitle = "${faculty.designation ?? 'Professor'} • ${faculty.department ?? 'GLS'}";
-                    userId = faculty.userId ?? 0;
-                    profilePic = faculty.profilePictureUrl;
-                  }
-
-                  return ProfileCard(
-                    name: name,
-                    role: subtitle,
-                    userId: userId,
-                    userRole: widget.role,
-                    profilePictureUrl: profilePic,
-                  );
+              return RefreshIndicator(
+                onRefresh: () async {
+                  setState(() {
+                    _loadProfiles();
+                  });
                 },
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final p = filtered[index];
+                    String name = "";
+                    String subtitle = "";
+                    int userId = 0;
+                    String? profilePic;
+
+                    if (widget.role == "ALUMNI") {
+                      final alumni = p as AlumniProfileModel;
+                      name = alumni.userName ?? "Alumni Member";
+                      subtitle = "${alumni.designation ?? 'Graduate'} at ${alumni.companyName ?? 'GLS'}";
+                      userId = alumni.userId ?? 0;
+                      profilePic = alumni.profilePictureUrl;
+                    } else {
+                      final faculty = p as FacultyProfileModel;
+                      name = faculty.userName ?? "Faculty Member";
+                      subtitle = "${faculty.designation ?? 'Professor'} • ${faculty.department ?? 'GLS'}";
+                      userId = faculty.userId ?? 0;
+                      profilePic = faculty.profilePictureUrl;
+                    }
+
+                    return ProfileCard(
+                      name: name,
+                      role: subtitle,
+                      userId: userId,
+                      userRole: widget.role,
+                      profilePictureUrl: profilePic,
+                    );
+                  },
+                ),
               );
             },
           ),

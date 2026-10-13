@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'alumni_home_screen.dart' show EventList, EventListState, ProfileList, JobList, MyActivityPage;
 
+import '../notification/notification_screen.dart';
+
 class FacultyDashboard extends StatefulWidget {
   const FacultyDashboard({super.key});
 
@@ -37,7 +39,7 @@ class FacultyDashboardState extends State<FacultyDashboard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
+                  color: Colors.amber.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.amber),
                 ),
@@ -48,6 +50,23 @@ class FacultyDashboardState extends State<FacultyDashboard> {
               ),
             ],
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(
+                Icons.notifications_none_rounded,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
           bottom: const TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,

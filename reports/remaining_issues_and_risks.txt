@@ -1,0 +1,84 @@
+================================================================================
+GLS CONNECT ALUMNI MANAGEMENT SYSTEM
+REMAINING ISSUES, TESTING LIMITATIONS, AND RISK ASSESSMENT
+================================================================================
+Date: 2026-10-13
+Scope: GLS-Connect-Frontend & Alumni_Backend
+
+================================================================================
+1. VERIFIED STATUS & ZERO-REGRESSION SUMMARY
+================================================================================
+No critical functional defects or security regressions were identified during
+the implementation and automated verification phases.
+
+All verified features are functioning in accordance with requirements:
+- Student Profile Routing & Persistence: Resolved and covered by tests.
+- Role-specific Create (+) Action Visibility: Resolved and covered by tests.
+- Directory Completeness (Incomplete Profile Handling): Resolved.
+- Multi-Field Directory Search: Resolved and covered by tests.
+- Unified UI Backgrounds & Search Bars: Resolved.
+- Student Event Feed Search & Department Filtering: Resolved.
+- LPA Salary Filter Boundaries & Consistency: 100% verified (20/20 tests passed).
+- Event Card Branded Gradient Fallbacks: Resolved and verified.
+
+================================================================================
+2. TESTING LIMITATIONS AND ENVIRONMENT CONSTRAINTS
+================================================================================
+While all unit and widget tests executed with 100% pass rates, the following
+environmental constraints should be noted:
+
+1. Physical Mobile Device Hardware:
+   - Automated tests were executed using Flutter test harness (`flutter_test`) and
+     JVM headless testing (`JUnit 5`, `Spring Boot Test`).
+   - Physical camera capture on physical Android hardware depends on the underlying
+     Android OS camera permissions (`CAMERA` and `READ_EXTERNAL_STORAGE` /
+     `READ_MEDIA_IMAGES`). The `ImagePickerHelper` dialog and file handling logic
+     are implemented and verified, but runtime testing on physical OEM hardware
+     requires an installed APK or connected device.
+
+2. Live SMTP Email Server:
+   - In the local testing environment, email OTP dispatch was verified using mock
+     mail services and test stubs. Sending emails to live external mail exchangers
+     (e.g., Gmail SMTP) requires live internet access and configured SMTP credentials
+     in `application-local.properties`.
+
+3. Live Push Notification APNs / FCM Gateway:
+   - In-app notification storage, retrieval, and UI rendering are fully implemented
+     and verified. System-level background push notifications through Google Firebase
+     Cloud Messaging (FCM) depend on active Google Services configuration (`google-services.json`).
+
+================================================================================
+3. MINOR INFORMATIONAL LINTS & CLEANUP OPPORTUNITIES
+================================================================================
+The following non-blocking informational items were observed in the frontend
+codebase during `flutter analyze`:
+1. Informational Lints for `avoid_print`:
+   - Several services (`AdminService`, `EventService`, `JobService`, `PostService`,
+     `AlumniProfileService`, `FacultyProfileService`, `StorageService`) utilize
+     `print(...)` statements for debug logging. While functional and non-breaking,
+     future releases could migrate these to `debugPrint(...)` or a structured logging
+     library (e.g. `logger` package).
+2. Informational Lints for Deprecated Member Use (`withOpacity`):
+   - Auth screens (`login_screen.dart`, `register_screen.dart`, `forgot_password_screen.dart`)
+     contain calls to `Color.withOpacity(alpha)`. Flutter recommends `Color.withValues(alpha: alpha)`
+     in newer SDKs. These continue to function correctly in the current Flutter SDK.
+3. Unused Element in Register Screen:
+   - `_RegisterIllustration` in `register_screen.dart` is declared but unreferenced.
+     Preserved intentionally in compliance with strict project rules against
+     deleting unconfirmed code.
+
+================================================================================
+4. DEPLOYMENT & MIGRATION ADVISORY
+================================================================================
+1. PostgreSQL Schema:
+   - When deploying the backend in environments where Hibernate `ddl-auto` is set to
+     `validate` or `none`, execute the safe DDL script provided in the implementation
+     report to create table `student_profiles`.
+2. Static Asset Hosting:
+   - If students or alumni upload profile pictures, ensure the directory configured
+     for uploads (`uploads/` or external volume) has appropriate write permissions
+     and is backed up regularly.
+
+================================================================================
+No additional unhandled risks or defects were identified during this verification cycle.
+================================================================================

@@ -43,7 +43,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF4F7FF),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A3A8F),
         elevation: 1,

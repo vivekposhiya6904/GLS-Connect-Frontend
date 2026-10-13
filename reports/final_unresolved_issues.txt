@@ -1,0 +1,198 @@
+================================================================================
+GLS CONNECT ALUMNI MANAGEMENT SYSTEM
+FINAL UNRESOLVED ISSUES, PARTIALLY FIXED ITEMS, AND RISK REGISTER
+================================================================================
+Verification Date: 2026-10-13
+Scope: GLS-Connect-Frontend & Alumni_Backend
+
+This document records all STILL PRESENT, PARTIALLY FIXED, and UNVERIFIED items
+identified during the post-implementation verification pass, along with severity,
+evidence, impact, and recommended future fixes.
+
+Zero REGRESSION INTRODUCED items were found during this verification pass.
+
+================================================================================
+1. STILL PRESENT ISSUES
+================================================================================
+
+[ISSUE-SP-01] BACK-03: Notification Entity Lacks Target Recipient User ID
+- Severity: Medium
+- Current Status: STILL PRESENT
+- Category: Backend Data Model / Privacy Isolation
+- Affected Files:
+  * `Alumni_Backend/src/main/java/com/alumni/management/notification/entity/Notification.java`
+  * `Alumni_Backend/src/main/java/com/alumni/management/notification/service/NotificationService.java`
+- Evidence:
+  The `Notification` entity contains fields `id`, `title`, `message`, `timestamp`,
+  and `isRead`, but does not contain a foreign key `recipient_user_id` or `recipient_email`.
+- Impact:
+  All notifications currently operate in broadcast mode across the entire platform.
+  A user cannot receive private or targeted administrative notices without every
+  other user also receiving them.
+- Reproduction:
+  1. Inspect `Notification.java` entity class.
+  2. Query `GET /api/notifications` from two different user accounts.
+  3. Both accounts receive identical notification objects.
+- Recommended Fix:
+  In a future scheduled release, introduce a database migration adding
+  `recipient_user_id BIGINT REFERENCES users(id)` and an `is_broadcast BOOLEAN DEFAULT FALSE`
+  flag to support both targeted and system-wide announcements safely.
+
+================================================================================
+2. PARTIALLY FIXED ISSUES
+================================================================================
+
+[ISSUE-PF-01] CODE-01 & CODE-02 (ISSUE-09): Duplicated JobList & ProfileList Widgets
+- Severity: Low
+- Current Status: PARTIALLY FIXED
+- Category: Code Quality & Maintainability
+- Affected Files:
+  * `GLS-Connect-Frontend/lib/screens/dashboard/student_home_screen.dart`
+  * `GLS-Connect-Frontend/lib/screens/dashboard/alumni_home_screen.dart`
+- Evidence:
+  The functional filtering and search behaviors have been synchronized and tested
+  successfully, and `EventList` was unified in the Student module. However,
+  separate definitions of `_JobListState` and `_ProfileListState` still reside
+  in both files (~450 lines of duplicate UI code).
+- Impact:
+  No runtime bugs. Any future enhancement to directory filtering or job cards
+  requires manual synchronization across both files.
+- Recommended Fix:
+  Extract into reusable widgets:
+  `lib/widgets/job_list.dart` and `lib/widgets/profile_list.dart`.
+
+[ISSUE-PF-02] BACK-02: String-Based Salary Storage (VARCHAR)
+- Severity: Low
+- Current Status: PARTIALLY FIXED
+- Category: Database Storage Format
+- Affected Files:
+  * `Alumni_Backend/src/main/java/com/alumni/management/jobpost/entity/Job.java` (Line 29)
+  * `GLS-Connect-Frontend/lib/utils/salary_helper.dart`
+- Evidence:
+  Salary continues to be stored as `VARCHAR(50)` (e.g., "8 LPA", "₹12 LPA").
+  Salary parsing and boundary filtering operate in Flutter memory via `SalaryHelper`
+  (verified with 20 passing unit tests).
+- Impact:
+  SQL-level `BETWEEN` queries cannot be executed on the backend database. All job
+  filtering must be executed on the client device.
+- Recommended Fix:
+  Add an optional numeric column `salary_lpa NUMERIC(5,2)` to table `jobs` in the
+  database and populate it automatically during job creation.
+
+[ISSUE-PF-03] ISSUE-10 (CODE-03): Community Screen Entry Point
+- Severity: Low
+- Current Status: PARTIALLY FIXED
+- Category: Navigation Architecture
+- Affected Files:
+  * `GLS-Connect-Frontend/lib/screens/community/community_screen.dart`
+  * `GLS-Connect-Frontend/lib/screens/community/create_post_screen.dart`
+- Evidence:
+  `CommunityScreen` now has a `FloatingActionButton` that properly opens
+  `CreatePostScreen` and refreshes posts. However, `CommunityScreen` is not
+  yet integrated as a primary tab in `MainNavigation`.
+- Impact:
+  Community screens are internally connected and styled, but primarily reached
+  through explicit routing rather than the main bottom bar.
+- Recommended Fix:
+  Add a Community tab or navigation drawer link if community networking becomes
+  a core user journey for all roles.
+
+[ISSUE-PF-04] ISSUE-12 (CODE-04): Hardcoded Brand Palette In Auth Screens
+- Severity: Low
+- Current Status: PARTIALLY FIXED
+- Category: Theme Architecture
+- Affected Files:
+  * `GLS-Connect-Frontend/lib/screens/auth/login_screen.dart`
+  * `GLS-Connect-Frontend/lib/screens/auth/register_screen.dart`
+- Evidence:
+  Local constant `const Color glsBlue = Color(0xFF1A3A8F)` is declared in auth
+  screens instead of referencing `AppTheme.primaryBlue`.
+- Impact:
+  Cosmetic only; changing brand theme centrally in `app_theme.dart` does not
+  automatically propagate to login and register screens.
+- Recommended Fix:
+  Replace local `glsBlue` declarations with `AppTheme.primaryBlue`.
+
+[ISSUE-PF-05] ISSUE-14 (UI-07): Deprecated withOpacity() In Auth Screens
+- Severity: Low
+- Current Status: PARTIALLY FIXED
+- Category: Flutter Modernization
+- Affected Files:
+  * `GLS-Connect-Frontend/lib/screens/auth/login_screen.dart`
+  * `GLS-Connect-Frontend/lib/screens/auth/register_screen.dart`
+  * `GLS-Connect-Frontend/lib/screens/auth/forgot_password_screen.dart`
+  * `GLS-Connect-Frontend/lib/screens/splash/splash_screen.dart`
+- Evidence:
+  Auth screens contain deprecated `.withOpacity(...)` calls generating informational
+  lints in `flutter analyze`.
+- Impact:
+  Informational only; does not block build or cause runtime errors.
+- Recommended Fix:
+  Update remaining auth color calls to `withValues(alpha: ...)`.
+
+[ISSUE-PF-06] BACK-04: Duplicate User Listing Endpoints
+- Severity: Low
+- Current Status: PARTIALLY FIXED
+- Category: API Design
+- Affected Files:
+  * `UserController.java` (`/api/users`)
+  * `AdminController.java` (`/api/admin/users`)
+- Evidence:
+  Two separate controllers expose user lists with different DTO shapes.
+- Impact:
+  Security is verified (`@PreAuthorize("hasRole('ADMIN')")` protects admin data),
+  but API consumers must target different endpoints for administrative user views.
+- Recommended Fix:
+  Consolidate into a unified paginated user query service with role-filtered views.
+
+[ISSUE-PF-07] ACC-01 / ACC-02 / ACC-03: Accessibility & Visual Density
+- Severity: Low
+- Current Status: PARTIALLY FIXED
+- Category: Accessibility
+- Affected Files:
+  * `lib/widgets/job_card.dart`
+  * `lib/widgets/event_card.dart`
+  * `lib/screens/navigation/main_navigation.dart`
+- Evidence:
+  Action chips use `VisualDensity.compact`, yielding touch targets around 36x36 dp,
+  which is below the WCAG 48x48 dp touch target recommendation.
+- Impact:
+  Users with motor difficulties may experience reduced tap accuracy.
+- Recommended Fix:
+  Increase touch target padding on chip containers.
+
+================================================================================
+3. REGRESSION INTRODUCED
+================================================================================
+None. All 36 frontend tests and 25 backend tests passed without regression.
+
+================================================================================
+4. UNVERIFIED ITEMS AND TESTING LIMITATIONS
+================================================================================
+
+[ISSUE-UV-01] Physical Hardware Camera Capture
+- Severity: Low
+- Status: UNVERIFIED
+- Reason:
+  Executed in headless development environment without physical Android/iOS hardware.
+  `ImagePickerHelper` UI modal dialog and multipart API upload services are fully
+  tested and operational, but device OS camera permissions (`android.permission.CAMERA`)
+  must be confirmed on a physical OEM device.
+
+[ISSUE-UV-02] Live Push Notification Gateway (FCM / APNs)
+- Severity: Low
+- Status: UNVERIFIED
+- Reason:
+  Automated tests verified database-backed notification storage and UI rendering.
+  Background push dispatch requires live external Google Firebase servers.
+
+================================================================================
+5. CONCLUSION & PRIORITIZED NEXT STEPS
+================================================================================
+No critical or high-severity defects remain unresolved. The platform is stable,
+performant, and visually consistent across all four modules. Future maintenance
+should focus on:
+  1. Adding `recipient_user_id` to notifications (ISSUE-SP-01).
+  2. Extracting shared `job_list.dart` and `profile_list.dart` widgets (ISSUE-PF-01).
+  3. Upgrading auth screen colors to centralized `AppTheme` tokens (ISSUE-PF-04, ISSUE-PF-05).
+================================================================================

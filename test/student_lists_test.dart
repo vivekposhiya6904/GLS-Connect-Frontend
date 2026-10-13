@@ -94,7 +94,14 @@ void main() {
       expect(find.text("Faculty"), findsOneWidget);
 
       // Verify global search button is removed from Student AppBar
-      expect(find.byIcon(Icons.search_rounded), findsNothing);
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.byIcon(Icons.search_rounded)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.byIcon(Icons.search)),
+        findsNothing,
+      );
       expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
     });
 

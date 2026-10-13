@@ -50,11 +50,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final hasOrganizer = widget.event.createdByEmail != null &&
         widget.event.createdByEmail!.isNotEmpty;
 
-    final imgUrl = widget.event.imageUrl != null && widget.event.imageUrl!.isNotEmpty
+    final hasImage = widget.event.imageUrl != null && widget.event.imageUrl!.trim().isNotEmpty;
+    final imgUrl = hasImage
         ? (widget.event.imageUrl!.startsWith("http")
             ? widget.event.imageUrl!
             : "${ApiConfig.baseUrl}${widget.event.imageUrl}")
-        : "https://picsum.photos/800/400?random=${widget.event.title}";
+        : null;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFC),
@@ -89,6 +90,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             // Event Hero Banner Image
             GestureDetector(
               onTap: () {
+                if (imgUrl == null) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -109,19 +111,51 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               },
               child: Stack(
                 children: [
-                  Image.network(
-                    imgUrl,
-                    height: 220,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
+                  if (imgUrl != null)
+                    Image.network(
+                      imgUrl,
                       height: 220,
-                      color: const Color(0xFF1A3A8F).withValues(alpha: 0.1),
-                      child: const Center(
-                        child: Icon(Icons.event, size: 64, color: Color(0xFF1A3A8F)),
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 220,
+                        color: const Color(0xFF1A3A8F).withValues(alpha: 0.1),
+                        child: const Center(
+                          child: Icon(Icons.event, size: 64, color: Color(0xFF1A3A8F)),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      height: 220,
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF1A3A8F), Color(0xFF2E5BBA)],
+                        ),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.event_available_rounded, size: 64, color: Colors.white70),
+                            const SizedBox(height: 10),
+                            Text(
+                              widget.event.targetDepartment != null && widget.event.targetDepartment!.isNotEmpty
+                                  ? widget.event.targetDepartment!
+                                  : "GLS Campus Event",
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                   Positioned(
                     top: 14,
                     right: 14,

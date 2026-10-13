@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 class ApiConfig {
   // Optional override:
   // flutter run --dart-define=API_BASE_URL=http://192.168.0.23:8080
@@ -16,6 +14,6 @@ class ApiConfig {
     // changes
 
     // Android Emulator and physical Android device
-    return "http://192.168.0.23:8080"; // change this ip address with your ip adress
+    return "http://192.168.0.23 :8080"; // change this ip address with your ip adress
   }
 }

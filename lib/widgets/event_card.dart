@@ -27,11 +27,12 @@ class EventCard extends StatelessWidget {
         event.createdByEmail!.isNotEmpty &&
         event.createdByEmail!.trim().toLowerCase() != myEmail.trim().toLowerCase();
 
-    final imgUrl = event.imageUrl != null && event.imageUrl!.isNotEmpty
+    final hasImage = event.imageUrl != null && event.imageUrl!.trim().isNotEmpty;
+    final imgUrl = hasImage
         ? (event.imageUrl!.startsWith("http")
             ? event.imageUrl!
             : "${ApiConfig.baseUrl}${event.imageUrl}")
-        : "https://picsum.photos/600/300?random=${event.title}";
+        : null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -73,19 +74,51 @@ class EventCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Stack(
                   children: [
-                    Image.network(
-                      imgUrl,
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                    if (imgUrl != null)
+                      Image.network(
+                        imgUrl,
                         height: 150,
-                        color: const Color(0xFF1A3A8F).withValues(alpha: 0.1),
-                        child: const Center(
-                          child: Icon(Icons.event, size: 48, color: Color(0xFF1A3A8F)),
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 150,
+                          color: const Color(0xFF1A3A8F).withValues(alpha: 0.1),
+                          child: const Center(
+                            child: Icon(Icons.event, size: 48, color: Color(0xFF1A3A8F)),
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        height: 150,
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF1A3A8F), Color(0xFF2E5BBA)],
+                          ),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.event_available_rounded, size: 46, color: Colors.white70),
+                              const SizedBox(height: 6),
+                              Text(
+                                event.targetDepartment != null && event.targetDepartment!.isNotEmpty
+                                    ? event.targetDepartment!
+                                    : "GLS Campus Event",
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                     Positioned(
                       top: 10,
                       right: 10,

@@ -16,6 +16,7 @@ import '../chat/chat_screen.dart';
 import '../job_post/job_post_screen.dart';
 import '../profile/alumni_profile_screen.dart';
 import '../profile/faculty_profile_screen.dart';
+import '../profile/student_profile_screen.dart';
 import '../dashboard/create_event_screen.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -58,7 +59,7 @@ class _MainNavigationState extends State<MainNavigation> {
       pages = const [
         StudentHomeScreen(),
         ChatScreen(),
-        AlumniProfileScreen(),
+        StudentProfileScreen(),
       ];
     } else {
       pages = const [
@@ -168,10 +169,11 @@ class _MainNavigationState extends State<MainNavigation> {
                   ),
                 ),
 
-                // 2. Create (+)
-                Expanded(
-                  child: buildCreateNavItem(isDark: isDark),
-                ),
+                // 2. Create (+) - Hidden for Students who have view-only job/event permissions
+                if (widget.userRole.toUpperCase() != "STUDENT")
+                  Expanded(
+                    child: buildCreateNavItem(isDark: isDark),
+                  ),
 
                 // 3. Chat
                 Expanded(

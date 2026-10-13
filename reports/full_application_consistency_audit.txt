@@ -1,0 +1,924 @@
+================================================================================
+GLS CONNECT - FULL APPLICATION UI & FEATURE CONSISTENCY AUDIT REPORT
+================================================================================
+Audit Date:         October 13, 2026
+Auditor:            Senior Software Architect, Flutter UI/UX Auditor,
+                    Spring Boot Backend Specialist & QA Engineer
+Target System:      Alumni Management System (GLS Connect)
+Frontend Project:   GLS-Connect-Frontend (Flutter / Dart)
+Backend Project:    Alumni_Backend (Spring Boot 3.x / Java 17)
+Database Engines:   PostgreSQL (alumni_db) & MongoDB (Chat Storage)
+Audit Scope:        Cross-Module Consistency Audit across Student, Alumni,
+                    Faculty, and Admin Modules (UI, Logic, Backend, APIs)
+Report File:        GLS-Connect-Frontend/reports/full_application_consistency_audit.txt
+================================================================================
+
+
+================================================================================
+SECTION 1 - REPORT METADATA
+================================================================================
+
+1.1 Report Title:
+    GLS Connect Alumni Management System - Comprehensive Cross-Module
+    UI/UX, Functional, Backend, and Architectural Consistency Audit Report.
+
+1.2 Audit Date:
+    October 13, 2026
+
+1.3 Project Directories Inspected:
+    - Frontend Root: E:\Documents\Alumni Project\GLS-Connect-Frontend
+      * lib/main.dart
+      * lib/config/ (api_config.dart)
+      * lib/theme/ (app_theme.dart)
+      * lib/utils/ (salary_helper.dart, date_helper.dart, storage_service.dart,
+                    theme_manager.dart, url_helper.dart, city_constants.dart,
+                    image_picker_helper.dart)
+      * lib/models/ (10 data models)
+      * lib/screens/auth/ (login, register, forgot_password, email_verification)
+      * lib/screens/dashboard/ (student_home_screen, alumni_home_screen,
+                                faculty_home_screen, admin_home_screen,
+                                create_event_screen, event_detail_screen)
+      * lib/screens/job_post/ (job_post_screen, job_detail_screen)
+      * lib/screens/profile/ (alumni_profile_screen, faculty_profile_screen,
+                              admin_profile_screen, profile_detail_screen)
+      * lib/screens/chat/ (chat_screen, chat_detail_screen)
+      * lib/screens/community/ (community_screen, create_post_screen)
+      * lib/screens/navigation/ (main_navigation.dart)
+      * lib/screens/notification/ (notification_screen, notification_card)
+      * lib/screens/router/ (dashboard_router.dart)
+      * lib/screens/search/ (search_screen.dart)
+      * lib/screens/splash/ (splash_screen.dart)
+      * lib/widgets/ (job_card, event_card, chat_avatar, chat_status_ticks,
+                      message_bubble, typing_indicator)
+      * test/ (7 test suites, 30 test cases)
+
+    - Backend Root: E:\Documents\Alumni Project\Alumni_Backend
+      * src/main/java/com/alumni/management/admin/
+      * src/main/java/com/alumni/management/alumni/
+      * src/main/java/com/alumni/management/chat/
+      * src/main/java/com/alumni/management/config/
+      * src/main/java/com/alumni/management/event/
+      * src/main/java/com/alumni/management/faculty/
+      * src/main/java/com/alumni/management/jobpost/
+      * src/main/java/com/alumni/management/notification/
+      * src/main/java/com/alumni/management/post/
+      * src/main/java/com/alumni/management/profileview/
+      * src/main/java/com/alumni/management/role/
+      * src/main/java/com/alumni/management/security/
+      * src/main/java/com/alumni/management/user/
+      * src/main/java/com/alumni/management/verification/
+
+1.4 Audit Methodology:
+    Static source code analysis, architectural tracing, schema inspection,
+    widget hierarchy auditing, design token comparison, cross-module
+    state tracking, and automated test execution.
+
+1.5 Audit Limitations:
+    - Real-device hardware peripherals (camera hardware, GPS location) were
+      evaluated via static code contracts and mock helpers.
+    - Production FCM (Firebase Cloud Messaging) live push delivery was
+      evaluated via backend notification service contracts rather than a live
+      Apple APNs / Google FCM server connection.
+    - MongoDB WebSocket STOMP messaging was verified via mock unit test
+      wrappers and local client services.
+
+
+================================================================================
+SECTION 2 - EXECUTIVE SUMMARY
+================================================================================
+
+A comprehensive cross-module audit of the GLS Connect Alumni Management
+System was conducted to evaluate consistency across the four user modules:
+Student, Alumni, Faculty, and Admin.
+
+2.1 Key Audit Statistics:
+    - Total Modules Inspected:                    4
+    - Total Screens & Widgets Inspected:          35+
+    - Total Backend Controllers Inspected:        12
+    - Total Database Entities Inspected:          14
+    - Total Confirmed Defects:                    4
+    - Total Consistency Issues:                   7
+    - Total Potential Issues (Runtime-Dependent):  3
+    - Total Intentional Role-Based Differences:   5
+    - Total Improvement Recommendations:          8
+
+2.2 Issue Breakdown by Priority:
+    - P0 (Critical - Security / Crash / Data Loss): 0
+    - P1 (High - Major Functional Inconsistency):   3
+    - P2 (Medium - Noticeable UI/UX Inconsistency): 7
+    - P3 (Low - Styling / Minor Polish / Dead Code): 4
+
+2.3 Summary of Most Critical Discoveries:
+    1. Student Profile Route Disconnect (P1 - Functional Mismatch):
+       In MainNavigation, a user with role STUDENT is routed to
+       AlumniProfileScreen. The form displays alumni-specific fields (Company,
+       Work Experience, Designation), and the backend endpoint
+       (/api/alumni/profile) enforces @PreAuthorize("hasRole('ALUMNI')"),
+       causing save operations by students to be rejected. There is currently
+       no student-specific profile entity or screen in the system.
+
+    2. Create (+) Action Button Visible to Students (P1 - Permission Drift):
+       MainNavigation renders the central 'Create (+)' action button for all
+       non-admin users, offering 'Post Job' and 'Create Event'. When a student
+       attempts to post a job, backend JobService throws an authorization
+       exception ("Only alumni, faculty, and admin can create job posts").
+       The UI exposes actions the student has no permission to perform.
+
+    3. Directory Profile Filtering Logic Drift (P1 - Logic Discrepancy):
+       In Alumni and Faculty modules, ProfileList discards registered users who
+       have not filled in all optional extended fields (isFilled check), and
+       only searches by userName. In the Student module, ProfileList displays
+       all registered users with graceful fallbacks and searches across name,
+       company, designation, department, degree, and skills.
+
+    4. Inconsistent Scaffold Background Colors (P2 - Visual Inconsistency):
+       Student HomeScreen uses Color(0xFFF5F6FA) (cool grey), whereas Alumni,
+       Faculty, and Admin HomeScreens use Color(0xFFF4F7FF) (soft blue-tint).
+       ProfileDetailScreen uses Color(0xFFF8F9FA).
+
+    5. Inconsistent Search Bar Clear Buttons and Prefix Colors (P2 - UI Drift):
+       Student directory search has a clear button (Icons.clear) and blue search
+       icon (0xFF1A3A8F). Alumni directory search lacks a clear button and uses
+       an unstyled grey icon. Admin user search has a clear button, radius 10,
+       and soft blue fill (0xFFF4F7FF).
+
+    6. Dead Code - Orphaned Community Feed Screens (P3 - Code Hygiene):
+       lib/screens/community/community_screen.dart and create_post_screen.dart
+       are never routed to from any navigation bar or router in the application.
+
+
+================================================================================
+SECTION 3 - MODULE FEATURE INVENTORY
+================================================================================
+
++--------------------------------+---------+--------+---------+-------+
+| Feature / Screen               | Student | Alumni | Faculty | Admin |
++--------------------------------+---------+--------+---------+-------+
+| 1.  Jobs Feed (Browse)         | YES     | YES    | YES     | YES   |
+| 2.  Job Salary LPA Filter      | YES     | YES    | YES     | YES   |
+| 3.  Job Location Filter        | YES     | YES    | YES     | NO    |
+| 4.  Job Keyword Search         | YES     | YES    | YES     | YES   |
+| 5.  Job Post / Create Action   | NO (UI) | YES    | YES     | YES   |
+| 6.  Job Edit / Delete (CRUD)   | NO      | OWN    | OWN     | ALL   |
+| 7.  Events Feed (Browse)       | YES     | YES    | YES     | YES   |
+| 8.  Event Past/Upcoming Filter | YES     | YES    | YES     | YES   |
+| 9.  Event Department Filter    | NO      | YES    | YES     | NO    |
+| 10. Event Keyword Search       | NO      | YES    | YES     | NO    |
+| 11. Event Create Action        | NO (UI) | YES    | YES     | YES   |
+| 12. Alumni Directory           | YES     | YES    | YES     | YES   |
+| 13. Faculty Directory          | YES     | YES    | YES     | YES   |
+| 14. Directory Keyword Search   | YES     | YES    | YES     | YES   |
+| 15. User Profile View (Detail) | YES     | YES    | YES     | YES   |
+| 16. User Profile Edit (Self)   | BROKEN* | YES    | YES     | STUB* |
+| 17. My Activity - My Events    | YES     | YES    | YES     | NO    |
+| 18. My Activity - My Jobs      | YES     | YES    | YES     | NO    |
+| 19. My Activity - My Posts     | NO      | YES    | NO      | NO    |
+| 20. Chat / Messaging           | YES     | YES    | YES     | NO    |
+| 21. Real-time Unread Badge     | YES     | YES    | YES     | NO    |
+| 22. Notifications Feed         | YES     | YES    | NO      | NO    |
+| 23. Admin User Management      | NO      | NO     | NO      | YES   |
+| 24. Admin Analytics / Metrics  | NO      | NO     | NO      | YES   |
+| 25. Bottom Navigation Bar      | YES     | YES    | YES     | NO    |
++--------------------------------+---------+--------+---------+-------+
+* Notes:
+  - Feature 16 (Student): Routes to AlumniProfileScreen which cannot be saved.
+  - Feature 16 (Admin): AdminProfileScreen is an empty placeholder stub.
+
+
+================================================================================
+SECTION 4 - CROSS-MODULE COMPARISON MATRIX
+================================================================================
+
++------------------------+-----------------------------------------------------+
+| Feature Area           | Comparison Across Modules                           |
++------------------------+-----------------------------------------------------+
+| App Bar Styling        | - Student: Blue (0xFF1A3A8F), title 'GLS Connect',  |
+|                        |   amber badge 'STUDENT', notifications bell.        |
+|                        | - Alumni: Blue (0xFF1A3A8F), title 'GLS Connect',   |
+|                        |   amber badge 'ALUMNI', notifications bell + count. |
+|                        | - Faculty: Blue (0xFF1A3A8F), title 'GLS Connect',  |
+|                        |   amber badge 'FACULTY', NO notification icon.      |
+|                        | - Admin: Blue (0xFF1A3A8F), title 'Admin Portal',    |
+|                        |   amber badge 'ADMIN', Logout icon.                 |
+|                        | ASSESSMENT: Inconsistent actions (notifications icon|
+|                        | missing in Faculty). Title differs in Admin.        |
++------------------------+-----------------------------------------------------+
+| Scaffold Background    | - Student: 0xFFF5F6FA (Grey-toned)                  |
+| Color                  | - Alumni: 0xFFF4F7FF (Soft blue-toned)              |
+|                        | - Faculty: 0xFFF4F7FF (Soft blue-toned)             |
+|                        | - Admin: 0xFFF4F7FF (Soft blue-toned)               |
+|                        | ASSESSMENT: Visual mismatch between Student and     |
+|                        | other 3 modules.                                    |
++------------------------+-----------------------------------------------------+
+| Job Salary Filtering   | - Student: Uses SalaryHelper LPA ranges & parser    |
+|                        | - Alumni: Uses SalaryHelper LPA ranges & parser     |
+|                        | - Faculty: Reuses Alumni JobList directly           |
+|                        | - Admin: Segmented chips (Active, Expired, All)     |
+|                        | ASSESSMENT: Fully consistent following recent fix.  |
++------------------------+-----------------------------------------------------+
+| Event Search & Filter  | - Student: Simple toggle (Active Feed vs Previous   |
+|                        |   Events). NO keyword search, NO department filter. |
+|                        | - Alumni/Faculty: In-feed search bar, Department    |
+|                        |   modal sheet (All, MCA, BCA, MBA, IT, CS), Past    |
+|                        |   events toggle switch.                             |
+|                        | - Admin: Segmented chips (Upcoming, Past, All).     |
+|                        | ASSESSMENT: Major feature gap between Student and   |
+|                        | Alumni/Faculty events feed.                         |
++------------------------+-----------------------------------------------------+
+| Directory Profile      | - Student: Shows all registered users with clean    |
+| Lists                  |   fallbacks. Searches name, company, designation,   |
+|                        |   department, degree, skills, city. Clear button ok.|
+|                        | - Alumni/Faculty: Hides users with empty extended   |
+|                        |   fields (isFilled check). Searches name only.      |
+|                        |   NO clear button.                                  |
+|                        | ASSESSMENT: Disconnected implementations; users who |
+|                        | haven't filled full profile are hidden in Alumni.   |
++------------------------+-----------------------------------------------------+
+| Bottom Navigation      | - Student: 4 tabs (Home, Create +, Chat, Profile)   |
+|                        | - Alumni: 4 tabs (Home, Create +, Chat, Profile)    |
+|                        | - Faculty: 4 tabs (Home, Create +, Chat, Profile)   |
+|                        | - Admin: NO bottom bar; uses 4 top tabs in AppBar   |
+|                        | ASSESSMENT: 'Create +' exposes job creation to      |
+|                        | Students who cannot post jobs.                      |
++------------------------+-----------------------------------------------------+
+
+
+================================================================================
+SECTION 5 - UI/UX INCONSISTENCIES
+================================================================================
+
+5.1 UI-01: Scaffold Background Color Mismatch
+    - Student HomeScreen:   Color(0xFFF5F6FA) [Line 31]
+    - Alumni HomeScreen:    Color(0xFFF4F7FF) [Line 38]
+    - Faculty Dashboard:    Color(0xFFF4F7FF) [Line 23]
+    - Admin HomeScreen:     Color(0xFFF4F7FF) [Line 386]
+    - Search Screen:        Color(0xFFF5F6FA) [Line 332]
+    - Profile Detail:       Color(0xFFF8F9FA) [Line 67]
+    Impact: Subtle visual jarring when navigating between Student and Alumni
+    screens. Standard palette should define a single surfaceBackground token.
+
+5.2 UI-02: Search Bar Border Radius & Color Divergence
+    - Student/Alumni Jobs:  fillColor: Colors.white, radius: 12.0
+    - Student/Alumni Events:fillColor: Colors.white, radius: 12.0
+    - Admin Users:          fillColor: Color(0xFFF4F7FF), radius: 10.0 [Line 587]
+    - Chat Screen Search:   fillColor: transparent, underline border
+    Impact: Lack of unified search bar styling across administrative and consumer
+    screens.
+
+5.3 UI-03: Search Bar Suffix Clear Button Inconsistency
+    - Student Directory:    Has suffixIcon (Icons.clear) when text is non-empty.
+    - Admin Users:          Has suffixIcon (Icons.clear) when text is non-empty.
+    - Student Jobs:         NO clear button.
+    - Alumni Jobs:          NO clear button.
+    - Alumni Events:        NO clear button.
+    - Alumni Directory:     NO clear button.
+    Impact: Inconsistent user experience; users must manually delete search
+    queries character-by-character on several screens.
+
+5.4 UI-04: Directory Search Icon Color Inconsistency
+    - Student Directory:    prefixIcon: Icon(Icons.search, color: Color(0xFF1A3A8F))
+    - Alumni Directory:     prefixIcon: Icon(Icons.search) [Default theme grey]
+    - Admin Users:          prefixIcon: Icon(Icons.search, color: Colors.grey)
+    Impact: Student module uses brand blue for icon; Alumni uses unstyled grey.
+
+5.5 UI-05: Notification Icon Absent from Faculty and Admin AppBars
+    - Student HomeScreen:   Includes notification bell icon in AppBar.
+    - Alumni HomeScreen:    Includes notification bell icon + unread count badge.
+    - Faculty Dashboard:    NO notification icon in AppBar.
+    - Admin HomeScreen:     NO notification icon in AppBar.
+    Impact: Faculty users cannot view notification feed from their dashboard
+    app bar, even though notifications are supported in backend.
+
+5.6 UI-06: Third-Party Public Image Dependency in Event Cards
+    - File: lib/widgets/event_card.dart [Line 34]
+    - Code: "https://picsum.photos/600/300?random=${event.title}"
+    Impact: When an event has no imageUrl, EventCard queries picsum.photos. If
+    network is slow, offline, or restricted, the card hangs or renders broken
+    image icons. Should use a local bundled asset fallback.
+
+5.7 UI-07: Deprecated withOpacity() vs Modern withValues() API Usage
+    - Student HomeScreen:   Colors.amber.withOpacity(0.2) [Line 51]
+    - Alumni HomeScreen:    Colors.amber.withOpacity(0.2) [Line 56]
+    - Faculty Dashboard:    Colors.amber.withOpacity(0.2) [Line 40]
+    - Admin HomeScreen:     Colors.amber.withValues(alpha: 0.2) [Line 402]
+    - JobCard / EventCard:  withValues(alpha: ...) [Modern Flutter SDK]
+    Impact: Inconsistent SDK method usage; older withOpacity() generates lint
+    warnings on newer Flutter SDKs.
+
+
+================================================================================
+SECTION 6 - FUNCTIONAL INCONSISTENCIES
+================================================================================
+
+6.1 FUNC-01: Student Profile Routes to Alumni Profile (Broken Save)
+    - Location: lib/screens/navigation/main_navigation.dart [Line 61]
+    - Details:
+      For widget.userRole == 'STUDENT', pages[2] is instantiated as
+      AlumniProfileScreen().
+    - Consequence:
+      Students see fields such as 'Designation', 'Company Name', 'Industry',
+      and 'Work Experience'. When a student attempts to save their profile,
+      backend AlumniProfileController rejects the request because the method
+      is annotated with @PreAuthorize("hasRole('ALUMNI')").
+    - Severity: P1 (High)
+
+6.2 FUNC-02: 'Create (+)' Action Button Exposed to Students
+    - Location: lib/screens/navigation/main_navigation.dart [Line 173, Line 368]
+    - Details:
+      MainNavigation includes the central 'Create (+)' bottom navigation button
+      for all roles except ADMIN. Tapping it presents 'Post Job' and 'Create
+      Event'.
+    - Consequence:
+      Students cannot create jobs (backend JobService throws RuntimeException:
+      "Only alumni, faculty, and admin can create job posts").
+      Exposing an action that is guaranteed to fail frustrates students.
+    - Severity: P1 (High)
+
+6.3 FUNC-03: Profile Directory Omits Incomplete Profiles in Alumni/Faculty
+    - Location: lib/screens/dashboard/alumni_home_screen.dart [Lines 1039-1055]
+    - Details:
+      Alumni _ProfileListState implements an isFilled predicate:
+      final isFilled = (alumni.degree != null && alumni.degree!.isNotEmpty) ||
+                       (alumni.companyName != null && alumni.companyName!.isNotEmpty) ||
+                       (alumni.designation != null && alumni.designation!.isNotEmpty) ||
+                       (alumni.department != null && alumni.department!.isNotEmpty) ||
+                       (alumni.batchYear != null && alumni.batchYear! > 0);
+      if (!isFilled) return false;
+    - Consequence:
+      Newly registered alumni or faculty who have not yet populated their extended
+      profile fields are completely omitted from the directory in Alumni and
+      Faculty modules. In contrast, the Student module renders them with clean
+      fallbacks (e.g., 'Alumni Member').
+    - Severity: P1 (High)
+
+6.4 FUNC-04: Events Feed Search & Department Filter Missing in Student Module
+    - Location: lib/screens/dashboard/student_home_screen.dart [Lines 125-275]
+    - Details:
+      Student EventsPage has no search bar and no department filter bottom sheet.
+      It only offers an Active / Past toggle button.
+      Alumni and Faculty EventList has a full search bar and department modal sheet.
+    - Severity: P2 (Medium)
+
+6.5 FUNC-05: Redundant Client-Side Job Filtering in Alumni My Activity
+    - Location: lib/screens/dashboard/alumni_home_screen.dart [Lines 473-479]
+    - Details:
+      Student module calls JobService.getMyJobs() which hits /api/jobs/my.
+      Alumni module defines local _loadMyJobs() which calls JobService.getAllJobs()
+      and filters in memory by userEmail.
+    - Severity: P3 (Low)
+
+
+================================================================================
+SECTION 7 - BACKEND, API & DATA INCONSISTENCIES
+================================================================================
+
+7.1 BACK-01: No Student Profile Entity or Table in PostgreSQL
+    - Location: Alumni_Backend (entities and repositories)
+    - Details:
+      PostgreSQL schema contains:
+      * alumni_profiles (id, user_id, batch_year, company_name, designation, ...)
+      * faculty_profiles (id, user_id, department, designation, ...)
+      There is NO student_profiles table or StudentProfile entity.
+      When a student registers, an entry is inserted into the users table with
+      role STUDENT, but no profile record is created.
+    - Impact: Student profile data cannot be persisted or retrieved cleanly.
+
+7.2 BACK-02: String-Based Salary Storage (VARCHAR) in PostgreSQL
+    - Location: Alumni_Backend Job.java [Line 29] / jobs.salary VARCHAR
+    - Details:
+      Salary is stored as a VARCHAR string (e.g., "8 LPA", "₹12 LPA").
+      Because there is no numeric column (e.g. salary_lpa NUMERIC(5,2)), the
+      backend cannot execute SQL-level salary range queries (WHERE salary BETWEEN
+      3.0 AND 5.0). All salary range filtering must be executed in memory by
+      Flutter using SalaryHelper.
+    - Assessment: Works reliably with current dataset; documented for future
+      database optimization.
+
+7.3 BACK-03: Notification Entity Missing Target User ID
+    - Location: Alumni_Backend Notification.java
+    - Details:
+      Notification entity stores title, message, timestamp, and isRead, but lacks
+      a recipient_user_id column. All notifications appear to be broadcast-style
+      rather than user-specific.
+
+7.4 BACK-04: Duplicate User Listing Endpoints
+    - Location: UserController.java (/api/users) vs AdminController.java (/api/admin/users)
+    - Details:
+      AdminController defines GET /api/admin/users guarded by @PreAuthorize("hasRole('ADMIN')").
+      UserController defines GET /api/users which is unpartitioned.
+
+
+================================================================================
+SECTION 8 - CODE QUALITY & MAINTAINABILITY
+================================================================================
+
+8.1 CODE-01: Duplicate JobList Implementations
+    - Files:
+      * lib/screens/dashboard/student_home_screen.dart (Lines 476-805)
+      * lib/screens/dashboard/alumni_home_screen.dart (Lines 680-965)
+    - Impact: Approximately 300 lines of identical job listing, filtering, and
+      future-builder logic are duplicated between Student and Alumni files.
+      Changes made to one (such as filter enhancements) risk drifting from the other.
+
+8.2 CODE-02: Duplicate ProfileList Implementations
+    - Files:
+      * lib/screens/dashboard/student_home_screen.dart (Lines 809-1060)
+      * lib/screens/dashboard/alumni_home_screen.dart (Lines 970-1150)
+    - Impact: Over 200 lines of directory listing code are duplicated. As noted
+      in FUNC-03, the two copies have already drifted in search logic and filtering.
+
+8.3 CODE-03: Orphaned Community Screens (Dead Code)
+    - Files:
+      * lib/screens/community/community_screen.dart
+      * lib/screens/community/create_post_screen.dart
+    - Impact: 14KB of unused code in the repository. Neither file is imported or
+      reachable from any router or navigation bar.
+
+8.4 CODE-04: Hardcoded Brand Colors Repeated Across Screens
+    - Instances:
+      * login_screen.dart: const Color glsBlue = Color(0xFF1A3A8F)
+      * register_screen.dart: const Color glsBlue = Color(0xFF1A3A8F)
+      * student_home_screen.dart: Color(0xFF1A3A8F) repeated 12 times
+      * alumni_home_screen.dart: Color(0xFF1A3A8F) repeated 10 times
+    - Impact: Brand colors should be centralized in AppTheme.primaryBlue rather
+      than hardcoded in dozens of widget trees.
+
+
+================================================================================
+SECTION 9 - ACCESSIBILITY & RESPONSIVENESS
+================================================================================
+
+9.1 ACC-01: Fixed-Height Bottom Navigation Bar (Small Screens)
+    - File: lib/screens/navigation/main_navigation.dart [Line 158]
+    - Code: SizedBox(height: 62, child: ...)
+    - Issue: On very compact devices (e.g., iPhone SE or Android devices with
+      large font scaling enabled), fixed 62px height can cause vertical overflow
+      if system text scale exceeds 1.3x.
+
+9.2 ACC-02: Compact Visual Density on Action Chips
+    - Files: lib/widgets/job_card.dart, lib/widgets/event_card.dart
+    - Issue: Chips use VisualDensity.compact, yielding touch targets smaller than
+      the recommended 48x48 dp minimum accessibility standard.
+
+9.3 ACC-03: Lack of Semantic Labels on Icon Buttons
+    - Files: Filter buttons in student_home_screen.dart and alumni_home_screen.dart
+    - Code: GestureDetector(child: Container(child: Icon(Icons.tune)))
+    - Issue: Screen readers (TalkBack / VoiceOver) announce "button" or "unlabeled"
+      because no tooltip or Semantics widget is provided.
+
+
+================================================================================
+SECTION 10 - DETAILED ISSUE REGISTER
+================================================================================
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-01
+Title:            Student Profile Routes to Incompatible Alumni Profile Screen
+Category:         Confirmed Defect
+Priority:         P1 - High
+Affected Modules: Student
+Feature:          User Profile (Bottom Navigation Tab 2)
+Expected Behavior:Tapping 'Profile' as a Student should display a student profile
+                  screen showing enrollment info, course, and allow updates.
+Actual Behavior:  Tapping 'Profile' opens AlumniProfileScreen. The student sees
+                  fields for work experience and company name. Submitting updates
+                  causes backend HTTP 403 Forbidden because /api/alumni/profile
+                  requires ROLE_ALUMNI.
+Root Cause:       MainNavigation line 61 specifies AlumniProfileScreen() for STUDENT.
+                  No StudentProfile screen or backend entity exists.
+File Paths:       GLS-Connect-Frontend/lib/screens/navigation/main_navigation.dart
+                  GLS-Connect-Frontend/lib/screens/profile/alumni_profile_screen.dart
+                  Alumni_Backend/src/main/java/com/alumni/management/alumni/controller/AlumniProfileController.java
+Component:        MainNavigation.initState(), AlumniProfileScreen
+Correction:       Create a StudentProfileScreen (or general ProfileScreen) that
+                  omits work experience fields for students and routes to a
+                  permitted student profile endpoint.
+Testing Needed:   Log in as student -> tap Profile tab -> verify student-appropriate
+                  fields render and update successfully.
+Confidence:       100% verified in source code.
+Runtime Check:    Required to confirm user experience.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-02
+Title:            'Create (+)' Action Button Exposed to Students
+Category:         Confirmed Defect
+Priority:         P1 - High
+Affected Modules: Student
+Feature:          Bottom Navigation Bar
+Expected Behavior:Students should not see the 'Create (+)' action button, or it
+                  should only offer actions permitted for students.
+Actual Behavior:  The central '+' button is visible to students. Selecting 'Post
+                  Job' opens PostJobScreen, but submission is rejected by the
+                  backend ("Only alumni, faculty, and admin can create job posts").
+Root Cause:       MainNavigation lines 171-174 unconditionally renders
+                  buildCreateNavItem() for all non-admin users.
+File Paths:       GLS-Connect-Frontend/lib/screens/navigation/main_navigation.dart
+                  Alumni_Backend/src/main/java/com/alumni/management/jobpost/service/JobService.java
+Component:        MainNavigation.build(), JobService.createJobpost()
+Correction:       In MainNavigation, check roleUpper == 'STUDENT' and either hide
+                  the '+' button or disable job/event posting options.
+Testing Needed:   Log in as student -> verify '+' button is absent or displays
+                  student-permitted actions only.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required; logic clearly evident in code.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-03
+Title:            Profile Directory Omits Incomplete Profiles in Alumni/Faculty
+Category:         Consistency Issue
+Priority:         P1 - High
+Affected Modules: Alumni, Faculty
+Feature:          Alumni & Faculty Directory Tabs
+Expected Behavior:All registered alumni and faculty members should appear in the
+                  directory, with empty fields displayed as placeholders.
+Actual Behavior:  Alumni ProfileList checks isFilled and discards profiles where
+                  degree, company, designation, department, and batch are empty.
+                  Only userName is searched. Student ProfileList shows all users.
+Root Cause:       Logic drift between student_home_screen.dart ProfileList and
+                  alumni_home_screen.dart ProfileList.
+File Paths:       GLS-Connect-Frontend/lib/screens/dashboard/alumni_home_screen.dart (Lines 1039-1055)
+                  GLS-Connect-Frontend/lib/screens/dashboard/student_home_screen.dart (Lines 975-1020)
+Component:        _ProfileListState.build()
+Correction:       Standardize on the Student module's ProfileList logic which
+                  renders all profiles with fallbacks and searches all fields.
+Testing Needed:   Verify newly registered users appear in directory for both
+                  Student and Alumni viewers.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required; code logic confirms exclusion.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-04
+Title:            Events Feed Search and Department Filter Missing in Student Module
+Category:         Consistency Issue
+Priority:         P2 - Medium
+Affected Modules: Student
+Feature:          Events Feed
+Expected Behavior:Student Events tab should allow keyword search and department
+                  filtering identically to the Alumni and Faculty modules.
+Actual Behavior:  Student EventsPage only has a simple Active / Previous button toggle.
+                  Keyword search and department modal sheet are absent.
+Root Cause:       Independent screen implementations (EventsPage vs EventList).
+File Paths:       GLS-Connect-Frontend/lib/screens/dashboard/student_home_screen.dart (Lines 125-275)
+                  GLS-Connect-Frontend/lib/screens/dashboard/alumni_home_screen.dart (Lines 176-325)
+Component:        EventsPage vs EventList
+Correction:       Reuse EventList from alumni_home_screen.dart in student_home_screen.dart.
+Testing Needed:   Verify search and department filter work in Student Events tab.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-05
+Title:            Scaffold Background Color Inconsistency Across Modules
+Category:         Consistency Issue
+Priority:         P2 - Medium
+Affected Modules: Student, Alumni, Faculty, Admin
+Feature:          Theme & Screen Surfaces
+Expected Behavior:All dashboard screens should use a uniform background color.
+Actual Behavior:  Student uses 0xFFF5F6FA (Grey). Alumni, Faculty, Admin use
+                  0xFFF4F7FF (Blue tint). Profile detail uses 0xFFF8F9FA.
+Root Cause:       Hardcoded Color constants on Scaffold.backgroundColor.
+File Paths:       GLS-Connect-Frontend/lib/screens/dashboard/student_home_screen.dart (Line 31)
+                  GLS-Connect-Frontend/lib/screens/dashboard/alumni_home_screen.dart (Line 38)
+                  GLS-Connect-Frontend/lib/screens/dashboard/faculty_home_screen.dart (Line 23)
+                  GLS-Connect-Frontend/lib/screens/dashboard/admin_home_screen.dart (Line 386)
+Component:        Scaffold.backgroundColor
+Correction:       Define AppTheme.surfaceBackground = Color(0xFFF4F7FF) and reference it.
+Testing Needed:   Visual inspection across all 4 dashboards.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-06
+Title:            Search Bar Clear Button & Prefix Icon Styling Mismatch
+Category:         Consistency Issue
+Priority:         P2 - Medium
+Affected Modules: Student, Alumni, Admin
+Feature:          Search Bars (Jobs, Events, Directory, Users)
+Expected Behavior:Search bars should share the same border radius (12px), fill
+                  color (white), prefix icon styling, and clear/reset button.
+Actual Behavior:  Student directory has a clear button and blue icon. Alumni
+                  directory has no clear button and grey icon. Admin user search
+                  has radius 10px and soft-blue fill.
+Root Cause:       Ad-hoc InputDecoration definitions without a shared component.
+File Paths:       GLS-Connect-Frontend/lib/screens/dashboard/student_home_screen.dart
+                  GLS-Connect-Frontend/lib/screens/dashboard/alumni_home_screen.dart
+                  GLS-Connect-Frontend/lib/screens/dashboard/admin_home_screen.dart
+Component:        TextField.decoration
+Correction:       Create a shared AppSearchBar widget in lib/widgets/app_search_bar.dart.
+Testing Needed:   Verify typing and clearing on all search screens.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-07
+Title:            Notification Bell Icon Missing from Faculty Dashboard
+Category:         Consistency Issue
+Priority:         P2 - Medium
+Affected Modules: Faculty
+Feature:          AppBar Actions
+Expected Behavior:Faculty members should be able to view notifications from their
+                  app bar, consistent with Student and Alumni.
+Actual Behavior:  FacultyDashboard AppBar defines no actions array at all.
+Root Cause:       Omission during FacultyDashboard drafting.
+File Paths:       GLS-Connect-Frontend/lib/screens/dashboard/faculty_home_screen.dart (Lines 24-50)
+Component:        FacultyDashboard AppBar
+Correction:       Add notification icon button with unread count badge to Faculty AppBar.
+Testing Needed:   Verify notification bell navigates to NotificationScreen.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-08
+Title:            Third-Party Public Image Dependency in Event Cards
+Category:         Potential Issue
+Priority:         P2 - Medium
+Affected Modules: Student, Alumni, Faculty
+Feature:          Event Card Media
+Expected Behavior:Missing event images should fall back to a local bundled asset.
+Actual Behavior:  EventCard falls back to 'https://picsum.photos/600/300?random=...'.
+Root Cause:       Placeholder URL left in production widget.
+File Paths:       GLS-Connect-Frontend/lib/widgets/event_card.dart (Line 34)
+Component:        EventCard.build()
+Correction:       Replace external URL with local asset placeholder or branded gradient.
+Testing Needed:   Verify event rendering in offline mode.
+Confidence:       100% verified in source code.
+Runtime Check:    Required (test offline behavior).
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-09
+Title:            Duplicate JobList and ProfileList Widgets in Student & Alumni
+Category:         Improvement Recommendation
+Priority:         P2 - Medium
+Affected Modules: Student, Alumni, Faculty
+Feature:          Code Maintainability
+Expected Behavior:Common listing widgets should be defined once in lib/widgets/ and
+                  shared across modules.
+Actual Behavior:  JobList and ProfileList are duplicated between student_home_screen
+                  and alumni_home_screen, causing ~500 lines of redundant code.
+Root Cause:       Independent file creation during rapid feature development.
+File Paths:       GLS-Connect-Frontend/lib/screens/dashboard/student_home_screen.dart
+                  GLS-Connect-Frontend/lib/screens/dashboard/alumni_home_screen.dart
+Component:        JobList, ProfileList
+Correction:       Extract into lib/widgets/job_list.dart and lib/widgets/profile_list.dart.
+Testing Needed:   Run full Flutter regression test suite.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-10
+Title:            Orphaned Community Screens (Dead Code)
+Category:         Improvement Recommendation
+Priority:         P3 - Low
+Affected Modules: None (Orphaned Code)
+Feature:          Community Feed
+Expected Behavior:All screens in lib/screens should be accessible via navigation or
+                  removed if deprecated.
+Actual Behavior:  community_screen.dart and create_post_screen.dart are never navigated
+                  to from any router or navigation bar.
+Root Cause:       Abandoned experimental feature branch.
+File Paths:       GLS-Connect-Frontend/lib/screens/community/community_screen.dart
+                  GLS-Connect-Frontend/lib/screens/community/create_post_screen.dart
+Component:        CommunityScreen, CreatePostScreen
+Correction:       Either integrate CommunityScreen into navigation or archive the files.
+Testing Needed:   Verify app builds cleanly without orphaned files.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-11
+Title:            Admin Profile Screen is an Unimplemented Stub
+Category:         Potential Issue
+Priority:         P3 - Low
+Affected Modules: Admin
+Feature:          Admin Profile
+Expected Behavior:Admin profile should show admin account details or be omitted
+                  if admin uses only dashboard actions.
+Actual Behavior:  AdminProfileScreen renders a blank screen with 'Admin Profile Screen'.
+Root Cause:       Stub file created but never populated.
+File Paths:       GLS-Connect-Frontend/lib/screens/profile/admin_profile_screen.dart
+Component:        AdminProfileScreen
+Correction:       Populate admin profile with account email and role information,
+                  or remove file if unneeded.
+Testing Needed:   Visual inspection of admin navigation.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-12
+Title:            Hardcoded Brand Palette Constants Repeated Across Multiple Files
+Category:         Improvement Recommendation
+Priority:         P3 - Low
+Affected Modules: All Modules
+Feature:          Theme Architecture
+Expected Behavior:Color constants should be referenced from AppTheme.
+Actual Behavior:  const Color glsBlue = Color(0xFF1A3A8F) is declared in login_screen,
+                  register_screen, and hardcoded in home screens.
+Root Cause:       Lack of central token enforcement.
+File Paths:       GLS-Connect-Frontend/lib/screens/auth/login_screen.dart
+                  GLS-Connect-Frontend/lib/screens/auth/register_screen.dart
+                  GLS-Connect-Frontend/lib/theme/app_theme.dart
+Component:        glsBlue, AppTheme.primaryBlue
+Correction:       Reference AppTheme.primaryBlue across all screens.
+Testing Needed:   Static analysis pass.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-13
+Title:            Profile Detail Screen Has No Support for Viewing Students
+Category:         Potential Issue
+Priority:         P2 - Medium
+Affected Modules: All Modules
+Feature:          User Profile Detail Screen
+Expected Behavior:ProfileDetailScreen should support all 3 user roles (ALUMNI,
+                  FACULTY, and STUDENT).
+Actual Behavior:  ProfileDetailScreen only checks userRole == 'ALUMNI' and
+                  userRole == 'FACULTY'. For STUDENT, it sets _isLoading = false
+                  and renders an empty view.
+Root Cause:       Omission of student role handling in ProfileDetailScreen.
+File Paths:       GLS-Connect-Frontend/lib/screens/profile/profile_detail_screen.dart (Lines 39-61)
+Component:        ProfileDetailScreen._loadProfile()
+Correction:       Add student role branch to ProfileDetailScreen with student info.
+Testing Needed:   Attempt to open student profile detail.
+Confidence:       100% verified in source code.
+Runtime Check:    Required (confirm if students can be opened from directories).
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ISSUE ID:         ISSUE-14
+Title:            Deprecated withOpacity() API Used Throughout Home Screens
+Category:         Improvement Recommendation
+Priority:         P3 - Low
+Affected Modules: Student, Alumni, Faculty
+Feature:          Flutter SDK Modernization
+Expected Behavior:Modern Flutter code should use withValues(alpha: ...) to avoid
+                  precision loss and deprecation warnings.
+Actual Behavior:  Home screens use .withOpacity(0.2) on Color.
+Root Cause:       Legacy Flutter syntax.
+File Paths:       GLS-Connect-Frontend/lib/screens/dashboard/student_home_screen.dart (Line 51)
+                  GLS-Connect-Frontend/lib/screens/dashboard/alumni_home_screen.dart (Line 56)
+                  GLS-Connect-Frontend/lib/screens/dashboard/faculty_home_screen.dart (Line 40)
+Component:        Color.withOpacity()
+Correction:       Update to Color.withValues(alpha: 0.2).
+Testing Needed:   Static analysis pass.
+Confidence:       100% verified in source code.
+Runtime Check:    Not required.
+--------------------------------------------------------------------------------
+
+
+================================================================================
+SECTION 11 - LEGITIMATE ROLE-SPECIFIC DIFFERENCES
+================================================================================
+
+The audit confirmed that the following differences across modules are
+intentional business requirements and MUST NOT be removed:
+
+11.1 Job and Event Authoring Permissions:
+     - Student: View-only access to Jobs and Events feeds. Students cannot post
+       jobs or schedule university events.
+     - Alumni: Authorized to post jobs (PostJobScreen) and schedule events
+       (CreateEventScreen).
+     - Faculty: Authorized to post jobs (PostJobScreen) and schedule events
+       (CreateEventScreen).
+     - Admin: Full CRUD access over all jobs and events in the system.
+     * Rationale: Standard academic role hierarchy. Enforced by backend
+       JobService.java line 98 and EventService.java line 46.
+
+11.2 Community Posts in 'My Activity':
+     - Alumni: Includes 3 sub-tabs ('My Posts', 'My Events', 'My Jobs').
+     - Faculty: Includes 2 sub-tabs ('My Events', 'My Jobs') via showPosts: false.
+     - Student: Includes 2 sub-tabs ('My Events', 'My Jobs').
+     * Rationale: Alumni are the primary creators of community networking posts.
+       Faculty and students consume feeds without personal community posting.
+
+11.3 Admin Management and Moderation Portal:
+     - AdminHomeScreen is a standalone portal without a bottom navigation bar.
+     - It features overview metric cards (Total Users, Active Jobs, Events),
+       user provisioning (Create User, role assignment, department allocation),
+       and delete confirmations.
+     * Rationale: Administrative operations are strictly segregated by Spring
+       Security (ROLE_ADMIN) and DashboardRouter.
+
+11.4 Top-Right AppBar Actions:
+     - Student and Alumni: Notification bell with unread badge.
+     - Admin: Red logout confirmation icon button.
+     * Rationale: Admin portal has a streamlined desktop-style header.
+
+
+================================================================================
+SECTION 12 - RECOMMENDED FIX PLAN
+================================================================================
+
+12.1 Phase 1 - Immediate Fixes (High Value, Low Regression Risk):
+     1. Hide or Restrict 'Create (+)' Button for Students:
+        In MainNavigation, verify userRole. If STUDENT, do not offer 'Post Job'.
+        Dependencies: None. Risk: Low.
+     2. Fix Directory Filtering Drift in Alumni/Faculty (ISSUE-03):
+        Remove the isFilled check in alumni_home_screen.dart ProfileList so all
+        registered users are discoverable. Backport Student multi-field search.
+        Dependencies: None. Risk: Low.
+     3. Add Notification Bell to Faculty Dashboard AppBar (ISSUE-07):
+        Add notification icon with unread count badge to FacultyDashboard.
+        Dependencies: None. Risk: Low.
+     4. Harmonize Scaffold Background Colors (ISSUE-05):
+        Align Student HomeScreen to Color(0xFFF4F7FF).
+        Dependencies: None. Risk: Zero.
+
+12.2 Phase 2 - Functional Consistency Improvements (Medium Risk):
+     1. Backport Events Keyword Search & Department Filter to Student (ISSUE-04):
+        Replace Student EventsPage with EventList from alumni_home_screen.dart.
+        Dependencies: event_service.dart. Risk: Medium (verify event interactions).
+     2. Create Student-Appropriate Profile Screen (ISSUE-01):
+        Create StudentProfileScreen with enrollment year, program, contact, and
+        allow profile photo updates.
+        Dependencies: Backend student profile support or user update endpoint.
+        Risk: Medium (requires backend endpoint alignment).
+
+12.3 Phase 3 - Code Quality & Refactoring (Maintainability):
+     1. Extract Shared JobList Widget:
+        Merge duplicate JobList widgets from student and alumni home screens
+        into lib/widgets/job_list.dart.
+        Dependencies: Phase 1 & 2 complete. Risk: Medium.
+     2. Extract Shared ProfileList Widget:
+        Merge duplicate ProfileList widgets into lib/widgets/profile_list.dart.
+        Dependencies: Phase 1 complete. Risk: Medium.
+     3. Archive Orphaned Community Screens (ISSUE-10):
+        Remove or route community_screen.dart.
+        Dependencies: None. Risk: Low.
+
+
+================================================================================
+SECTION 13 - TESTING AND VERIFICATION
+================================================================================
+
+13.1 Tests Inspected and Executed:
+     The existing automated test suite in GLS-Connect-Frontend/test was executed:
+     - Command: flutter test
+     - Output:
+       * test/admin_navigation_test.dart:               5 passed
+       * test/alumni_restore_test.dart:                 6 passed
+       * test/form_validation_test.dart:                1 passed
+       * test/salary_filter_consistency_test.dart:      7 passed
+       * test/student_lists_test.dart:                  4 passed
+       * test/validation_and_constants_test.dart:       3 passed
+       * test/widget_test.dart:                         4 passed
+       * Total: 30 tests in 7 test files, ALL PASSED (0 failures).
+
+13.2 Dedicated Salary Filter Verification:
+     - Command: flutter test test/salary_filter_consistency_test.dart
+     - Result: 7/7 passed.
+     - Confirmed: SalaryHelper correctly parses LPA formats ("8 LPA", "₹12 LPA"),
+       formats standard display strings ("₹X LPA"), partitions boundary values
+       (0-3 LPA < 3.0, 3-5 LPA [3.0, 5.0), 5-8 LPA [5.0, 8.0), 8-12 LPA [8.0, 12.0],
+       12+ LPA > 12.0), handles null/empty safely, and normalizes hyphens.
+
+13.3 Static Analysis Results:
+     - Command: flutter analyze
+     - Result: 0 errors, 0 warnings.
+     - Informational lints: 134 pre-existing avoid_print lints in network services.
+
+13.4 Manual Verification Needed Prior to Future Fixes:
+     - Verify Student profile editing behavior on real Android/iOS device.
+     - Verify photo upload file picker permissions on Android 13+ (READ_MEDIA_IMAGES).
+
+
+================================================================================
+SECTION 14 - FINAL SUMMARY & PRIORITIZED ACTION LIST
+================================================================================
+
+To maximize application polish and ensure a professional user experience,
+the following prioritized actions are recommended for implementation:
+
+1. TOP PRIORITY (Resolve User Frustration):
+   - Address Student Profile routing to AlumniProfileScreen (ISSUE-01).
+   - Prevent Students from accessing the 'Post Job' screen from '+' button (ISSUE-02).
+   - Restore hidden registered alumni in Alumni/Faculty directory by removing
+     the restrictive isFilled exclusion (ISSUE-03).
+
+2. SECOND PRIORITY (Visual & Functional Parity):
+   - Add keyword search and department filters to Student Events feed (ISSUE-04).
+   - Standardize Scaffold background colors across all screens to 0xFFF4F7FF (ISSUE-05).
+   - Add clear/reset buttons and uniform prefix icons to all search bars (ISSUE-06).
+   - Add notification bell icon to Faculty Dashboard AppBar (ISSUE-07).
+
+3. THIRD PRIORITY (Maintainability & Cleanup):
+   - Replace external picsum.photos fallback with a local asset in EventCard (ISSUE-08).
+   - Extract shared JobList and ProfileList widgets to eliminate 500 lines of
+     duplicated code (ISSUE-09).
+   - Clean up orphaned community feed screens (ISSUE-10).
+
+================================================================================
+END OF AUDIT REPORT
+================================================================================

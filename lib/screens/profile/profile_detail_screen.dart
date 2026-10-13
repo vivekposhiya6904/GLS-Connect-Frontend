@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../models/alumni_profile_model.dart';
 import '../../models/faculty_profile_model.dart';
+import '../../models/student_profile_model.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../services/faculty_profile_service.dart';
+import '../../services/student_profile_service.dart';
 import '../../services/profile_view_service.dart';
 import '../../config/api_config.dart';
 import '../chat/chat_detail_screen.dart';
@@ -11,7 +13,7 @@ import '../../utils/url_helper.dart';
 class ProfileDetailScreen extends StatefulWidget {
   final int userId;
   final String userName;
-  final String userRole; // ALUMNI or FACULTY
+  final String userRole; // ALUMNI, FACULTY, or STUDENT
 
   const ProfileDetailScreen({
     super.key,
@@ -28,6 +30,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   bool _isLoading = true;
   AlumniProfileModel? _alumniProfile;
   FacultyProfileModel? _facultyProfile;
+  StudentProfileModel? _studentProfile;
 
   @override
   void initState() {
@@ -36,7 +39,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   }
 
   Future<void> _loadProfile() async {
-    if (widget.userRole == 'ALUMNI') {
+    final role = widget.userRole.toUpperCase();
+    if (role == 'ALUMNI') {
       final profile = await AlumniProfileService.getProfileByUserId(widget.userId);
       setState(() {
         _alumniProfile = profile;
@@ -45,10 +49,19 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
       if (profile?.email != null && profile!.email!.isNotEmpty) {
         ProfileViewService.logProfileView(profile.email!);
       }
-    } else if (widget.userRole == 'FACULTY') {
+    } else if (role == 'FACULTY') {
       final profile = await FacultyProfileService.getProfileByUserId(widget.userId);
       setState(() {
         _facultyProfile = profile;
+        _isLoading = false;
+      });
+      if (profile?.email != null && profile!.email!.isNotEmpty) {
+        ProfileViewService.logProfileView(profile.email!);
+      }
+    } else if (role == 'STUDENT') {
+      final profile = await StudentProfileService.getProfileByUserId(widget.userId);
+      setState(() {
+        _studentProfile = profile;
         _isLoading = false;
       });
       if (profile?.email != null && profile!.email!.isNotEmpty) {
@@ -61,10 +74,26 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
     }
   }
 
+  String? get _profilePictureUrl {
+    final role = widget.userRole.toUpperCase();
+    if (role == 'ALUMNI') return _alumniProfile?.profilePictureUrl;
+    if (role == 'FACULTY') return _facultyProfile?.profilePictureUrl;
+    if (role == 'STUDENT') return _studentProfile?.profilePictureUrl;
+    return null;
+  }
+
+  String? get _email {
+    final role = widget.userRole.toUpperCase();
+    if (role == 'ALUMNI') return _alumniProfile?.email;
+    if (role == 'FACULTY') return _facultyProfile?.email;
+    if (role == 'STUDENT') return _studentProfile?.email;
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF4F7FF),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
@@ -77,9 +106,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                     IconButton(
                       icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
                       onPressed: () {
-                        final email = widget.userRole == 'ALUMNI'
-                            ? _alumniProfile?.email
-                            : _facultyProfile?.email;
+                        final email = _email;
                         if (email != null && email.isNotEmpty) {
                           Navigator.push(
                             context,
@@ -117,26 +144,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                       child: Center(
                         child: CircleAvatar(
                           radius: 50,
-                          backgroundColor: Colors.white.withOpacity(0.9),
-                          backgroundImage: (widget.userRole == 'ALUMNI'
-                                  ? _alumniProfile?.profilePictureUrl
-                                  : _facultyProfile?.profilePictureUrl) !=
-                                  null &&
-                                  (widget.userRole == 'ALUMNI'
-                                          ? _alumniProfile?.profilePictureUrl
-                                          : _facultyProfile?.profilePictureUrl)!
-                                      .isNotEmpty
+                          backgroundColor: Colors.white.withValues(alpha: 0.9),
+                          backgroundImage: _profilePictureUrl != null && _profilePictureUrl!.isNotEmpty
                               ? NetworkImage(
-                                  "${ApiConfig.baseUrl}${widget.userRole == 'ALUMNI' ? _alumniProfile?.profilePictureUrl : _facultyProfile?.profilePictureUrl}")
+                                  _profilePictureUrl!.startsWith('http')
+                                      ? _profilePictureUrl!
+                                      : "${ApiConfig.baseUrl}$_profilePictureUrl")
                               : null,
-                          child: (widget.userRole == 'ALUMNI'
-                                      ? _alumniProfile?.profilePictureUrl
-                                      : _facultyProfile?.profilePictureUrl) ==
-                                  null ||
-                                  (widget.userRole == 'ALUMNI'
-                                          ? _alumniProfile?.profilePictureUrl
-                                          : _facultyProfile?.profilePictureUrl)!
-                                      .isEmpty
+                          child: (_profilePictureUrl == null || _profilePictureUrl!.isEmpty)
                               ? Text(
                                   widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'U',
                                   style: const TextStyle(
@@ -163,7 +178,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 10,
                               offset: const Offset(0, 2),
                             ),
@@ -198,9 +213,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                             IconButton(
                               icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF1A3A8F), size: 28),
                               onPressed: () {
-                                final email = widget.userRole == 'ALUMNI'
-                                    ? _alumniProfile?.email
-                                    : _facultyProfile?.email;
+                                final email = _email;
                                 if (email != null && email.isNotEmpty) {
                                   Navigator.push(
                                     context,
@@ -223,17 +236,53 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
-                        child: widget.userRole == 'ALUMNI'
+                        child: widget.userRole.toUpperCase() == 'ALUMNI'
                             ? _buildAlumniDetails()
-                            : widget.userRole == 'FACULTY'
+                            : widget.userRole.toUpperCase() == 'FACULTY'
                                 ? _buildFacultyDetails()
-                                : _buildFallbackDetails(),
+                                : widget.userRole.toUpperCase() == 'STUDENT'
+                                    ? _buildStudentDetails()
+                                    : _buildFallbackDetails(),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildStudentDetails() {
+    if (_studentProfile == null) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.all(20.0),
+        child: Text("No details provided yet."),
+      ));
+    }
+    final p = _studentProfile!;
+    return Column(
+      children: [
+        _buildSectionCard("Academic Information", Icons.school_outlined, [
+          _buildDetailRow("Department", p.department),
+          _buildDetailRow("Degree / Course", p.degree),
+          _buildDetailRow("Graduation Year", p.batchYear?.toString()),
+          _buildDetailRow("Current Semester", p.semester),
+          _buildDetailRow("University Number", p.universityNumber),
+        ]),
+        const SizedBox(height: 16),
+        _buildSectionCard("Skills & Interests", Icons.psychology_outlined, [
+          _buildDetailRow("Skills", p.skills),
+          _buildDetailRow("Areas of Interest", p.interests),
+          _buildDetailRow("Bio", p.bio),
+        ]),
+        const SizedBox(height: 16),
+        _buildSectionCard("Contact & Socials", Icons.alternate_email, [
+          _buildDetailRow("Contact Number", p.contactNumber),
+          _buildDetailRow("Current City", p.currentCity),
+          _buildDetailRow("LinkedIn", p.linkedInUrl, isLink: true),
+          _buildDetailRow("GitHub", p.githubUrl, isLink: true),
+        ]),
+      ],
     );
   }
 
@@ -336,7 +385,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

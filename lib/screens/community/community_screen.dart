@@ -30,7 +30,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: const Color(0xFFF4F7FF),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -47,6 +47,19 @@ class _CommunityScreenState extends State<CommunityScreen> {
             onPressed: _refreshPosts,
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF1A3A8F),
+        onPressed: () async {
+          final res = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+          );
+          if (res == true) {
+            _refreshPosts();
+          }
+        },
+        child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
       body: RefreshIndicator(
         onRefresh: () async {
