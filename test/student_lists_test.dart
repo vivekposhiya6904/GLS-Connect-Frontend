@@ -5,13 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:alumni_management/screens/dashboard/student_home_screen.dart';
 
-class _TestHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback = (cert, host, port) => true;
-  }
-}
 
 // 1x1 transparent GIF
 final List<int> _kTransparentImage = <int>[
@@ -99,6 +92,10 @@ void main() {
       expect(find.text("My Activity"), findsOneWidget);
       expect(find.text("Alumni"), findsOneWidget);
       expect(find.text("Faculty"), findsOneWidget);
+
+      // Verify global search button is removed from Student AppBar
+      expect(find.byIcon(Icons.search_rounded), findsNothing);
+      expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
     });
 
     testWidgets('AlumniPage renders ProfileList with ALUMNI role', (tester) async {

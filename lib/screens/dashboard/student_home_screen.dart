@@ -16,7 +16,6 @@ import '../../utils/storage_service.dart';
 import '../../widgets/event_card.dart';
 import '../../widgets/job_card.dart';
 import '../notification/notification_screen.dart';
-import '../search/search_screen.dart';
 import '../../utils/city_constants.dart';
 
 class StudentHomeScreen extends StatelessWidget {
@@ -90,21 +89,7 @@ class StudentHomeScreen extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(width: 5),
-            IconButton(
-              icon: const Icon(
-                Icons.search_rounded,
-                color: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SearchScreen(),
-                  ),
-                );
-              },
-            ),
+            const SizedBox(width: 8),
           ],
         ),
         body: const TabBarView(

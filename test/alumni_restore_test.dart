@@ -33,9 +33,9 @@ void main() {
       expect(find.text("GLS Connect"), findsOneWidget);
       expect(find.text("ALUMNI"), findsOneWidget);
 
-      // 3. Verify Header Actions: Notifications & Search (NO Admin logout or chat in AppBar)
+      // 3. Verify Header Actions: Notifications (Redundant global search removed, NO Admin logout or chat in AppBar)
       expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.search_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.search_rounded), findsNothing);
       expect(find.byIcon(Icons.logout_rounded), findsNothing);
 
       // 4. Verify 5 Restored Tabs
