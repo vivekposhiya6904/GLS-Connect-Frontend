@@ -3,6 +3,18 @@ import 'package:http/http.dart' as http;
 import 'package:alumni_management/config/api_config.dart';
 import '../utils/storage_service.dart';
 
+class LoginResult {
+  final bool success;
+  final bool isUnverified;
+  final String? errorMessage;
+
+  LoginResult({
+    required this.success,
+    this.isUnverified = false,
+    this.errorMessage,
+  });
+}
+
 class AuthService {
 
   // ===============================
@@ -23,21 +35,15 @@ class AuthService {
     try {
 
       final response = await http.post(
-
         url,
-
         headers: {
           "Content-Type": "application/json",
         },
-
         body: jsonEncode({
-
           "name": name,
           "email": email,
           "password": password,
           "universityNumber": universityNo,
-
-          // DEFAULT ROLE
           "role": {
             "roleName": "ALUMNI"
           }
@@ -47,34 +53,26 @@ class AuthService {
       return response;
 
     } catch (e) {
-
       throw Exception("Network Error: $e");
     }
   }
 
   // ===============================
-  // LOGIN USER
+  // LOGIN USER (EXTENDED)
   // ===============================
 
-  static Future<bool> loginUser({
+  static Future<LoginResult> login({
     required String email,
     required String password,
   }) async {
-
-    final url = Uri.parse(
-      "${ApiConfig.baseUrl}/api/users/login",
-    );
+    final url = Uri.parse("${ApiConfig.baseUrl}/api/users/login");
 
     try {
-
       final response = await http.post(
-
         url,
-
         headers: {
           "Content-Type": "application/json",
         },
-
         body: jsonEncode({
           "email": email,
           "password": password,
@@ -82,9 +80,7 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-
         final data = jsonDecode(response.body);
-
         final token = data['token'];
         final name = data['name'];
         final role = data['role'];
@@ -95,14 +91,102 @@ class AuthService {
         await StorageService.saveUserEmail(email);
         await StorageService.saveLoginStatus(true);
 
-        return true;
+        return LoginResult(success: true);
       }
 
-      return false;
+      String errorMsg = "Invalid email or password";
+      bool isUnverified = false;
+
+      try {
+        final data = jsonDecode(response.body);
+        if (data['message'] != null) {
+          errorMsg = data['message'];
+        }
+      } catch (_) {}
+
+      if (response.statusCode == 403 || errorMsg.toLowerCase().contains("not verified")) {
+        isUnverified = true;
+      }
+
+      return LoginResult(
+        success: false,
+        isUnverified: isUnverified,
+        errorMessage: errorMsg,
+      );
 
     } catch (e) {
-
       throw Exception("Network Error: $e");
+    }
+  }
+
+  // Backward compatible loginUser method
+  static Future<bool> loginUser({
+    required String email,
+    required String password,
+  }) async {
+    final result = await login(email: email, password: password);
+    return result.success;
+  }
+
+  // ===============================
+  // EMAIL VERIFICATION (VERIFY OTP)
+  // ===============================
+
+  static Future<Map<String, dynamic>> verifyOtp({
+    required String email,
+    required String otp,
+    String purpose = "ACCOUNT_REGISTRATION",
+  }) async {
+    final url = Uri.parse("${ApiConfig.baseUrl}/api/auth/verification/verify");
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": email,
+          "otp": otp,
+          "purpose": purpose,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        throw Exception(data['message'] ?? 'Verification failed');
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll("Exception: ", ""));
+    }
+  }
+
+  // ===============================
+  // EMAIL VERIFICATION (RESEND OTP)
+  // ===============================
+
+  static Future<Map<String, dynamic>> resendOtp({
+    required String email,
+    String purpose = "ACCOUNT_REGISTRATION",
+  }) async {
+    final url = Uri.parse("${ApiConfig.baseUrl}/api/auth/verification/resend");
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": email,
+          "purpose": purpose,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        throw Exception(data['message'] ?? 'Failed to resend code');
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll("Exception: ", ""));
     }
   }
 
@@ -161,4 +245,4 @@ class AuthService {
       throw Exception(e.toString().replaceAll("Exception: ", ""));
     }
   }
-}
+}

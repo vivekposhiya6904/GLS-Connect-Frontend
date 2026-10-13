@@ -3,7 +3,7 @@ import '../../utils/storage_service.dart';
 import '../auth/login_screen.dart';
 import '../../models/faculty_profile_model.dart';
 import '../../services/faculty_profile_service.dart';
-import 'package:image_picker/image_picker.dart';
+import '../../utils/image_picker_helper.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../config/api_config.dart';
 import '../../models/profile_view_model.dart';
@@ -667,8 +667,11 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
 
 
   Future<void> _pickAndUploadImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picked = await ImagePickerHelper.pickImageWithSourceDialog(
+      context,
+      title: "Update Profile Photo",
+      imageQuality: 80,
+    );
     if (picked != null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

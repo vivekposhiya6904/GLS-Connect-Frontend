@@ -19,6 +19,7 @@ import '../../services/notification_service.dart';
 import '../../widgets/event_card.dart';
 import '../../widgets/job_card.dart';
 import '../../utils/date_helper.dart';
+import '../../utils/city_constants.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -805,8 +806,10 @@ class _JobListState extends State<JobList> {
                     job.jobTitle.toLowerCase().contains(searchQuery.toLowerCase()) ||
                         job.companyName.toLowerCase().contains(searchQuery.toLowerCase());
 
-                final matchesLocation =
-                    selectedLocation == "All" || job.location == selectedLocation;
+                final matchesLocation = selectedLocation == "All" ||
+                    job.location.trim().toLowerCase() == selectedLocation.trim().toLowerCase() ||
+                    (selectedLocation.contains("Bengaluru") && job.location.toLowerCase().contains("bangalore")) ||
+                    (selectedLocation.contains("Delhi") && job.location.toLowerCase().contains("delhi"));
 
                 final matchesSalary =
                     selectedSalary == "All" || job.salary == selectedSalary;
@@ -893,7 +896,7 @@ class _JobListState extends State<JobList> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     ),
-                    items: ["All", "Ahmedabad", "Remote", "Mumbai", "Bangalore", "Delhi", "Pune"]
+                    items: CityConstants.filterCities
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
                     onChanged: (value) {

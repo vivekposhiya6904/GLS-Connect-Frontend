@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
 import 'login_screen.dart';
+import 'email_verification_screen.dart';
 
 // ───────────────── COLORS ─────────────────
 
@@ -62,25 +63,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Registration successful"),
+            content: Text("Account created! Please enter the 6-digit verification code sent to your email."),
           ),
         );
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => const LoginScreen(),
+            builder: (_) => EmailVerificationScreen(
+              email: emailController.text.trim(),
+            ),
           ),
         );
 
       } else {
-
-        showMessage("Registration failed");
+        String errorMsg = "Registration failed";
+        try {
+          final data = jsonDecode(response.body);
+          if (data['message'] != null) {
+            errorMsg = data['message'];
+          }
+        } catch (_) {}
+        showMessage(errorMsg);
       }
 
     } catch (e) {
 
-      showMessage("Network error");
+      showMessage("Network error. Please try again.");
     }
 
     setState(() => isLoading = false);

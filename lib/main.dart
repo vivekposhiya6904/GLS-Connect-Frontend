@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:alumni_management/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
@@ -5,6 +6,10 @@ import 'utils/theme_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   await ThemeManager().init();
   runApp(const MyApp());
 }

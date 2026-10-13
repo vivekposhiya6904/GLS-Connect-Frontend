@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../router/dashboard_router.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import 'email_verification_screen.dart';
 
 // ─── GLS Brand Palette ───────────────────────────────────────────────
 const Color glsBlue        = Color(0xFF1A3A8F);
@@ -48,26 +49,64 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await AuthService.loginUser(
+      final result = await AuthService.login(
         email:    email,
         password: password,
       );
 
       if (!mounted) return;
 
-      if (success) {
+      if (result.success) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const DashboardRouter()),
         );
+      } else if (result.isUnverified) {
+        _showUnverifiedPrompt(email);
       } else {
-        _showMessage("Invalid email or password");
+        _showMessage(result.errorMessage ?? "Invalid email or password");
       }
     } catch (e) {
       _showMessage("Network error. Please try again.");
     }
 
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  void _showUnverifiedPrompt(String email) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Account Not Verified", style: TextStyle(fontWeight: FontWeight.bold, color: glsBlue)),
+        content: Text(
+          "Your account with $email is registered but has not been verified yet. Please enter your verification code to continue.",
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel", style: TextStyle(color: glsTextMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: glsBlue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EmailVerificationScreen(email: email),
+                ),
+              );
+            },
+            child: const Text("Verify Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showMessage(String msg) {

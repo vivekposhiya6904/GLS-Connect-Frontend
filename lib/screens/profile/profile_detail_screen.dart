@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../models/alumni_profile_model.dart';
 import '../../models/faculty_profile_model.dart';
 import '../../services/alumni_profile_service.dart';
@@ -7,6 +6,7 @@ import '../../services/faculty_profile_service.dart';
 import '../../services/profile_view_service.dart';
 import '../../config/api_config.dart';
 import '../chat/chat_detail_screen.dart';
+import '../../utils/url_helper.dart';
 
 class ProfileDetailScreen extends StatefulWidget {
   final int userId;
@@ -375,7 +375,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
   Widget _buildDetailRow(String label, String? value, {bool isLink = false}) {
     if (value == null || value.trim().isEmpty) return const SizedBox.shrink();
 
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -387,16 +387,39 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isLink ? const Color(0xFF1A3A8F) : Colors.black87,
-            decoration: isLink ? TextDecoration.underline : TextDecoration.none,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isLink ? const Color(0xFF1A3A8F) : Colors.black87,
+                  decoration: isLink ? TextDecoration.underline : TextDecoration.none,
+                ),
+              ),
+            ),
+            if (isLink) ...[
+              const SizedBox(width: 6),
+              const Icon(Icons.open_in_new_rounded, size: 15, color: Color(0xFF1A3A8F)),
+            ],
+          ],
         ),
       ],
     );
+
+    if (isLink) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => UrlHelper.launchWebUrl(context, value),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: content,
+        ),
+      );
+    }
+
+    return content;
   }
 }

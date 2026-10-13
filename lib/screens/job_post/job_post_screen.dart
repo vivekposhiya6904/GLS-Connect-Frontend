@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/job_model.dart';
 import '../../services/job_service.dart';
+import '../../utils/city_constants.dart';
 
 class PostJobScreen extends StatefulWidget {
   final JobModel? jobToEdit;
@@ -16,13 +17,15 @@ class _PostJobScreenState extends State<PostJobScreen> {
 
   final title = TextEditingController();
   final company = TextEditingController();
-  final location = TextEditingController();
   final salary = TextEditingController();
   final description = TextEditingController();
   final companyLink = TextEditingController();
   final companyEmail = TextEditingController();
   final skillsRequired = TextEditingController();
   final experienceRequired = TextEditingController();
+
+  String? selectedCity;
+  List<String> cityOptions = [];
 
   String joiningType = "Immediate";
   String jobType = "Full Time";
@@ -37,7 +40,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
       final j = widget.jobToEdit!;
       title.text = j.jobTitle;
       company.text = j.companyName;
-      location.text = j.location;
+      selectedCity = CityConstants.matchCanonicalCity(j.location);
+      cityOptions = CityConstants.getDropdownOptions(currentCity: selectedCity);
       salary.text = j.salary;
       description.text = j.jobDescription;
       companyLink.text = j.companyLink ?? "";
@@ -51,6 +55,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
           selectedDate = DateTime.parse(j.lastDateToApply);
         }
       } catch (_) {}
+    } else {
+      cityOptions = CityConstants.getDropdownOptions();
     }
   }
 
@@ -58,7 +64,6 @@ class _PostJobScreenState extends State<PostJobScreen> {
   void dispose() {
     title.dispose();
     company.dispose();
-    location.dispose();
     salary.dispose();
     description.dispose();
     companyLink.dispose();
@@ -69,17 +74,15 @@ class _PostJobScreenState extends State<PostJobScreen> {
   }
 
   void submitJob() async {
+    if (isLoading) return;
+
     setState(() {
       _dateError = selectedDate == null;
     });
 
-    if (!_formKey.currentState!.validate() || selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please complete all required fields with valid details."),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+    final isValid = _formKey.currentState!.validate();
+    if (!isValid || selectedDate == null) {
+      // Form field errors are displayed directly beneath the corresponding fields
       return;
     }
 
@@ -95,12 +98,13 @@ class _PostJobScreenState extends State<PostJobScreen> {
           "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}";
 
       final bool isEditing = widget.jobToEdit != null;
+      final cityToSave = selectedCity ?? "";
       final success = isEditing
           ? await JobService.updateJob(
               jobId: widget.jobToEdit!.id!,
               companyName: company.text.trim(),
               jobTitle: title.text.trim(),
-              location: location.text.trim(),
+              location: cityToSave,
               salary: lpaFormatted,
               jobDescription: description.text.trim(),
               skillsRequired: skillsRequired.text.trim(),
@@ -114,7 +118,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
           : await JobService.createJob(
               companyName: company.text.trim(),
               jobTitle: title.text.trim(),
-              location: location.text.trim(),
+              location: cityToSave,
               salary: lpaFormatted,
               jobDescription: description.text.trim(),
               skillsRequired: skillsRequired.text.trim(),
@@ -168,50 +172,82 @@ class _PostJobScreenState extends State<PostJobScreen> {
         title: Text(widget.jobToEdit != null ? "Edit Job" : "Post Job", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              sectionTitle("Job Overview"),
-              formInputField(
-                controller: title,
-                label: "Job Title*",
-                hint: "e.g. Senior Flutter Developer",
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return "Job title is required.";
-                  }
-                  if (val.trim().length < 2) {
-                    return "Job title must be at least 2 characters.";
-                  }
-                  return null;
-                },
-              ),
-              formInputField(
-                controller: company,
-                label: "Company Name*",
-                hint: "e.g. Infosys, TCS, Google",
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return "Company name is required.";
-                  }
-                  return null;
-                },
-              ),
-              formInputField(
-                controller: location,
-                label: "Location*",
-                hint: "e.g. Ahmedabad / Remote / Hybrid",
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return "Job location is required.";
-                  }
-                  return null;
-                },
-              ),
+      body: SafeArea(
+        top: false,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                sectionTitle("Job Overview"),
+                formInputField(
+                  controller: title,
+                  label: "Job Title*",
+                  hint: "e.g. Senior Flutter Developer",
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return "Job title is required.";
+                    }
+                    if (val.trim().length < 2) {
+                      return "Job title must be at least 2 characters.";
+                    }
+                    return null;
+                  },
+                ),
+                formInputField(
+                  controller: company,
+                  label: "Company Name*",
+                  hint: "e.g. Infosys, TCS, Google",
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return "Company name is required.";
+                    }
+                    return null;
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: DropdownButtonFormField<String>(
+                    value: selectedCity,
+                    decoration: InputDecoration(
+                      labelText: "Location / City*",
+                      hintText: "Select city",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 1.8),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.red.shade700, width: 1.2),
+                      ),
+                    ),
+                    items: cityOptions.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        selectedCity = val;
+                      });
+                    },
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return "Please select a city.";
+                      }
+                      return null;
+                    },
+                  ),
+                ),
               formInputField(
                 controller: salary,
                 label: "Annual Salary (LPA)*",
@@ -462,8 +498,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget formInputField({
     required TextEditingController controller,

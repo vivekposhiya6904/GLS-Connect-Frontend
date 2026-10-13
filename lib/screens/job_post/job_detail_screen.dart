@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/job_model.dart';
-import '../../screens/chat/chat_detail_screen.dart';
 import '../../utils/date_helper.dart';
 import '../../utils/salary_helper.dart';
 import '../../utils/storage_service.dart';
+import '../../utils/url_helper.dart';
 import 'job_post_screen.dart';
 
 class JobDetailScreen extends StatefulWidget {
@@ -260,23 +260,32 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                   const SizedBox(height: 12),
                   if (widget.job.companyLink != null && widget.job.companyLink!.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.link, size: 18, color: Color(0xFF1A3A8F)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              widget.job.companyLink!,
-                              style: const TextStyle(
-                                color: Color(0xFF1A3A8F),
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w500,
-                                decoration: TextDecoration.underline,
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => UrlHelper.launchWebUrl(context, widget.job.companyLink!),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.link_rounded, size: 20, color: Color(0xFF1A3A8F)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  widget.job.companyLink!,
+                                  style: const TextStyle(
+                                    color: Color(0xFF1A3A8F),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.open_in_new_rounded, size: 16, color: Color(0xFF1A3A8F)),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   if (widget.job.companyEmail != null && widget.job.companyEmail!.isNotEmpty)

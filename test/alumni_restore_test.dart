@@ -39,7 +39,7 @@ void main() {
       expect(find.byIcon(Icons.logout_rounded), findsNothing);
 
       // 4. Verify 5 Restored Tabs
-      expect(find.text("All"), findsOneWidget);
+      expect(find.text("Events"), findsOneWidget);
       expect(find.text("Jobs"), findsOneWidget);
       expect(find.text("My Activity"), findsOneWidget);
       expect(find.text("Alumni"), findsOneWidget);

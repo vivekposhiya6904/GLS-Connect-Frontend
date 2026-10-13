@@ -4,11 +4,12 @@
     <!-- Internet permission -->
     <uses-permission android:name="android.permission.INTERNET"/>
     
-    <!-- Image Picker Permissions -->
+    <!-- Image Picker & Camera Permissions -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
 
-    <!-- Android 11 Query Declaration for Picker Intents -->
+    <!-- Android 11 Query Declaration for Picker Intents, Camera, and Browsers -->
     <queries>
         <intent>
             <action android:name="android.intent.action.GET_CONTENT" />
@@ -18,6 +19,17 @@
         <intent>
             <action android:name="android.intent.action.PICK" />
             <data android:mimeType="image/*" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
         </intent>
     </queries>
 
@@ -34,6 +46,7 @@
             android:launchMode="singleTop"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
+            android:screenOrientation="portrait"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">

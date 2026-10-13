@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../models/alumni_profile_model.dart';
 import '../../utils/storage_service.dart';
 import '../auth/login_screen.dart';
-import '../../utils/theme_manager.dart';
-import 'package:image_picker/image_picker.dart';
+import '../../utils/image_picker_helper.dart';
 import '../../models/profile_view_model.dart';
 import '../../services/profile_view_service.dart';
 import '../../config/api_config.dart';
@@ -672,8 +670,11 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   }
 
   Future<void> _pickAndUploadImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picked = await ImagePickerHelper.pickImageWithSourceDialog(
+      context,
+      title: "Update Profile Photo",
+      imageQuality: 80,
+    );
     if (picked != null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

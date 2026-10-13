@@ -335,7 +335,7 @@ class _SearchScreenState extends State<SearchScreen>
         elevation: 2,
         iconTheme: const IconThemeData(color: Colors.white),
         title: TextField(
-          autofocus: true,
+          autofocus: false,
           style: const TextStyle(color: Colors.white),
           cursorColor: Colors.amber,
           decoration: const InputDecoration(
