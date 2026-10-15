@@ -86,10 +86,10 @@ void main() {
         ),
       );
 
-      // Verify the 5 tabs exist in StudentHomeScreen
+      // Verify the 4 tabs exist in StudentHomeScreen (My Activity removed from Student module)
       expect(find.text("Events"), findsOneWidget);
       expect(find.text("Jobs"), findsOneWidget);
-      expect(find.text("My Activity"), findsOneWidget);
+      expect(find.text("My Activity"), findsNothing);
       expect(find.text("Alumni"), findsOneWidget);
       expect(find.text("Faculty"), findsOneWidget);
 

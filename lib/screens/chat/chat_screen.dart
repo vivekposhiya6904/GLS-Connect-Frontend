@@ -465,7 +465,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildErrorState(Color primaryColor) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(28.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,

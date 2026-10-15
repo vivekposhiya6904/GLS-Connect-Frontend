@@ -13,6 +13,8 @@ import 'event_detail_screen.dart';
 import '../job_post/job_post_screen.dart';
 import '../job_post/job_detail_screen.dart';
 import '../auth/login_screen.dart';
+import '../../widgets/app_search_bar.dart';
+import '../../utils/focus_helper.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -29,6 +31,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   List<AdminUserDto> _allUsers = [];
   List<AdminUserDto> _filteredUsers = [];
   final TextEditingController _userSearchController = TextEditingController();
+  final FocusNode _userSearchFocusNode = FocusNode();
   String _userRoleFilter = 'ALL'; // ALL, ALUMNI, FACULTY, STUDENT
 
   List<EventModel> _allEvents = [];
@@ -48,6 +51,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   void dispose() {
     _tabController.dispose();
     _userSearchController.dispose();
+    _userSearchFocusNode.dispose();
     super.dispose();
   }
 
@@ -83,7 +87,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
             (_userRoleFilter == 'STUDENT' && (role == 'STUDENT' || role == 'USER'));
         final matchesQuery = query.isEmpty ||
             u.name.toLowerCase().contains(query) ||
-            u.email.toLowerCase().contains(query);
+            u.email.toLowerCase().contains(query) ||
+            u.department.toLowerCase().contains(query);
         return matchesRole && matchesQuery;
       }).toList();
     });
@@ -104,6 +109,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   // USER MANAGEMENT ACTIONS
   // ─────────────────────────────────────────────────────────────────
   Future<void> _showAddUserDialog() async {
+    AppFocusHelper.unfocus(context);
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final passwordCtrl = TextEditingController();
@@ -208,6 +214,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         ),
       ),
     );
+
+    nameCtrl.dispose();
+    emailCtrl.dispose();
+    passwordCtrl.dispose();
   }
 
   Future<void> _confirmDeleteUser(AdminUserDto user) async {
@@ -566,37 +576,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           child: Row(
             children: [
               Expanded(
-                child: TextField(
+                child: AppSearchBar(
                   controller: _userSearchController,
+                  focusNode: _userSearchFocusNode,
+                  hintText: "Search users by name, email, or department...",
+                  fillColor: const Color(0xFFF4F7FF),
                   onChanged: (_) => _applyUserSearch(),
-                  decoration: InputDecoration(
-                    hintText: "Search by name or email...",
-                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF1A3A8F)),
-                    suffixIcon: _userSearchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 20),
-                            onPressed: () {
-                              _userSearchController.clear();
-                              _applyUserSearch();
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: const Color(0xFFF4F7FF),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 1.5),
-                    ),
-                  ),
+                  onClear: () => _applyUserSearch(),
                 ),
               ),
               const SizedBox(width: 8),
@@ -606,7 +592,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: _showAddUserDialog,
+                onPressed: () {
+                  _userSearchFocusNode.unfocus();
+                  _showAddUserDialog();
+                },
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),
                 label: const Text("Add User", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               ),
@@ -625,6 +614,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                   label: "All Users",
                   isSelected: _userRoleFilter == 'ALL',
                   onSelected: () {
+                    _userSearchFocusNode.unfocus();
                     setState(() {
                       _userRoleFilter = 'ALL';
                       _applyUserSearch();
@@ -636,6 +626,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                   label: "Alumni",
                   isSelected: _userRoleFilter == 'ALUMNI',
                   onSelected: () {
+                    _userSearchFocusNode.unfocus();
                     setState(() {
                       _userRoleFilter = 'ALUMNI';
                       _applyUserSearch();
@@ -647,6 +638,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                   label: "Faculty",
                   isSelected: _userRoleFilter == 'FACULTY',
                   onSelected: () {
+                    _userSearchFocusNode.unfocus();
                     setState(() {
                       _userRoleFilter = 'FACULTY';
                       _applyUserSearch();
@@ -658,6 +650,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                   label: "Students",
                   isSelected: _userRoleFilter == 'STUDENT',
                   onSelected: () {
+                    _userSearchFocusNode.unfocus();
                     setState(() {
                       _userRoleFilter = 'STUDENT';
                       _applyUserSearch();
@@ -674,13 +667,49 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
             child: _filteredUsers.isEmpty
                 ? ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    children: const [
-                      SizedBox(height: 80),
-                      Center(child: Text("No users match your search query", style: TextStyle(color: Colors.grey))),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    children: [
+                      const SizedBox(height: 60),
+                      Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                            const SizedBox(height: 12),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                "No users match your search query or filters",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                _userSearchFocusNode.unfocus();
+                                _userSearchController.clear();
+                                setState(() {
+                                  _userRoleFilter = 'ALL';
+                                  _applyUserSearch();
+                                });
+                              },
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: const Text("Reset Search & Filters"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1A3A8F),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   )
                 : ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.all(12),
                     itemCount: _filteredUsers.length,
                     itemBuilder: (context, index) {

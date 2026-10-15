@@ -141,55 +141,81 @@ class JobCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // Summary Metadata Row: Location, Salary (LPA), Experience
-                Wrap(
-                  spacing: 14,
-                  runSpacing: 6,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxChipWidth = constraints.maxWidth;
+                    return Wrap(
+                      spacing: 14,
+                      runSpacing: 6,
                       children: [
-                        const Icon(Icons.currency_rupee_outlined, size: 15, color: Color(0xFF1A3A8F)),
-                        const SizedBox(width: 4),
-                        Text(
-                          formattedSalary,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1A3A8F),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxChipWidth),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.currency_rupee_outlined, size: 15, color: Color(0xFF1A3A8F)),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  formattedSalary,
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1A3A8F),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.location_on_outlined, size: 15, color: Colors.grey.shade500),
-                        const SizedBox(width: 4),
-                        Text(
-                          job.location,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: isDark ? Colors.white70 : const Color(0xFF475569),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxChipWidth),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.location_on_outlined, size: 15, color: Colors.grey.shade500),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  job.location,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                    if (job.experienceRequired.isNotEmpty && job.experienceRequired != "N/A")
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.badge_outlined, size: 15, color: Colors.grey.shade500),
-                          const SizedBox(width: 4),
-                          Text(
-                            job.experienceRequired,
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: isDark ? Colors.white70 : const Color(0xFF475569),
+                        if (job.experienceRequired.isNotEmpty && job.experienceRequired != "N/A")
+                          ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: maxChipWidth),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.badge_outlined, size: 15, color: Colors.grey.shade500),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    job.experienceRequired,
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 12),
@@ -200,26 +226,33 @@ class JobCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_outlined,
-                          size: 13,
-                          color: isExpired ? Colors.redAccent : Colors.grey.shade500,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          isExpired
-                              ? "Deadline ended: ${DateHelper.formatFriendlyDate(job.lastDateToApply)}"
-                              : "Apply by: ${DateHelper.formatFriendlyDate(job.lastDateToApply)}",
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                            color: isExpired ? Colors.redAccent : (isDark ? Colors.white60 : const Color(0xFF64748B)),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 13,
+                            color: isExpired ? Colors.redAccent : Colors.grey.shade500,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              isExpired
+                                  ? "Deadline ended: ${DateHelper.formatFriendlyDate(job.lastDateToApply)}"
+                                  : "Apply by: ${DateHelper.formatFriendlyDate(job.lastDateToApply)}",
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w500,
+                                color: isExpired ? Colors.redAccent : (isDark ? Colors.white60 : const Color(0xFF64748B)),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Row(
                       children: [
                         if (showChat)

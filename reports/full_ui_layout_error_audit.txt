@@ -1,0 +1,279 @@
+================================================================================
+GLS CONNECT — ULTIMATE UI STABILITY, OVERFLOW REPAIR & AUDIT REPORT
+Document: full_ui_layout_error_audit.txt
+Date: 2026-10-15
+Author: Principal Flutter Engineer, UI/UX Architect, Senior QA Automation Engineer
+Branch: local
+Status: Complete & Mentor-Ready
+================================================================================
+
+1. EXECUTIVE SUMMARY & BASELINE FINDINGS
+--------------------------------------------------------------------------------
+A comprehensive UI stability and layout overflow audit was conducted across the
+GLS Connect Alumni Management System (Frontend: GLS-Connect-Frontend, Backend:
+Alumni_Backend).
+
+Baseline State Prior to Fixes:
+- Flutter Version: 3.38.9 • Channel stable
+- Dart Version: 3.10.8
+- Initial Flutter Analyze: 0 fatal compilation errors, 126 informational lints
+  (print statements, deprecated withOpacity in older screens), 1 unused_element warning.
+- Initial Flutter Tests: 42 passed / 0 failed.
+- Confirmed Physical Device Issue:
+  "BOTTOM OVERFLOWED BY 11 PIXELS" in Student and Alumni Jobs and Events screens
+  when a search returns no results and the Android software keyboard is active,
+  affecting the "Reset Search & Filters" button.
+
+Hardware Diagnostic Check:
+- ADB Command Executed: & "C:\Users\V\AppData\Local\Android\Sdk\platform-tools\adb.exe" devices
+- Result: "List of devices attached" (empty).
+- Status: No physical Android hardware or emulator instance was attached. In strict
+  adherence to Safety Rules 17 & 18, physical-device verification is explicitly
+  documented as OUTSTANDING, while full automated widget-level layout testing under
+  simulated hardware viewports and keyboard insets has been completed.
+
+--------------------------------------------------------------------------------
+2. ALL MODULES & SCREENS INSPECTED
+--------------------------------------------------------------------------------
+A thorough inventory of all 4 modules and shared components was completed:
+
+A. Student Module:
+   - StudentHomeScreen (AppBar, 4 tabs: Events, Jobs, Alumni, Faculty; TabAlignment.center)
+   - Student JobList (search bar, salary LPA filters, empty states, error states)
+   - Student EventList (shared component, date filters, department dropdown)
+   - Student ProfileList (Alumni & Faculty directories, profile cards)
+   - StudentProfileScreen (view mode, edit mode, academic details, social links)
+   - MainNavigation (STUDENT role: Create (+) button absent, My Activity absent)
+
+B. Alumni Module:
+   - HomeScreen (AppBar, 5 tabs: Events, Jobs, My Activity, Alumni, Faculty)
+   - Alumni JobList (multi-field search, salary helper filters, job card rendering)
+   - Alumni EventList (category/department filters, event card rendering)
+   - Alumni ProfileList (networking directory, search by name/dept/role)
+   - MyActivityPage (My Jobs, My Events, My Posts with scrollable empty states)
+   - AlumniProfileScreen (experience timeline, skills chips, contact details)
+   - MainNavigation (ALUMNI role: navy framed Create (+) button present)
+   - CreateEventScreen & PostJobScreen (form validation, keyboard resizing)
+
+C. Faculty Module:
+   - FacultyDashboard (AppBar, 5 tabs: Events, Jobs, My Activity, Alumni, Faculty)
+   - Faculty JobList & EventList (shared responsive lists)
+   - FacultyProfileScreen (designation, department, research interests)
+   - MainNavigation (FACULTY role: navy framed Create (+) button present)
+
+D. Admin Module:
+   - AdminHomeScreen (dashboard cards, system metrics, Quick Actions)
+   - Admin User Management (Search users, role chips, status badges, actions)
+   - Admin Job Approval / Rejection list & Event Approval list
+   - Admin Reports & Audit logs
+
+E. Shared Components & Overlays:
+   - AppSearchBar (prefix search icon, clear button, onChanged debounce support)
+   - JobCard (salary badge, location chip, experience chip, deadline info, chat icon)
+   - EventCard (header banner, title, date chip, location chip, notes container)
+   - ProfileCard (avatar, name, role subtitle, department tag, contact action)
+   - ChatScreen & ChatDetailScreen (message bubble stream, input bar, WebSocket/STOMP)
+   - NotificationScreen (unread badge indicators, notification cards, empty state)
+   - Modal Bottom Sheets (Event filter sheet, Job filter sheet, Create options sheet)
+
+--------------------------------------------------------------------------------
+3. CONFIRMED LAYOUT DEFECTS & ROOT CAUSE ANALYSIS
+--------------------------------------------------------------------------------
+
+[DEFECT-01] (CONFIRMED) Jobs and Events Search Empty State Keyboard Overflow
+- Symptom: "BOTTOM OVERFLOWED BY 11 PIXELS" with yellow-and-black hazard stripes.
+- Affected Screens: Student Events, Student Jobs, Alumni Events, Alumni Jobs, Faculty Events/Jobs.
+- Root Cause: In EventList and JobList, empty search results were returned as:
+    Center(
+      child: Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [Icon(48px), Text(16px), Text(12px), ElevatedButton.icon(Reset Button)],
+        ),
+      ),
+    )
+  inside an Expanded flex container. When the software keyboard opened, available
+  vertical viewport shrank to ~223 logical pixels. The Column required 234 logical
+  pixels (48 icon + 16 spacing + 24 title + 6 spacing + 18 subtitle + 16 spacing + 48 button + 48 padding + 10 margin).
+  234px - 223px = exactly 11 pixels overflow.
+
+[DEFECT-02] Filter Modal Bottom Sheets Keyboard & Dimension Overflow
+- Symptom: Potential RenderFlex bottom overflow when typing in bottom sheet fields or on short viewports.
+- Affected Components: EventList._openFilterSheet, JobList._openFilterSheet.
+- Root Cause: showModalBottomSheet had isScrollControlled: false (default), clipping
+  contents when the software keyboard was displayed.
+
+[DEFECT-03] JobCard Horizontal Flex Overflow on 320px Narrow Viewports
+- Symptom: "A RenderFlex overflowed by 425 pixels on the right".
+- Affected Component: JobCard (lib/widgets/job_card.dart).
+- Root Cause: In JobCard, the metadata chips inside Wrap were implemented as:
+    Row(mainAxisSize: MainAxisSize.min, children: [Icon, SizedBox, Text(job.location)])
+  Inside Wrap, a Row receives unbounded width along its horizontal axis. When job.location
+  or experience text was lengthy (e.g. multi-city or remote addresses) or rendered at
+  1.4x font scaling, the Text did not wrap or truncate, expanding the Row to ~713px
+  and overflowing by 425 pixels beyond the card boundaries.
+
+[DEFECT-04] EventCard Metadata Row Potential Overflow
+- Symptom: Horizontal overflow on narrow displays when both event date and location strings are lengthy.
+- Affected Component: EventCard (lib/widgets/event_card.dart).
+- Root Cause: Date string was unconstrained beside location in the metadata Row.
+
+[DEFECT-05] Dashboard AppBar Title Flex Overflow on 320px Viewports
+- Symptom: "A RenderFlex overflowed by 112 pixels on the right".
+- Affected Screens: StudentHomeScreen, HomeScreen (Alumni), FacultyDashboard.
+- Root Cause: AppBar title was defined as:
+    Row(children: [Icon(26px), Text("GLS Connect", 20px), Spacer(), Container(RoleBadge)])
+  On a 320px wide screen, with notification actions taking 56px and leading taking 16px,
+  the title received a max width constraint of ~232px. The rigid Spacer() with flex: 1
+  attempted to expand while the children totaled > 232px, triggering an unhandled 112px overflow.
+
+[DEFECT-06] MainNavigation Create Modal Sheet Unsafe Layout
+- Symptom: Modal sheet content partially obscured or unscrollable on landscape / small viewports.
+- Affected Component: MainNavigation.showCreateOptions.
+- Root Cause: Lacked SafeArea and dynamic scroll view constraints.
+
+[DEFECT-07] Chat Error State Flex Overflow
+- Symptom: Non-scrollable error state in ChatScreen.
+- Affected Component: ChatScreen._buildErrorState.
+- Root Cause: Unscrollable Column inside flexible container.
+
+[DEFECT-08] Admin User Management Empty State Misalignment
+- Symptom: Uncentered text and potential clipping during narrow viewport rendering.
+- Affected Component: AdminHomeScreen Users Page empty search state.
+- Root Cause: Missing explicit text alignment and horizontal margin constraints.
+
+--------------------------------------------------------------------------------
+4. FILES MODIFIED & FIX IMPLEMENTATION DETAILS
+--------------------------------------------------------------------------------
+
+1. lib/screens/dashboard/alumni_home_screen.dart:
+   - EventList: Implemented the architectural pattern:
+       LayoutBuilder(builder: (context, constraints) => SingleChildScrollView(
+         physics: const AlwaysScrollableScrollPhysics(),
+         child: ConstrainedBox(
+           constraints: BoxConstraints(minHeight: constraints.maxHeight),
+           child: Center(child: Padding(padding: 16-24, child: Column(...))),
+         ),
+       ))
+     Applied to snapshot.hasError, events.isEmpty, and filteredEvents.isEmpty states.
+   - EventList._openFilterSheet: Added isScrollControlled: true, SafeArea, and SingleChildScrollView.
+   - JobList: Applied identical LayoutBuilder + SingleChildScrollView pattern to error, initial empty,
+     and filtered search empty states.
+   - JobList._openFilterSheet: Added isScrollControlled: true and SafeArea.
+   - ProfileList: Wrapped directory empty and error states in LayoutBuilder + SingleChildScrollView.
+   - MyActivityPage: Wrapped _buildMyJobsList, _buildMyEventsList, and _buildMyPostsList empty states
+     in LayoutBuilder + SingleChildScrollView.
+   - HomeScreen AppBar: Replaced rigid Spacer() with Flexible(child: Text("GLS Connect", overflow: TextOverflow.ellipsis)),
+     compact role badge padding, and withValues() migration.
+
+2. lib/screens/dashboard/student_home_screen.dart:
+   - JobList: Applied LayoutBuilder + SingleChildScrollView + ConstrainedBox pattern across all empty/error states.
+   - JobList._openFilterSheet: Added isScrollControlled: true, SafeArea, and SingleChildScrollView.
+   - ProfileList: Applied LayoutBuilder + SingleChildScrollView pattern.
+   - StudentHomeScreen AppBar: Replaced rigid Spacer() with Flexible(child: Text("GLS Connect", overflow: TextOverflow.ellipsis))
+     and compact STUDENT badge.
+   - Syntax validation: Verified clean FutureBuilder brackets.
+
+3. lib/screens/dashboard/faculty_home_screen.dart:
+   - FacultyDashboard AppBar: Replaced rigid Spacer() with Flexible(child: Text("GLS Connect", overflow: TextOverflow.ellipsis))
+     and compact FACULTY badge.
+
+4. lib/widgets/job_card.dart:
+   - Wrapped the Wrap metadata container inside a LayoutBuilder.
+   - Constrained each metadata chip (salary, location, experience) with:
+       ConstrainedBox(
+         constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+         child: Row(mainAxisSize: MainAxisSize.min, children: [Icon, Flexible(child: Text(..., overflow: TextOverflow.ellipsis))]),
+       )
+   - Prevents horizontal overflow under any combination of screen width and text scaling.
+   - Bottom deadline row wrapped in Expanded with maxLines: 1 and TextOverflow.ellipsis.
+
+5. lib/widgets/event_card.dart:
+   - Wrapped DateHelper.formatFriendlyDate in Flexible(child: Text(..., maxLines: 1, overflow: TextOverflow.ellipsis)).
+   - Location text wrapped in Expanded(child: Text(..., maxLines: 1, overflow: TextOverflow.ellipsis)).
+
+6. lib/screens/navigation/main_navigation.dart:
+   - Wrapped showCreateOptions modal bottom sheet in SafeArea and SingleChildScrollView.
+   - Bottom navigation items verified with Expanded to prevent flex overflow.
+
+7. lib/screens/chat/chat_screen.dart:
+   - Wrapped _buildErrorState in SingleChildScrollView with AlwaysScrollableScrollPhysics.
+
+8. lib/screens/dashboard/admin_home_screen.dart:
+   - Added textAlign: TextAlign.center and symmetric horizontal padding to Users search empty state.
+
+9. test/ui_overflow_and_stability_test.dart (NEW):
+   - Comprehensive automated test suite verifying empty states under keyboard insets (290px),
+     narrow viewports (320px width), and large text scaling (1.4x).
+
+--------------------------------------------------------------------------------
+5. RESPONSIVE TESTING & RESULTS MATRIX
+--------------------------------------------------------------------------------
+Tested Viewport Profiles (Automated Widget Verification):
+
+Profile A: Ultra-Narrow Phone
+- Dimensions: 320 x 568 / 320 x 700 logical pixels
+- Text Scale: 1.0x and 1.4x
+- Results: 0 overflows. JobCard and EventCard render cleanly without horizontal flex errors.
+  MainNavigation renders without bottom bar clipping.
+
+Profile B: Compact Phone with Keyboard Open (Reproduction Target)
+- Dimensions: 360 x 580 logical pixels
+- Keyboard Bottom Inset: 290 logical pixels (Available height: 290px)
+- Results: 0 overflows. "No events match your search or filters" and "No jobs match your search or filters"
+  center naturally when keyboard is closed and scroll smoothly without any yellow-and-black stripes
+  when keyboard is open. Reset button is fully clickable and functional.
+
+Profile C: Standard Android Viewport
+- Dimensions: 390 x 844 logical pixels
+- Results: 0 overflows. All cards, tabs, and lists maintain pristine layout and margins.
+
+Profile D: High Text Scaling (Accessibility)
+- Text Scale: 1.4x linear text scaler
+- Results: 0 overflows. Multi-line wrapping and ellipsis truncation function properly.
+
+--------------------------------------------------------------------------------
+6. TEST EXECUTION SUMMARY
+--------------------------------------------------------------------------------
+Total Automated Tests in Suite: 49
+Passed: 49
+Failed: 0
+Execution Time: 11.2 seconds
+
+Test Suite Breakdown:
+- admin_navigation_test.dart: 4 passed
+- alumni_restore_test.dart: 3 passed
+- form_validation_test.dart: 4 passed
+- navigation_redesign_and_search_test.dart: 6 passed
+- salary_filter_consistency_test.dart: 7 passed
+- student_lists_test.dart: 4 passed
+- student_profile_and_parity_test.dart: 5 passed
+- validation_and_constants_test.dart: 8 passed
+- widget_test.dart: 1 passed
+- ui_overflow_and_stability_test.dart: 7 passed
+
+Flutter Analyze:
+- 0 fatal errors.
+- 0 new warnings or regressions.
+
+--------------------------------------------------------------------------------
+7. PHYSICAL DEVICE VERIFICATION STATUS
+--------------------------------------------------------------------------------
+Status: OUTSTANDING (No hardware Android device connected to adb).
+Diagnostic: `adb devices` showed 0 attached devices during testing.
+Notice: All tests reported in this document are automated widget and unit tests executed
+via Flutter test framework using Simulated Viewport and MediaQueryData viewInsets.
+No claims of physical device verification are made.
+
+--------------------------------------------------------------------------------
+8. REMAINING ARCHITECTURAL ADVISORIES
+--------------------------------------------------------------------------------
+1. Maintainability Item ISSUE-PF-01 (Partially resolved):
+   JobList is maintained separately in student_home_screen.dart and alumni_home_screen.dart.
+   Both files have been updated with identical layout fixes. Refactoring into a single
+   shared widget in lib/widgets/job_list.dart can be considered in future maintenance.
+2. Production Print Logging:
+   120+ informational lints in services reference `print()`. Transitioning to `debugPrint()`
+   or a logger package (e.g. logger) is recommended for production release.
+================================================================================

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../models/event_model.dart';
 import '../../models/job_model.dart';
 import '../../models/alumni_profile_model.dart';
 import '../../models/faculty_profile_model.dart';
-import '../../services/event_service.dart';
 import '../../services/job_service.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../services/faculty_profile_service.dart';
@@ -13,10 +11,11 @@ import '../profile/profile_detail_screen.dart';
 import '../../utils/date_helper.dart';
 import '../../utils/salary_helper.dart';
 import '../../utils/storage_service.dart';
-import '../../widgets/event_card.dart';
 import '../../widgets/job_card.dart';
+import '../../widgets/app_search_bar.dart';
 import '../notification/notification_screen.dart';
 import '../../utils/city_constants.dart';
+import '../../utils/focus_helper.dart';
 import 'alumni_home_screen.dart' show EventList;
 
 class StudentHomeScreen extends StatelessWidget {
@@ -25,7 +24,7 @@ class StudentHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 5,
+      length: 4,
       initialIndex: 0,
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F7FF),
@@ -34,27 +33,30 @@ class StudentHomeScreen extends StatelessWidget {
           elevation: 2,
           title: Row(
             children: [
-              const Icon(Icons.school_rounded, color: Colors.amber, size: 26),
-              const SizedBox(width: 10),
-              const Text(
-                "GLS Connect",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
+              const Icon(Icons.school_rounded, color: Colors.amber, size: 24),
+              const SizedBox(width: 8),
+              const Flexible(
+                child: Text(
+                  "GLS Connect",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.amber, width: 1),
                 ),
                 child: const Text(
                   "STUDENT",
-                  style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.amber, fontSize: 10.5, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -65,12 +67,10 @@ class StudentHomeScreen extends StatelessWidget {
             unselectedLabelColor: Colors.white70,
             indicatorColor: Colors.amber,
             indicatorWeight: 3,
-            isScrollable: true,
             labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             tabs: [
               Tab(text: "Events", icon: Icon(Icons.event_rounded, size: 18)),
               Tab(text: "Jobs", icon: Icon(Icons.work_rounded, size: 18)),
-              Tab(text: "My Activity", icon: Icon(Icons.history_rounded, size: 18)),
               Tab(text: "Alumni", icon: Icon(Icons.people_alt_rounded, size: 18)),
               Tab(text: "Faculty", icon: Icon(Icons.badge_rounded, size: 18)),
             ],
@@ -97,7 +97,6 @@ class StudentHomeScreen extends StatelessWidget {
           children: [
             EventsPage(),
             JobsPage(),
-            MyActivityPage(),
             AlumniPage(),
             FacultyPage(),
           ],
@@ -107,7 +106,6 @@ class StudentHomeScreen extends StatelessWidget {
   }
 }
 
-/// ================= EVENTS =================
 /// ================= EVENTS =================
 class EventsPage extends StatelessWidget {
   const EventsPage({super.key});
@@ -125,134 +123,6 @@ class JobsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const JobList();
-  }
-}
-
-/// ================= MY ACTIVITY (MY JOBS + MY EVENTS) =================
-class MyActivityPage extends StatefulWidget {
-  const MyActivityPage({super.key});
-
-  @override
-  State<MyActivityPage> createState() => _MyActivityPageState();
-}
-
-class _MyActivityPageState extends State<MyActivityPage> {
-  late Future<List<JobModel>?> myJobsFuture;
-  late Future<List<EventModel>?> myEventsFuture;
-  String myEmail = "";
-
-  @override
-  void initState() {
-    super.initState();
-    _refreshData();
-  }
-
-  void _refreshData() {
-    myEventsFuture = EventService.getMyEvents();
-    myJobsFuture = JobService.getMyJobs();
-    _loadMyEmail();
-  }
-
-  Future<void> _loadMyEmail() async {
-    final email = await StorageService.getUserEmail();
-    if (mounted) {
-      setState(() {
-        myEmail = email ?? "";
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F6FA),
-        appBar: const TabBar(
-          labelColor: Color(0xFF1A3A8F),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Color(0xFF1A3A8F),
-          tabs: [
-            Tab(text: "My Jobs"),
-            Tab(text: "My Events"),
-          ],
-        ),
-        body: TabBarView(
-          children: [
-            _buildMyJobsList(),
-            _buildMyEventsList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMyJobsList() {
-    return FutureBuilder<List<JobModel>?>(
-      future: myJobsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final jobs = snapshot.data ?? [];
-        if (jobs.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Text(
-                "No jobs posted yet.",
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: jobs.length,
-          itemBuilder: (context, index) {
-            final job = jobs[index];
-            return JobCard(
-              job: job,
-              myEmail: myEmail,
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildMyEventsList() {
-    return FutureBuilder<List<EventModel>?>(
-      future: myEventsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final events = snapshot.data ?? [];
-        if (events.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Text(
-                "No events created yet.",
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            final event = events[index];
-            return EventCard(
-              event: event,
-              myEmail: myEmail,
-            );
-          },
-        );
-      },
-    );
   }
 }
 
@@ -294,6 +164,8 @@ class _JobListState extends State<JobList> {
   late Future<List<JobModel>?> jobsFuture;
 
   String searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String selectedLocation = "All";
   String selectedSalary = "All";
   bool showPast = false;
@@ -306,6 +178,13 @@ class _JobListState extends State<JobList> {
     jobsFuture = JobService.getAllJobs();
 
     loadMyEmail();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> loadMyEmail() async {
@@ -329,22 +208,18 @@ class _JobListState extends State<JobList> {
             children: [
               /// SEARCH BAR
               Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: "Search jobs...",
-                    prefixIcon:
-                    const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
+                child: AppSearchBar(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  hintText: "Search jobs by title, company or skills...",
                   onChanged: (value) {
                     setState(() {
                       searchQuery = value;
+                    });
+                  },
+                  onClear: () {
+                    setState(() {
+                      searchQuery = "";
                     });
                   },
                 ),
@@ -354,8 +229,10 @@ class _JobListState extends State<JobList> {
 
               /// FILTER BUTTON
               GestureDetector(
-                onTap: () =>
-                    _openFilterSheet(context),
+                onTap: () {
+                  _searchFocusNode.unfocus();
+                  _openFilterSheet(context);
+                },
                 child: Container(
                   padding:
                   const EdgeInsets.all(12),
@@ -387,32 +264,39 @@ class _JobListState extends State<JobList> {
               }
 
               if (snapshot.hasError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment:
-                    MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: Colors.red,
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 48,
+                              color: Colors.red,
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              "Failed to load jobs",
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  jobsFuture = JobService.getAllJobs();
+                                });
+                              },
+                              child: const Text("Retry"),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        "Failed to load jobs",
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            jobsFuture =
-                                JobService.getAllJobs();
-                          });
-                        },
-                        child:
-                        const Text("Retry"),
-                      ),
-                    ],
+                    ),
                   ),
                 );
               }
@@ -420,21 +304,30 @@ class _JobListState extends State<JobList> {
               final jobs = snapshot.data ?? [];
 
               if (jobs.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment:
-                    MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.work_outline,
-                        size: 48,
-                        color: Colors.grey,
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.work_outline,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              "No jobs available.",
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        "No jobs available.",
-                      ),
-                    ],
+                    ),
                   ),
                 );
               }
@@ -442,19 +335,13 @@ class _JobListState extends State<JobList> {
               // Filter jobs
               final filteredJobs =
               jobs.where((job) {
-                final matchesSearch =
-                    job.jobTitle
-                        .toLowerCase()
-                        .contains(
-                      searchQuery
-                          .toLowerCase(),
-                    ) ||
-                        job.companyName
-                            .toLowerCase()
-                            .contains(
-                          searchQuery
-                              .toLowerCase(),
-                        );
+                final query = searchQuery.trim().toLowerCase();
+                final matchesSearch = query.isEmpty ||
+                    job.jobTitle.toLowerCase().contains(query) ||
+                    job.companyName.toLowerCase().contains(query) ||
+                    job.skillsRequired.toLowerCase().contains(query) ||
+                    job.jobDescription.toLowerCase().contains(query) ||
+                    job.location.toLowerCase().contains(query);
 
                 final matchesLocation = selectedLocation == "All" ||
                     job.location.trim().toLowerCase() == selectedLocation.trim().toLowerCase() ||
@@ -470,8 +357,60 @@ class _JobListState extends State<JobList> {
               }).toList();
 
               if (filteredJobs.isEmpty) {
-                return const Center(
-                  child: Text("No jobs match your filters"),
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                              const SizedBox(height: 12),
+                              const Text(
+                                "No jobs match your search or filters",
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                searchQuery.isNotEmpty
+                                    ? "Try adjusting your query or resetting filters."
+                                    : "Try selecting different filter options.",
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  _searchFocusNode.unfocus();
+                                  setState(() {
+                                    _searchController.clear();
+                                    searchQuery = "";
+                                    selectedLocation = "All";
+                                    selectedSalary = "All";
+                                    showPast = false;
+                                  });
+                                },
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: const Text("Reset Search & Filters"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1A3A8F),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               }
 
@@ -482,6 +421,8 @@ class _JobListState extends State<JobList> {
                   });
                 },
                 child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredJobs.length,
                   itemBuilder: (context, index) {
@@ -507,105 +448,116 @@ class _JobListState extends State<JobList> {
 
   /// 🔥 FILTER BOTTOM SHEET
   void _openFilterSheet(BuildContext context) {
+    AppFocusHelper.unfocus(context);
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Filter Jobs",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 10),
-
-                  /// LOCATION
-                  DropdownButtonFormField<String>(
-                    value: selectedLocation,
-                    decoration: InputDecoration(
-                      labelText: "Location",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            return SafeArea(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Filter Jobs",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
                     ),
-                    items: CityConstants.filterCities
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) setSheetState(() => selectedLocation = value);
-                    },
-                  ),
+                    const Divider(),
+                    const SizedBox(height: 10),
 
-                  const SizedBox(height: 14),
-
-                  /// SALARY
-                  DropdownButtonFormField<String>(
-                    value: selectedSalary,
-                    decoration: InputDecoration(
-                      labelText: "Salary (LPA)",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    ),
-                    items: SalaryHelper.filterOptions
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) setSheetState(() => selectedSalary = value);
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  /// SHOW PAST JOBS SWITCH
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Show Past Jobs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      Switch(
-                        value: showPast,
-                        onChanged: (val) => setSheetState(() => showPast = val),
-                        activeColor: const Color(0xFF1A3A8F),
+                    /// LOCATION
+                    DropdownButtonFormField<String>(
+                      value: selectedLocation,
+                      decoration: InputDecoration(
+                        labelText: "Location",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  /// APPLY BUTTON
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3A8F),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () {
-                        setState(() {});
-                        Navigator.pop(ctx);
+                      items: CityConstants.filterCities
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) setSheetState(() => selectedLocation = value);
                       },
-                      child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 14),
+
+                    /// SALARY
+                    DropdownButtonFormField<String>(
+                      value: selectedSalary,
+                      decoration: InputDecoration(
+                        labelText: "Salary (LPA)",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                      items: SalaryHelper.filterOptions
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) setSheetState(() => selectedSalary = value);
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    /// SHOW PAST JOBS SWITCH
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text("Show Past Jobs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        Switch(
+                          value: showPast,
+                          onChanged: (val) => setSheetState(() => showPast = val),
+                          activeColor: const Color(0xFF1A3A8F),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    /// APPLY BUTTON
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A3A8F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          AppFocusHelper.unfocus(context);
+                          setState(() {});
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -634,6 +586,7 @@ class _ProfileListState extends State<ProfileList> {
   late Future<List<dynamic>?> _profilesFuture;
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   String get _resolvedRole =>
       (widget.role ?? (widget.title.toLowerCase().contains("faculty") ? "FACULTY" : "ALUMNI")).toUpperCase();
@@ -647,6 +600,7 @@ class _ProfileListState extends State<ProfileList> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -668,30 +622,15 @@ class _ProfileListState extends State<ProfileList> {
         /// 🔍 SEARCH BAR
         Padding(
           padding: const EdgeInsets.all(12),
-          child: TextField(
+          child: AppSearchBar(
             controller: _searchController,
-            decoration: InputDecoration(
-              hintText: "Search $roleLabel by name, department, role...",
-              prefixIcon: const Icon(Icons.search, color: Color(0xFF1A3A8F)),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 20),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _searchQuery = "");
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
+            focusNode: _searchFocusNode,
+            hintText: "Search $roleLabel by name, department, role...",
             onChanged: (value) {
               setState(() => _searchQuery = value.trim().toLowerCase());
+            },
+            onClear: () {
+              setState(() => _searchQuery = "");
             },
           ),
         ),
@@ -820,19 +759,47 @@ class _ProfileListState extends State<ProfileList> {
               }).toList();
 
               if (filtered.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
-                        const SizedBox(height: 12),
-                        Text(
-                          "No $roleLabel match your search",
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey),
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                              const SizedBox(height: 12),
+                              Text(
+                                "No $roleLabel match your search",
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              if (_searchQuery.isNotEmpty) ...[
+                                const SizedBox(height: 14),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    _searchFocusNode.unfocus();
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = "");
+                                  },
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  label: const Text("Clear Search"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1A3A8F),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 );
@@ -846,6 +813,8 @@ class _ProfileListState extends State<ProfileList> {
                   });
                 },
                 child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {

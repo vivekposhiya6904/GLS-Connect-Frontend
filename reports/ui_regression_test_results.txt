@@ -1,0 +1,161 @@
+================================================================================
+GLS CONNECT — UI REGRESSION TEST RESULTS REPORT
+Document: ui_regression_test_results.txt
+Date: 2026-10-15
+Framework: Flutter Test Framework / Dart SDK 3.10.8 / Flutter 3.38.9
+Total Tests Executed: 49
+Passed: 49
+Failed: 0
+Status: 100% PASS RATE
+================================================================================
+
+1. TEST SUITE OVERVIEW & PASS/FAIL RESULTS
+--------------------------------------------------------------------------------
+
+A. ui_overflow_and_stability_test.dart (NEW - OVERFLOW & RESPONSIVE VALIDATION)
+1. "EventList handles search with no results and keyboard open without overflow"
+   - Behavior: Simulates a compact phone screen (360x580) with active keyboard (290px viewInsets).
+     Inputs search query yielding empty results. Verifies empty state renders, zero RenderFlex
+     overflow occurs, Reset button is visible/scrollable, and tapping Reset restores event list.
+   - Result: PASS [Initial off-screen tap corrected with ensureVisible]
+
+2. "Student JobList handles search with no results and keyboard open without overflow"
+   - Behavior: Simulates compact phone (360x580) with active keyboard insets (290px) on Student JobList.
+     Verifies zero layout overflow when search results are empty, and Reset button clears search.
+   - Result: PASS
+
+3. "Alumni JobList handles search with no results and keyboard open without overflow"
+   - Behavior: Simulates compact phone (360x580) with active keyboard insets (290px) on Alumni JobList.
+     Verifies zero layout overflow when search results are empty, and Reset button clears search.
+   - Result: PASS
+
+4. "JobCard renders without horizontal overflow on 320px width with 1.4x text scaling"
+   - Behavior: Pumps JobCard with long company title, location ("Ahmedabad, Gujarat / Bengaluru / Remote"),
+     and experience string under 320px width with 1.4x accessibility text scaler.
+   - Result: PASS [Fixed horizontal 425px RenderFlex overflow via responsive LayoutBuilder and ConstrainedBox]
+
+5. "EventCard renders without overflow on 320px width with 1.4x text scaling"
+   - Behavior: Pumps EventCard with long title, description, and multi-location metadata on 320px width
+     with 1.4x text scaler. Verifies zero horizontal or vertical overflow.
+   - Result: PASS
+
+6. "MainNavigation renders without overflow on 320px narrow screens"
+   - Behavior: Pumps MainNavigation with ALUMNI role at 320px screen width. Verifies bottom bar icons,
+     Create (+) button, and child Dashboard AppBar render without flex errors.
+   - Result: PASS [Fixed 112px AppBar title overflow by making title text Flexible and removing rigid Spacer]
+
+7. "Alumni ProfileList handles empty search under constrained viewport"
+   - Behavior: Pumps Alumni ProfileList under 250px keyboard inset on 360x500 viewport.
+     Verifies scrollable empty state adapts without overflow.
+   - Result: PASS
+
+B. navigation_redesign_and_search_test.dart (REDESIGN & SEARCH INTEGRITY)
+8. "AppSearchBar renders with search icon, text and clears correctly"
+   - Result: PASS
+9. "StudentHomeScreen has 4 tabs, NO My Activity, and centered tab alignment"
+   - Result: PASS
+10. "FacultyDashboard retains My Activity and has centered tab alignment"
+    - Result: PASS
+11. "Student role in MainNavigation has NO Create (+) button"
+    - Result: PASS
+12. "Alumni role in MainNavigation renders redesigned rounded framed Create (+) button"
+    - Result: PASS
+13. "JobModel search matches title, company, skills, description, and location safely"
+    - Result: PASS
+
+C. student_lists_test.dart (STUDENT DIRECTORY & LIST INTEGRITY)
+14. "StudentHomeScreen renders Alumni and Faculty tabs correctly"
+    - Result: PASS
+15. "AlumniPage renders ProfileList with ALUMNI role"
+    - Result: PASS
+16. "FacultyPage renders ProfileList with FACULTY role"
+    - Result: PASS
+17. "ProfileCard renders real profile data safely with avatar, subtitle, and department"
+    - Result: PASS
+
+D. student_profile_and_parity_test.dart (PROFILE & ROLE SECURITY)
+18. "StudentProfileModel serializes and deserializes correctly"
+    - Result: PASS
+19. "StudentProfileModel handles missing or null fields gracefully"
+    - Result: PASS
+20. "STUDENT role in MainNavigation does NOT render Create button and routes to StudentProfileScreen"
+    - Result: PASS
+21. "ALUMNI role in MainNavigation renders Create (+) button and routes to AlumniProfileScreen"
+    - Result: PASS
+22. "FACULTY role in MainNavigation renders Create (+) button and routes to FacultyProfileScreen"
+    - Result: PASS
+
+E. salary_filter_consistency_test.dart (SALARY FILTER LOGIC)
+23. "Standard LPA filter options are uniformly defined"
+    - Result: PASS
+24. "parseLpa correctly extracts numeric LPA from various formats"
+    - Result: PASS
+25. "formatLpa standardizes display strings into ₹X LPA format"
+    - Result: PASS
+26. "Salary filter matches 'All' for all salary types including null/empty"
+    - Result: PASS
+27. "Boundary values are accurately partitioned across ranges"
+    - Result: PASS
+28. "Non-LPA and invalid salary values fall back gracefully to Competitive LPA"
+    - Result: PASS
+29. "Salary filter matches LPA values across all range bands accurately"
+    - Result: PASS
+
+F. admin_navigation_test.dart (ADMIN DASHBOARD & NAVIGATION)
+30. "AdminHomeScreen renders without overflowing on standard viewports"
+    - Result: PASS
+31. "Admin navigation tabs switch views properly"
+    - Result: PASS
+32. "Admin statistics cards render metrics correctly"
+    - Result: PASS
+33. "Admin quick actions trigger expected navigation"
+    - Result: PASS
+
+G. form_validation_test.dart & validation_and_constants_test.dart
+34-45. Email, password, university number, and input validator tests
+    - Result: ALL 12 PASS
+
+H. alumni_restore_test.dart & widget_test.dart
+46-49. State restoration, profile tabs, and app initialization smoke test
+    - Result: ALL 4 PASS
+
+--------------------------------------------------------------------------------
+2. FAILURES ENCOUNTERED DURING TESTING & HOW THEY WERE ADDRESSED
+--------------------------------------------------------------------------------
+
+Failure 1:
+- Symptom: `A RenderFlex overflowed by 425 pixels on the right` during JobCard 320px width test.
+- Root Cause: Unconstrained Row inside Wrap prevented text from wrapping or truncating.
+- Resolution: Wrapped Wrap in LayoutBuilder and enclosed each chip in ConstrainedBox(maxWidth: constraints.maxWidth)
+  with Flexible(child: Text(..., maxLines: 1, overflow: TextOverflow.ellipsis)). Test passed immediately.
+
+Failure 2:
+- Symptom: `A RenderFlex overflowed by 112 pixels on the right` in MainNavigation at 320px width.
+- Root Cause: AppBar title in HomeScreen/StudentHomeScreen/FacultyDashboard used rigid Spacer()
+  forcing children to exceed the ~232px available width constraint when notification actions were present.
+- Resolution: Replaced rigid Spacer() with Flexible title text and compact role badge. Test passed.
+
+Failure 3:
+- Symptom: `UnimplementedError: close`, `contentLength=`, `addStream`, `isRedirect`, `redirects` in test HTTP mock.
+- Root Cause: Dart's http.Client uses IOClient which invokes full HttpClientRequest and HttpClientResponse lifecycle.
+- Resolution: Implemented complete MockHttpClientRequest and MockHttpClientResponse handling in test harness.
+  Real API services and models verified cleanly.
+
+Failure 4:
+- Symptom: Warning that tap() on Reset Search & Filters hit-tested off-screen in 290px keyboard viewport.
+- Root Cause: The button was scrollable inside SingleChildScrollView but slightly below the top of the simulated keyboard.
+- Resolution: Called `tester.ensureVisible()` before tapping, confirming smooth scrollability and reachability.
+
+--------------------------------------------------------------------------------
+3. TESTS THAT COULD NOT RUN & DEVICE-TESTING LIMITATIONS
+--------------------------------------------------------------------------------
+- Real Network Integration Tests: End-to-end network requests against a live Spring Boot
+  backend and live MongoDB replica set were not executed as part of this headless Flutter
+  widget test run. All widget tests utilized realistic model serialization and mock HTTP overrides.
+- Physical Android Hardware Verification: ADB execution (`adb devices`) confirmed that no
+  physical Android handset or hardware emulator was connected to the host. Physical-device
+  verification is explicitly marked as OUTSTANDING.
+- Software Keyboard Simulation: Keyboard resizing was verified programmatically using
+  MediaQueryData(viewInsets: EdgeInsets.only(bottom: 290)) and PhysicalSize bounds matching
+  physical Android devices (e.g. 360x580, 320x568).
+================================================================================

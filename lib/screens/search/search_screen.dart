@@ -11,6 +11,8 @@ class _SearchScreenState extends State<SearchScreen>
     with SingleTickerProviderStateMixin {
   String query = "";
   late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   final List<Map<String, String>> events = [
     {
@@ -106,6 +108,14 @@ class _SearchScreenState extends State<SearchScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   void performSearch(String value) {
@@ -314,6 +324,7 @@ class _SearchScreenState extends State<SearchScreen>
     }
 
     return ListView.builder(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
       itemBuilder: (context, index) {
@@ -335,13 +346,26 @@ class _SearchScreenState extends State<SearchScreen>
         elevation: 2,
         iconTheme: const IconThemeData(color: Colors.white),
         title: TextField(
+          controller: _searchController,
+          focusNode: _searchFocusNode,
           autofocus: false,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (_) => _searchFocusNode.unfocus(),
           style: const TextStyle(color: Colors.white),
           cursorColor: Colors.amber,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: "Search events, alumni, faculty...",
-            hintStyle: TextStyle(color: Colors.white70),
+            hintStyle: const TextStyle(color: Colors.white70),
             border: InputBorder.none,
+            suffixIcon: query.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.white70, size: 20),
+                    onPressed: () {
+                      _searchController.clear();
+                      performSearch("");
+                    },
+                  )
+                : null,
           ),
           onChanged: performSearch,
         ),

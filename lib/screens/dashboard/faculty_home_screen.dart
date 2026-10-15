@@ -29,23 +29,26 @@ class FacultyDashboardState extends State<FacultyDashboard> {
           elevation: 2,
           title: Row(
             children: [
-              const Icon(Icons.school_rounded, color: Colors.amber, size: 26),
-              const SizedBox(width: 10),
-              const Text(
-                "GLS Connect",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+              const Icon(Icons.school_rounded, color: Colors.amber, size: 24),
+              const SizedBox(width: 8),
+              const Flexible(
+                child: Text(
+                  "GLS Connect",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.amber, width: 1),
                 ),
                 child: const Text(
                   "FACULTY",
-                  style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.amber, fontSize: 10.5, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -73,6 +76,7 @@ class FacultyDashboardState extends State<FacultyDashboard> {
             indicatorColor: Colors.amber,
             indicatorWeight: 3,
             isScrollable: true,
+            tabAlignment: TabAlignment.center,
             labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             tabs: [
               Tab(text: "Events", icon: Icon(Icons.event_rounded, size: 18)),

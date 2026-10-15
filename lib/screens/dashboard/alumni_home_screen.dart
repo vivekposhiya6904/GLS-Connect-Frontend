@@ -20,6 +20,8 @@ import '../../widgets/job_card.dart';
 import '../../utils/date_helper.dart';
 import '../../utils/city_constants.dart';
 import '../../utils/salary_helper.dart';
+import '../../utils/focus_helper.dart';
+import '../../widgets/app_search_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,23 +44,26 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 2,
           title: Row(
             children: [
-              const Icon(Icons.school_rounded, color: Colors.amber, size: 26),
-              const SizedBox(width: 10),
-              const Text(
-                "GLS Connect",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+              const Icon(Icons.school_rounded, color: Colors.amber, size: 24),
+              const SizedBox(width: 8),
+              const Flexible(
+                child: Text(
+                  "GLS Connect",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber),
+                  color: Colors.amber.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.amber, width: 1),
                 ),
                 child: const Text(
                   "ALUMNI",
-                  style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.amber, fontSize: 10.5, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -71,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
             indicatorColor: Colors.amber,
             indicatorWeight: 3,
             isScrollable: true,
+            tabAlignment: TabAlignment.center,
             labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             tabs: [
               Tab(text: "Events", icon: Icon(Icons.event_rounded, size: 18)),
@@ -142,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             EventsPage(),
             JobsPage(),
-            MyActivityPage(),
+            MyActivityPage(showPosts: false),
             AlumniPage(),
             FacultyPage(),
           ],
@@ -173,6 +179,7 @@ class EventListState extends State<EventList> {
   late Future<List<EventModel>?> eventsFuture;
   String searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String selectedDepartment = "All";
   bool showPast = false;
   String myEmail = "";
@@ -187,6 +194,7 @@ class EventListState extends State<EventList> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -208,80 +216,91 @@ class EventListState extends State<EventList> {
   }
 
   void _openFilterSheet(BuildContext context) {
+    AppFocusHelper.unfocus(context);
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Filter Events",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 10),
-                  const Text("Department", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: selectedDepartment,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            return SafeArea(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Filter Events",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
                     ),
-                    items: ["All", "Computer Science", "Information Technology", "Business Administration", "Commerce", "Computer Applications"]
-                        .map((dept) => DropdownMenuItem(value: dept, child: Text(dept)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) setSheetState(() => selectedDepartment = val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Show Past Events", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      Switch(
-                        value: showPast,
-                        onChanged: (val) => setSheetState(() => showPast = val),
-                        activeColor: const Color(0xFF1A3A8F),
+                    const Divider(),
+                    const SizedBox(height: 10),
+                    const Text("Department", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: selectedDepartment,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3A8F),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () {
-                        setState(() {});
-                        Navigator.pop(ctx);
+                      items: ["All", "Computer Science", "Information Technology", "Business Administration", "Commerce", "Computer Applications"]
+                          .map((dept) => DropdownMenuItem(value: dept, child: Text(dept)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) setSheetState(() => selectedDepartment = val);
                       },
-                      child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text("Show Past Events", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        Switch(
+                          value: showPast,
+                          onChanged: (val) => setSheetState(() => showPast = val),
+                          activeColor: const Color(0xFF1A3A8F),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A3A8F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          AppFocusHelper.unfocus(context);
+                          setState(() {});
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -301,37 +320,15 @@ class EventListState extends State<EventList> {
             children: [
               /// SEARCH BAR
               Expanded(
-                child: TextField(
+                child: AppSearchBar(
                   controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: "Search events...",
-                    prefixIcon: const Icon(Icons.search, color: Color(0xFF1A3A8F)),
-                    suffixIcon: searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 20),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => searchQuery = "");
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 1.5),
-                    ),
-                  ),
+                  focusNode: _searchFocusNode,
+                  hintText: "Search events by title, department or venue...",
                   onChanged: (value) {
                     setState(() => searchQuery = value);
+                  },
+                  onClear: () {
+                    setState(() => searchQuery = "");
                   },
                 ),
               ),
@@ -340,7 +337,10 @@ class EventListState extends State<EventList> {
 
               /// FILTER BUTTON
               GestureDetector(
-                onTap: () => _openFilterSheet(context),
+                onTap: () {
+                  _searchFocusNode.unfocus();
+                  _openFilterSheet(context);
+                },
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -364,21 +364,34 @@ class EventListState extends State<EventList> {
               }
 
               if (snapshot.hasError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      const Text("Failed to load events"),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => setState(() {
-                          eventsFuture = EventService.getAllEvents();
-                        }),
-                        child: const Text("Retry"),
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                              const SizedBox(height: 16),
+                              const Text("Failed to load events"),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () => setState(() {
+                                  eventsFuture = EventService.getAllEvents();
+                                }),
+                                child: const Text("Retry"),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ],
+                    ),
                   ),
                 );
               }
@@ -386,22 +399,38 @@ class EventListState extends State<EventList> {
               final events = snapshot.data ?? [];
 
               if (events.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.event_busy_outlined, size: 48, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text("No events available"),
-                    ],
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.event_busy_outlined, size: 48, color: Colors.grey),
+                              SizedBox(height: 16),
+                              Text("No events available"),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 );
               }
 
               final filteredEvents = events.where((event) {
-                final matchesSearch = event.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
-                    event.location.toLowerCase().contains(searchQuery.toLowerCase()) ||
-                    event.description.toLowerCase().contains(searchQuery.toLowerCase());
+                final query = searchQuery.trim().toLowerCase();
+                final matchesSearch = query.isEmpty ||
+                    event.title.toLowerCase().contains(query) ||
+                    event.location.toLowerCase().contains(query) ||
+                    event.description.toLowerCase().contains(query) ||
+                    (event.targetDepartment != null && event.targetDepartment!.toLowerCase().contains(query));
 
                 final matchesDepartment = selectedDepartment == "All" ||
                     (event.targetDepartment != null && event.targetDepartment == selectedDepartment);
@@ -413,8 +442,59 @@ class EventListState extends State<EventList> {
               }).toList();
 
               if (filteredEvents.isEmpty) {
-                return const Center(
-                  child: Text("No events match your filters"),
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                              const SizedBox(height: 12),
+                              const Text(
+                                "No events match your search or filters",
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                searchQuery.isNotEmpty
+                                    ? "Try adjusting your query or resetting filters."
+                                    : "Try selecting different filter options.",
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  _searchFocusNode.unfocus();
+                                  setState(() {
+                                    _searchController.clear();
+                                    searchQuery = "";
+                                    selectedDepartment = "All";
+                                    showPast = false;
+                                  });
+                                },
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: const Text("Reset Search & Filters"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1A3A8F),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               }
 
@@ -425,6 +505,8 @@ class EventListState extends State<EventList> {
                   });
                 },
                 child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredEvents.length,
                   itemBuilder: (context, index) {
@@ -462,7 +544,7 @@ class JobsPage extends StatelessWidget {
 /// ================= MY ACTIVITY =================
 class MyActivityPage extends StatefulWidget {
   final bool showPosts;
-  const MyActivityPage({super.key, this.showPosts = true});
+  const MyActivityPage({super.key, this.showPosts = false});
 
   @override
   State<MyActivityPage> createState() => _MyActivityPageState();
@@ -528,23 +610,33 @@ class _MyActivityPageState extends State<MyActivityPage> {
         }
         final jobs = snapshot.data ?? [];
         if (jobs.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.work_outline, size: 52, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text("No Job Posts Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                  SizedBox(height: 6),
-                  Text("Jobs you post will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                ],
+          return LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.work_outline, size: 52, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text("No Job Posts Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                        SizedBox(height: 6),
+                        Text("Jobs you post will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           );
         }
         return ListView.builder(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.all(16),
           itemCount: jobs.length,
           itemBuilder: (context, index) {
@@ -573,23 +665,34 @@ class _MyActivityPageState extends State<MyActivityPage> {
         }
         final events = snapshot.data ?? [];
         if (events.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.event_note_outlined, size: 52, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text("No Events Created Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                  SizedBox(height: 6),
-                  Text("Events you create will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                ],
+          return LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.event_note_outlined, size: 52, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text("No Events Created Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                        SizedBox(height: 6),
+                        Text("Events you create will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           );
         }
         return ListView.builder(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.all(16),
           itemCount: events.length,
           itemBuilder: (context, index) {
@@ -618,18 +721,27 @@ class _MyActivityPageState extends State<MyActivityPage> {
         }
         final posts = snapshot.data ?? [];
         if (posts.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.dynamic_feed_outlined, size: 52, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text("No Posts Shared Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                  SizedBox(height: 6),
-                  Text("Posts you share will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                ],
+          return LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.dynamic_feed_outlined, size: 52, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text("No Posts Shared Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                        SizedBox(height: 6),
+                        Text("Posts you share will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           );
@@ -701,6 +813,8 @@ class JobList extends StatefulWidget {
 class _JobListState extends State<JobList> {
   late Future<List<JobModel>?> jobsFuture;
   String searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String selectedLocation = "All";
   String selectedSalary = "All";
   bool showPast = false;
@@ -711,6 +825,13 @@ class _JobListState extends State<JobList> {
     super.initState();
     jobsFuture = JobService.getAllJobs();
     loadMyEmail();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> loadMyEmail() async {
@@ -735,19 +856,15 @@ class _JobListState extends State<JobList> {
 
               /// SEARCH BAR
               Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: "Search jobs...",
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
+                child: AppSearchBar(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  hintText: "Search jobs by title, company or skills...",
                   onChanged: (value) {
                     setState(() => searchQuery = value);
+                  },
+                  onClear: () {
+                    setState(() => searchQuery = "");
                   },
                 ),
               ),
@@ -756,7 +873,10 @@ class _JobListState extends State<JobList> {
 
               /// FILTER BUTTON
               GestureDetector(
-                onTap: () => _openFilterSheet(context),
+                onTap: () {
+                  _searchFocusNode.unfocus();
+                  _openFilterSheet(context);
+                },
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -780,21 +900,34 @@ class _JobListState extends State<JobList> {
               }
 
               if (snapshot.hasError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      const Text("Failed to load jobs"),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => setState(() {
-                          jobsFuture = JobService.getAllJobs();
-                        }),
-                        child: const Text("Retry"),
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                              const SizedBox(height: 16),
+                              const Text("Failed to load jobs"),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () => setState(() {
+                                  jobsFuture = JobService.getAllJobs();
+                                }),
+                                child: const Text("Retry"),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ],
+                    ),
                   ),
                 );
               }
@@ -802,23 +935,40 @@ class _JobListState extends State<JobList> {
               final jobs = snapshot.data ?? [];
 
               if (jobs.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.work_outline, size: 48, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      const Text("No jobs available"),
-                    ],
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.work_outline, size: 48, color: Colors.grey),
+                              SizedBox(height: 16),
+                              Text("No jobs available"),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 );
               }
 
               // Filter jobs
               final filteredJobs = jobs.where((job) {
-                final matchesSearch =
-                    job.jobTitle.toLowerCase().contains(searchQuery.toLowerCase()) ||
-                        job.companyName.toLowerCase().contains(searchQuery.toLowerCase());
+                final query = searchQuery.trim().toLowerCase();
+                final matchesSearch = query.isEmpty ||
+                    job.jobTitle.toLowerCase().contains(query) ||
+                    job.companyName.toLowerCase().contains(query) ||
+                    job.skillsRequired.toLowerCase().contains(query) ||
+                    job.jobDescription.toLowerCase().contains(query) ||
+                    job.location.toLowerCase().contains(query);
 
                 final matchesLocation = selectedLocation == "All" ||
                     job.location.trim().toLowerCase() == selectedLocation.trim().toLowerCase() ||
@@ -835,8 +985,60 @@ class _JobListState extends State<JobList> {
               }).toList();
 
               if (filteredJobs.isEmpty) {
-                return const Center(
-                  child: Text("No jobs match your filters"),
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                              const SizedBox(height: 12),
+                              const Text(
+                                "No jobs match your search or filters",
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                searchQuery.isNotEmpty
+                                    ? "Try adjusting your query or resetting filters."
+                                    : "Try selecting different filter options.",
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  _searchFocusNode.unfocus();
+                                  setState(() {
+                                    _searchController.clear();
+                                    searchQuery = "";
+                                    selectedLocation = "All";
+                                    selectedSalary = "All";
+                                    showPast = false;
+                                  });
+                                },
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: const Text("Reset Search & Filters"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1A3A8F),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               }
 
@@ -847,6 +1049,8 @@ class _JobListState extends State<JobList> {
                   });
                 },
                 child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredJobs.length,
                   itemBuilder: (context, index) {
@@ -872,105 +1076,116 @@ class _JobListState extends State<JobList> {
 
   /// 🔥 FILTER BOTTOM SHEET
   void _openFilterSheet(BuildContext context) {
+    AppFocusHelper.unfocus(context);
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Filter Jobs",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 10),
-
-                  /// LOCATION
-                  DropdownButtonFormField<String>(
-                    value: selectedLocation,
-                    decoration: InputDecoration(
-                      labelText: "Location",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            return SafeArea(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Filter Jobs",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
                     ),
-                    items: CityConstants.filterCities
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) setSheetState(() => selectedLocation = value);
-                    },
-                  ),
+                    const Divider(),
+                    const SizedBox(height: 10),
 
-                  const SizedBox(height: 14),
-
-                  /// SALARY
-                  DropdownButtonFormField<String>(
-                    value: selectedSalary,
-                    decoration: InputDecoration(
-                      labelText: "Salary (LPA)",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    ),
-                    items: SalaryHelper.filterOptions
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) setSheetState(() => selectedSalary = value);
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  /// SHOW PAST JOBS SWITCH
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Show Past Jobs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      Switch(
-                        value: showPast,
-                        onChanged: (val) => setSheetState(() => showPast = val),
-                        activeColor: const Color(0xFF1A3A8F),
+                    /// LOCATION
+                    DropdownButtonFormField<String>(
+                      value: selectedLocation,
+                      decoration: InputDecoration(
+                        labelText: "Location",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  /// APPLY BUTTON
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3A8F),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () {
-                        setState(() {});
-                        Navigator.pop(ctx);
+                      items: CityConstants.filterCities
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) setSheetState(() => selectedLocation = value);
                       },
-                      child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 14),
+
+                    /// SALARY
+                    DropdownButtonFormField<String>(
+                      value: selectedSalary,
+                      decoration: InputDecoration(
+                        labelText: "Salary (LPA)",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                      items: SalaryHelper.filterOptions
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) setSheetState(() => selectedSalary = value);
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    /// SHOW PAST JOBS SWITCH
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text("Show Past Jobs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        Switch(
+                          value: showPast,
+                          onChanged: (val) => setSheetState(() => showPast = val),
+                          activeColor: const Color(0xFF1A3A8F),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    /// APPLY BUTTON
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A3A8F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          AppFocusHelper.unfocus(context);
+                          setState(() {});
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -994,6 +1209,7 @@ class _ProfileListState extends State<ProfileList> {
   late Future<List<dynamic>?> _profilesFuture;
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -1004,6 +1220,7 @@ class _ProfileListState extends State<ProfileList> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -1023,37 +1240,15 @@ class _ProfileListState extends State<ProfileList> {
       children: [
         Padding(
           padding: const EdgeInsets.all(12),
-          child: TextField(
+          child: AppSearchBar(
             controller: _searchController,
-            decoration: InputDecoration(
-              hintText: "Search $roleLabel by name, department, role...",
-              prefixIcon: const Icon(Icons.search, color: Color(0xFF1A3A8F)),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear_rounded, size: 20),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _searchQuery = "");
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 1.5),
-              ),
-            ),
+            focusNode: _searchFocusNode,
+            hintText: "Search $roleLabel by name, department, role...",
             onChanged: (value) {
               setState(() => _searchQuery = value.trim().toLowerCase());
+            },
+            onClear: () {
+              setState(() => _searchQuery = "");
             },
           ),
         ),
@@ -1066,12 +1261,30 @@ class _ProfileListState extends State<ProfileList> {
               }
 
               if (snapshot.hasError) {
-                return const Center(child: Text("Error loading directory"));
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: const Center(child: Text("Error loading directory")),
+                    ),
+                  ),
+                );
               }
 
               final list = snapshot.data ?? [];
               if (list.isEmpty) {
-                return Center(child: Text("No $roleLabel profiles found."));
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(child: Text("No $roleLabel profiles found.")),
+                    ),
+                  ),
+                );
               }
 
               final filtered = list.where((p) {
@@ -1111,19 +1324,47 @@ class _ProfileListState extends State<ProfileList> {
               }).toList();
 
               if (filtered.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
-                        const SizedBox(height: 12),
-                        Text(
-                          "No $roleLabel match your search",
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey),
+                return LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                              const SizedBox(height: 12),
+                              Text(
+                                "No $roleLabel match your search",
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              if (_searchQuery.isNotEmpty) ...[
+                                const SizedBox(height: 14),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    _searchFocusNode.unfocus();
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = "");
+                                  },
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  label: const Text("Clear Search"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1A3A8F),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 );
@@ -1136,6 +1377,8 @@ class _ProfileListState extends State<ProfileList> {
                   });
                 },
                 child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {

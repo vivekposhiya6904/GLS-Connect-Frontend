@@ -183,12 +183,16 @@ class EventCard extends StatelessWidget {
                       children: [
                         const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF1A3A8F)),
                         const SizedBox(width: 5),
-                        Text(
-                          DateHelper.formatFriendlyDate(event.eventDate),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: isDark ? Colors.white70 : const Color(0xFF334155),
+                        Flexible(
+                          child: Text(
+                            DateHelper.formatFriendlyDate(event.eventDate),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.white70 : const Color(0xFF334155),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 14),

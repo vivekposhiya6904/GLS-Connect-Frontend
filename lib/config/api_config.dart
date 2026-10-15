@@ -14,6 +14,6 @@ class ApiConfig {
     // changes
 
     // Android Emulator and physical Android device
-    return "http://192.168.0.23 :8080"; // change this ip address with your ip adress
+    return "http://10.76.161.155:8080"; // change this ip address with your ip adress
   }
 }

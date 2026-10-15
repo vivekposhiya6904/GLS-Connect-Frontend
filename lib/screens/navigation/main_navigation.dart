@@ -37,6 +37,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   Timer? _unreadTimer;
   int _totalUnreadCount = 0;
+  bool _isOpeningCreate = false;
 
   final GlobalKey<FacultyDashboardState> _facultyDashboardKey = GlobalKey<FacultyDashboardState>();
 
@@ -291,53 +292,50 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   Widget buildCreateNavItem({required bool isDark}) {
-    final buttonColor = isDark ? const Color(0xFF2C2C2C) : const Color(0xFF0D1B2A);
+    final iconColor = isDark ? Colors.white : const Color(0xFF0D1B2A);
+    final labelColor = isDark ? Colors.white70 : const Color(0xFF0D1B2A);
 
-    return InkWell(
-      onTap: showCreateOptions,
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color: buttonColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: buttonColor.withValues(alpha: 0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+    return Semantics(
+      label: "Create Post, Job or Event",
+      button: true,
+      child: Tooltip(
+        message: "Create",
+        child: InkWell(
+          onTap: showCreateOptions,
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add,
+                color: iconColor,
+                size: 26,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                "Create",
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
-            child: const Icon(
-              Icons.add,
-              color: Colors.white,
-              size: 20,
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            "Create",
-            style: TextStyle(
-              color: isDark ? Colors.grey[400] : Colors.grey[700],
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   void showCreateOptions() {
+    if (_isOpeningCreate) return;
+    _isOpeningCreate = true;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -345,68 +343,72 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Create",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+              vertical: 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Create",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: const Icon(
-                  Icons.work_outline,
-                ),
-                title: const Text(
-                  "Post Job",
-                ),
-                onTap: () async {
-                  Navigator.pop(context);
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: const Icon(
+                    Icons.work_outline,
+                  ),
+                  title: const Text(
+                    "Post Job",
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
 
-                  final res = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PostJobScreen(),
-                    ),
-                  );
-                  if (res == true || res == null) {
-                    _facultyDashboardKey.currentState?.refreshData();
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.event_outlined,
+                    final res = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PostJobScreen(),
+                      ),
+                    );
+                    if (res == true || res == null) {
+                      _facultyDashboardKey.currentState?.refreshData();
+                    }
+                  },
                 ),
-                title: const Text(
-                  "Create Event",
-                ),
-                onTap: () async {
-                  Navigator.pop(context);
+                ListTile(
+                  leading: const Icon(
+                    Icons.event_outlined,
+                  ),
+                  title: const Text(
+                    "Create Event",
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
 
-                  final res = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateEventScreen(),
-                    ),
-                  );
-                  if (res == true || res == null) {
-                    _facultyDashboardKey.currentState?.refreshData();
-                  }
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
+                    final res = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreateEventScreen(),
+                      ),
+                    );
+                    if (res == true || res == null) {
+                      _facultyDashboardKey.currentState?.refreshData();
+                    }
+                  },
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         );
       },
-    );
+    ).whenComplete(() {
+      _isOpeningCreate = false;
+    });
   }
 }
