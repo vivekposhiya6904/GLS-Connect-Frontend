@@ -7,6 +7,7 @@ import '../../utils/image_picker_helper.dart';
 import '../../models/profile_view_model.dart';
 import '../../services/profile_view_service.dart';
 import '../../config/api_config.dart';
+import '../../widgets/offline_indicator.dart';
 
 class AlumniProfileScreen extends StatefulWidget {
   const AlumniProfileScreen({super.key});
@@ -18,9 +19,13 @@ class AlumniProfileScreen extends StatefulWidget {
 class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   bool isEditing = false;
   bool isLoading = true;
+  bool _isOffline = false;
+  bool _isFromCache = false;
+  String? _cacheTimeAgo;
 
   String username = "";
   String? profilePictureUrl;
+  Future<List<ProfileViewModel>>? _profileViewsFuture;
 
   final batchController = TextEditingController();
   final degreeController = TextEditingController();
@@ -38,6 +43,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _profileViewsFuture = ProfileViewService.getProfileViews();
     loadAllData();
   }
 
@@ -58,13 +64,62 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
     super.dispose();
   }
 
-  Future<void> loadAllData() async {
-    await loadUserName();
-    await loadProfile();
+  void _applyProfileData(AlumniProfileModel profile) {
+    profilePictureUrl = profile.profilePictureUrl;
+    batchController.text = profile.batchYear?.toString() ?? "";
+    degreeController.text = profile.degree ?? "";
+    departmentController.text = profile.department ?? "";
+    designationController.text = profile.designation ?? "";
+    companyController.text = profile.companyName ?? "";
+    industryController.text = profile.industry ?? "";
+    skillsController.text = profile.skills ?? "";
+    expController.text = profile.workExperience?.toString() ?? "";
+    linkedInController.text = profile.linkedInUrl ?? "";
+    githubController.text = profile.githubUrl ?? "";
+    contactController.text = profile.contactNumber ?? "";
+    cityController.text = profile.currentCity ?? "";
+  }
 
-    setState(() {
+  Future<void> loadAllData() async {
+    final name = await StorageService.getUserName();
+    username = name ?? "";
+
+    // 1. Check local encrypted cache first
+    AlumniProfileModel? profileData;
+    try {
+      final cached = await AlumniProfileService.getCachedProfile();
+      if (cached != null) {
+        profileData = cached.data;
+        _isFromCache = true;
+        _cacheTimeAgo = cached.timeAgoFormatted;
+      }
+    } catch (_) {}
+
+    if (profileData != null) {
+      _applyProfileData(profileData);
       isLoading = false;
-    });
+      if (mounted) setState(() {});
+    }
+
+    // 2. Fetch fresh from network
+    try {
+      final profile = await AlumniProfileService.getProfile();
+      if (profile != null) {
+        _applyProfileData(profile);
+        _isFromCache = false;
+        _isOffline = false;
+        _cacheTimeAgo = null;
+      } else if (_isFromCache) {
+        _isOffline = true;
+      }
+    } catch (_) {
+      if (_isFromCache) {
+        _isOffline = true;
+      }
+    } finally {
+      isLoading = false;
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> loadUserName() async {
@@ -73,25 +128,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   }
 
   Future<void> loadProfile() async {
-    final profile = await AlumniProfileService.getProfile();
-
-    if (profile != null) {
-      setState(() {
-        profilePictureUrl = profile.profilePictureUrl;
-      });
-      batchController.text = profile.batchYear?.toString() ?? "";
-      degreeController.text = profile.degree ?? "";
-      departmentController.text = profile.department ?? "";
-      designationController.text = profile.designation ?? "";
-      companyController.text = profile.companyName ?? "";
-      industryController.text = profile.industry ?? "";
-      skillsController.text = profile.skills ?? "";
-      expController.text = profile.workExperience?.toString() ?? "";
-      linkedInController.text = profile.linkedInUrl ?? "";
-      githubController.text = profile.githubUrl ?? "";
-      contactController.text = profile.contactNumber ?? "";
-      cityController.text = profile.currentCity ?? "";
-    }
+    await loadAllData();
   }
 
   Future<void> saveProfile() async {
@@ -136,9 +173,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
+      body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 280,
@@ -152,6 +187,16 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
           SliverToBoxAdapter(
             child: Column(
               children: [
+                if (isLoading)
+                  const LinearProgressIndicator(color: Color(0xFF1A3A8F)),
+                if (_isOffline && _isFromCache)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: OfflineIndicatorBanner(
+                      timeAgo: _cacheTimeAgo,
+                      onRetry: loadAllData,
+                    ),
+                  ),
                 _buildStatsRow(),
                 const SizedBox(height: 20),
                 _buildAcademicSection(),
@@ -709,7 +754,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
 
   Widget _buildProfileViewsSection() {
     return FutureBuilder<List<ProfileViewModel>>(
-      future: ProfileViewService.getProfileViews(),
+      future: _profileViewsFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const SizedBox.shrink();

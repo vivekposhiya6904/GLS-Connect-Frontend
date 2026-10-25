@@ -82,6 +82,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     setState(() {
       _filteredUsers = _allUsers.where((u) {
         final role = u.roleName.toUpperCase();
+        if (role == 'ADMIN') return false;
         final matchesRole = _userRoleFilter == 'ALL' ||
             role == _userRoleFilter ||
             (_userRoleFilter == 'STUDENT' && (role == 'STUDENT' || role == 'USER'));
@@ -221,6 +222,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   }
 
   Future<void> _confirmDeleteUser(AdminUserDto user) async {
+    if (user.roleName.toUpperCase() == 'ADMIN') {
+      _showMessage("Admin accounts cannot be deleted");
+      return;
+    }
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -770,11 +775,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                               ),
                             ],
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-                            onPressed: () => _confirmDeleteUser(u),
-                            tooltip: "Remove User",
-                          ),
+                          trailing: u.roleName.toUpperCase() == 'ADMIN'
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                                  onPressed: () => _confirmDeleteUser(u),
+                                  tooltip: "Remove User",
+                                ),
                         ),
                       );
                     },

@@ -113,15 +113,26 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final List<dynamic> rawList = jsonDecode(response.body) ?? [];
+        final List<Map<String, dynamic>> decryptedList = [];
+        for (var raw in rawList) {
+          final chat = Map<String, dynamic>.from(raw);
+          final s = (chat["sender"]?.toString() ?? "").trim().toLowerCase();
+          final r = (chat["receiver"]?.toString() ?? "").trim().toLowerCase();
+          final rawContent = chat["content"]?.toString() ?? "";
+          final decrypted = await EncryptionService.decrypt(rawContent, s, r);
+          chat["decryptedContent"] = decrypted;
+          decryptedList.add(chat);
+        }
+
         if (mounted) {
           setState(() {
-            conversations = data ?? [];
+            conversations = decryptedList;
           });
         }
 
         // Check presence for each conversation partner
-        for (var chat in (data ?? [])) {
+        for (var chat in decryptedList) {
           final s = (chat["sender"]?.toString() ?? "").trim().toLowerCase();
           final r = (chat["receiver"]?.toString() ?? "").trim().toLowerCase();
           final other = s == myEmail ? r : s;
@@ -323,6 +334,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _chatService.removeMessageListener("chat_screen");
     _chatService.removeStatusListener("chat_screen");
     _chatService.removePresenceListener("chat_screen");
+    _chatService.disconnect();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -599,8 +611,7 @@ class _ChatScreenState extends State<ChatScreen> {
         final chat = conversations[index];
         final sender = (chat["sender"]?.toString() ?? "").trim().toLowerCase();
         final receiver = (chat["receiver"]?.toString() ?? "").trim().toLowerCase();
-        final rawContent = chat["content"]?.toString() ?? "";
-        final decryptedContent = EncryptionService.decrypt(rawContent, sender, receiver);
+        final decryptedContent = chat["decryptedContent"]?.toString() ?? chat["content"]?.toString() ?? "";
         final timestamp = chat["timestamp"]?.toString() ?? "";
         final isMe = sender == myEmail;
         final otherUser = isMe ? receiver : sender;

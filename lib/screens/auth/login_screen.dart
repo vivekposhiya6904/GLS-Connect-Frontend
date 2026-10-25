@@ -93,8 +93,15 @@ class _LoginScreenState extends State<LoginScreen> {
               backgroundColor: glsBlue,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
+              _showMessage("Sending verification code to $email...");
+              try {
+                await AuthService.sendOtp(email: email);
+              } catch (_) {
+                // If cooldown active or code recently sent, proceed safely
+              }
+              if (!mounted) return;
               Navigator.push(
                 context,
                 MaterialPageRoute(

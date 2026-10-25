@@ -5,50 +5,159 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/event_model.dart';
 import '../utils/storage_service.dart';
+import 'cache_service.dart';
 
 class EventService {
-  static Future<List<EventModel>?> getAllEvents() async {
-    try {
-      final token = await StorageService.getToken();
-      final response = await http.get(
-        Uri.parse("${ApiConfig.baseUrl}/api/events"),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token"
-        },
-      );
+  static const String _allEventsKey = "events_all";
+  static const String _myEventsKey = "events_my";
 
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(response.body);
-        return jsonList.map((json) => EventModel.fromJson(json)).toList();
+  static Future<List<EventModel>?> getAllEvents({
+    http.Client? client,
+    bool forceRefresh = false,
+  }) async {
+    final userEmail = await StorageService.getUserEmail() ?? "";
+
+    return CacheService.deduplicate("events_all_$userEmail", () async {
+      final startTime = DateTime.now();
+      final httpClient = client ?? http.Client();
+      final shouldClose = client == null;
+
+      try {
+        final token = await StorageService.getToken();
+        final response = await httpClient
+            .get(
+              Uri.parse("${ApiConfig.baseUrl}/api/events"),
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null) "Authorization": "Bearer $token",
+              },
+            )
+            .timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final List<dynamic> jsonList = jsonDecode(response.body);
+          if (userEmail.isNotEmpty) {
+            await CacheService.saveData(
+              key: _allEventsKey,
+              userEmail: userEmail,
+              data: jsonList,
+              isSensitive: false,
+              requestStartTime: startTime,
+            );
+          }
+          return jsonList.map((json) => EventModel.fromJson(json)).toList();
+        }
+      } catch (e) {
+        print("❌ Error fetching events from network: $e");
+      } finally {
+        if (shouldClose) {
+          httpClient.close();
+        }
       }
+
+      // Network request failed or returned non-200: fallback to cached data
+      if (userEmail.isNotEmpty) {
+        final cached = await getCachedAllEvents(email: userEmail);
+        if (cached != null) {
+          print("📦 Returning ${cached.data.length} cached events for $userEmail");
+          return cached.data;
+        }
+      }
+
       return null;
-    } catch (e) {
-      print("❌ Error fetching events: $e");
-      return null;
-    }
+    });
   }
 
-  static Future<List<EventModel>?> getMyEvents() async {
-    try {
-      final token = await StorageService.getToken();
-      final response = await http.get(
-        Uri.parse("${ApiConfig.baseUrl}/api/events/my"),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token"
-        },
-      );
+  static Future<CacheResult<List<EventModel>>?> getCachedAllEvents({String? email}) async {
+    final userEmail = email ?? await StorageService.getUserEmail() ?? "";
+    if (userEmail.isEmpty) return null;
 
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(response.body);
-        return jsonList.map((json) => EventModel.fromJson(json)).toList();
+    return CacheService.loadData<List<EventModel>>(
+      key: _allEventsKey,
+      userEmail: userEmail,
+      parser: (data) => (data as List).map((json) => EventModel.fromJson(json)).toList(),
+      isSensitive: false,
+    );
+  }
+
+  static Future<bool> saveEventsToCache(List<Map<String, dynamic>> rawEvents, {String? email}) async {
+    final userEmail = email ?? await StorageService.getUserEmail() ?? "";
+    if (userEmail.isEmpty) return false;
+    return CacheService.saveData(
+      key: _allEventsKey,
+      userEmail: userEmail,
+      data: rawEvents,
+      isSensitive: false,
+    );
+  }
+
+  static Future<List<EventModel>?> getMyEvents({
+    http.Client? client,
+    bool forceRefresh = false,
+  }) async {
+    final userEmail = await StorageService.getUserEmail() ?? "";
+
+    return CacheService.deduplicate("events_my_$userEmail", () async {
+      final startTime = DateTime.now();
+      final httpClient = client ?? http.Client();
+      final shouldClose = client == null;
+
+      try {
+        final token = await StorageService.getToken();
+        final response = await httpClient
+            .get(
+              Uri.parse("${ApiConfig.baseUrl}/api/events/my"),
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null) "Authorization": "Bearer $token",
+              },
+            )
+            .timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final List<dynamic> jsonList = jsonDecode(response.body);
+          if (userEmail.isNotEmpty) {
+            await CacheService.saveData(
+              key: _myEventsKey,
+              userEmail: userEmail,
+              data: jsonList,
+              isSensitive: false,
+              requestStartTime: startTime,
+            );
+          }
+          return jsonList.map((json) => EventModel.fromJson(json)).toList();
+        }
+      } catch (e) {
+        print("❌ Error fetching my events from network: $e");
+      } finally {
+        if (shouldClose) {
+          httpClient.close();
+        }
       }
+
+      // Network request failed: fallback to cached data
+      if (userEmail.isNotEmpty) {
+        final cached = await getCachedMyEvents(email: userEmail);
+        if (cached != null) {
+          print("📦 Returning ${cached.data.length} cached my-events for $userEmail");
+          return cached.data;
+        }
+      }
+
       return null;
-    } catch (e) {
-      print("❌ Error fetching my events: $e");
-      return null;
-    }
+    });
+  }
+
+  static Future<CacheResult<List<EventModel>>?> getCachedMyEvents({String? email}) async {
+    final userEmail = email ?? await StorageService.getUserEmail() ?? "";
+    if (userEmail.isEmpty) return null;
+
+    return CacheService.loadData<List<EventModel>>(
+      key: _myEventsKey,
+      userEmail: userEmail,
+      parser: (data) => (data as List).map((json) => EventModel.fromJson(json)).toList(),
+      isSensitive: false,
+    );
   }
 
   static Future<bool> createEvent({

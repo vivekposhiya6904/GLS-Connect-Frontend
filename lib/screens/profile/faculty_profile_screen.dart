@@ -8,6 +8,7 @@ import '../../services/alumni_profile_service.dart';
 import '../../config/api_config.dart';
 import '../../models/profile_view_model.dart';
 import '../../services/profile_view_service.dart';
+import '../../widgets/offline_indicator.dart';
 
 class FacultyProfileScreen extends StatefulWidget {
   const FacultyProfileScreen({super.key});
@@ -19,6 +20,10 @@ class FacultyProfileScreen extends StatefulWidget {
 class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   bool isEditing = false;
   bool isLoading = true;
+  bool _isOffline = false;
+  bool _isFromCache = false;
+  String? _cacheTimeAgo;
+
   String username = "";
   String? profilePictureUrl;
 
@@ -42,10 +47,12 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   final TextEditingController projectsSupervisedController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController linkedInController = TextEditingController();
+  Future<List<ProfileViewModel>>? _profileViewsFuture;
 
   @override
   void initState() {
     super.initState();
+    _profileViewsFuture = ProfileViewService.getProfileViews();
     loadAllData();
   }
 
@@ -73,13 +80,68 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     super.dispose();
   }
 
+  void _applyProfileData(FacultyProfileModel profile) {
+    profilePictureUrl = profile.profilePictureUrl;
+    departmentController.text = profile.department ?? "";
+    designationController.text = profile.designation ?? "";
+    experienceController.text = profile.experienceYears?.toString() ?? "";
+    contactController.text = profile.contactNumber ?? "";
+    qualificationController.text = profile.qualification ?? "";
+    specializationController.text = profile.specialization ?? "";
+    teachingExperienceController.text = profile.teachingExperience ?? "";
+    industryExperienceController.text = profile.industryExperience ?? "";
+    researchAreasController.text = profile.researchInterests ?? "";
+    publicationsCountController.text = profile.publicationsCount ?? "";
+    certificationsController.text = profile.certifications ?? "";
+    achievementsController.text = profile.achievements ?? "";
+    biographyController.text = profile.bio ?? "";
+    skillsController.text = profile.skills ?? "";
+    studentsGuidedController.text = profile.studentsGuided ?? "";
+    projectsSupervisedController.text = profile.projectsSupervised ?? "";
+    emailController.text = profile.email ?? "";
+    linkedInController.text = profile.linkedInUrl ?? "";
+  }
+
   Future<void> loadAllData() async {
-    await loadUserName();
-    await loadProfile();
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
+    final name = await StorageService.getUserName();
+    username = name ?? "";
+    nameController.text = username;
+
+    // 1. Try local encrypted cache first
+    FacultyProfileModel? profileData;
+    try {
+      final cached = await FacultyProfileService.getCachedProfile();
+      if (cached != null) {
+        profileData = cached.data;
+        _isFromCache = true;
+        _cacheTimeAgo = cached.timeAgoFormatted;
+      }
+    } catch (_) {}
+
+    if (profileData != null) {
+      _applyProfileData(profileData);
+      isLoading = false;
+      if (mounted) setState(() {});
+    }
+
+    // 2. Fetch fresh from network
+    try {
+      final profile = await FacultyProfileService.getProfile();
+      if (profile != null) {
+        _applyProfileData(profile);
+        _isFromCache = false;
+        _isOffline = false;
+        _cacheTimeAgo = null;
+      } else if (_isFromCache) {
+        _isOffline = true;
+      }
+    } catch (_) {
+      if (_isFromCache) {
+        _isOffline = true;
+      }
+    } finally {
+      isLoading = false;
+      if (mounted) setState(() {});
     }
   }
 
@@ -90,31 +152,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   }
 
   Future<void> loadProfile() async {
-    final profile = await FacultyProfileService.getProfile();
-
-    if (profile != null) {
-      setState(() {
-        profilePictureUrl = profile.profilePictureUrl;
-      });
-      departmentController.text = profile.department ?? "";
-      designationController.text = profile.designation ?? "";
-      experienceController.text = profile.experienceYears?.toString() ?? "";
-      contactController.text = profile.contactNumber ?? "";
-      qualificationController.text = profile.qualification ?? "";
-      specializationController.text = profile.specialization ?? "";
-      teachingExperienceController.text = profile.teachingExperience ?? "";
-      industryExperienceController.text = profile.industryExperience ?? "";
-      researchAreasController.text = profile.researchInterests ?? "";
-      publicationsCountController.text = profile.publicationsCount ?? "";
-      certificationsController.text = profile.certifications ?? "";
-      achievementsController.text = profile.achievements ?? "";
-      biographyController.text = profile.bio ?? "";
-      skillsController.text = profile.skills ?? "";
-      studentsGuidedController.text = profile.studentsGuided ?? "";
-      projectsSupervisedController.text = profile.projectsSupervised ?? "";
-      emailController.text = profile.email ?? "";
-      linkedInController.text = profile.linkedInUrl ?? "";
-    }
+    await loadAllData();
   }
 
   Future<void> saveProfile() async {
@@ -181,9 +219,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
+      body: CustomScrollView(
               slivers: [
                 // Premium Blue Profile Header
                 SliverAppBar(
@@ -204,96 +240,118 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                         ),
                       ),
                       child: SafeArea(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 40),
-                            // Profile Photo
-                            GestureDetector(
-                              onTap: _pickAndUploadImage,
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 4),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 15,
-                                          offset: const Offset(0, 5),
-                                        ),
-                                      ],
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 55,
-                                      backgroundColor: Colors.white,
-                                      backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
-                                          ? NetworkImage(profilePictureUrl!.startsWith("http")
-                                              ? profilePictureUrl!
-                                              : "${ApiConfig.baseUrl}$profilePictureUrl")
-                                          : null,
-                                      child: profilePictureUrl == null || profilePictureUrl!.isEmpty
-                                          ? const Icon(
-                                              Icons.person,
-                                              size: 60,
-                                              color: Color(0xFF1A3A8F),
-                                            )
-                                          : null,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF1A3A8F),
+                        child: SingleChildScrollView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 12),
+                              // Profile Photo
+                              GestureDetector(
+                                onTap: _pickAndUploadImage,
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
                                         shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 4),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.2),
+                                            blurRadius: 15,
+                                            offset: const Offset(0, 5),
+                                          ),
+                                        ],
                                       ),
-                                      child: const Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.white,
-                                        size: 16,
+                                      child: CircleAvatar(
+                                        radius: 55,
+                                        backgroundColor: Colors.white,
+                                        backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
+                                            ? NetworkImage(profilePictureUrl!.startsWith("http")
+                                                ? profilePictureUrl!
+                                                : "${ApiConfig.baseUrl}$profilePictureUrl")
+                                            : null,
+                                        child: profilePictureUrl == null || profilePictureUrl!.isEmpty
+                                            ? const Icon(
+                                                Icons.person,
+                                                size: 60,
+                                                color: Color(0xFF1A3A8F),
+                                              )
+                                            : null,
                                       ),
                                     ),
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF1A3A8F),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.camera_alt,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Name
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  username.isNotEmpty ? username : "Faculty Member",
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
                                   ),
-                                ],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            // Name
-                            Text(
-                              username.isNotEmpty ? username : "Faculty Member",
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                              const SizedBox(height: 4),
+                              // Designation
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  designationController.text.isNotEmpty
+                                      ? designationController.text
+                                      : "Associate Professor",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white70,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            // Designation
-                            Text(
-                              designationController.text.isNotEmpty
-                                  ? designationController.text
-                                  : "Associate Professor",
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
+                              const SizedBox(height: 4),
+                              // Department
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  departmentController.text.isNotEmpty
+                                      ? departmentController.text
+                                      : "Computer Science",
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white60,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            // Department
-                            Text(
-                              departmentController.text.isNotEmpty
-                                  ? departmentController.text
-                                  : "Computer Science",
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white60,
-                              ),
-                            ),
-                          ],
+                              const SizedBox(height: 12),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -305,6 +363,19 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                   padding: const EdgeInsets.all(16),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
+                      if (isLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: LinearProgressIndicator(color: Color(0xFF1A3A8F)),
+                        ),
+                      if (_isOffline && _isFromCache)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: OfflineIndicatorBanner(
+                            timeAgo: _cacheTimeAgo,
+                            onRetry: loadAllData,
+                          ),
+                        ),
                       // Instagram-style Statistics Row
                       Container(
                         margin: const EdgeInsets.only(bottom: 20),
@@ -314,7 +385,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
+                              color: Colors.grey.withValues(alpha: 0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -323,36 +394,42 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildStatItem(
-                              publicationsCountController.text.isNotEmpty
-                                  ? publicationsCountController.text
-                                  : "0",
-                              "Publications",
-                              Icons.article_outlined,
+                            Expanded(
+                              child: _buildStatItem(
+                                publicationsCountController.text.isNotEmpty
+                                    ? publicationsCountController.text
+                                    : "0",
+                                "Publications",
+                                Icons.article_outlined,
+                              ),
                             ),
                             Container(
                               width: 1,
                               height: 40,
                               color: Colors.grey[300],
                             ),
-                            _buildStatItem(
-                              experienceController.text.isNotEmpty
-                                  ? experienceController.text
-                                  : "0",
-                              "Experience (Yrs)",
-                              Icons.work_outline,
+                            Expanded(
+                              child: _buildStatItem(
+                                experienceController.text.isNotEmpty
+                                    ? experienceController.text
+                                    : "0",
+                                "Experience (Yrs)",
+                                Icons.work_outline,
+                              ),
                             ),
                             Container(
                               width: 1,
                               height: 40,
                               color: Colors.grey[300],
                             ),
-                            _buildStatItem(
-                              studentsGuidedController.text.isNotEmpty
-                                  ? studentsGuidedController.text
-                                  : "0",
-                              "Students\nGuided",
-                              Icons.people_outline,
+                            Expanded(
+                              child: _buildStatItem(
+                                studentsGuidedController.text.isNotEmpty
+                                    ? studentsGuidedController.text
+                                    : "0",
+                                "Students\nGuided",
+                                Icons.people_outline,
+                              ),
                             ),
                           ],
                         ),
@@ -523,6 +600,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
 
   Widget _buildStatItem(String value, String label, IconData icon) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, color: const Color(0xFF1A3A8F), size: 28),
         const SizedBox(height: 8),
@@ -533,6 +611,9 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
             fontWeight: FontWeight.bold,
             color: Colors.black87,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
         Text(
@@ -541,6 +622,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
             fontSize: 12,
             color: Colors.black54,
           ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
         ),
       ],
@@ -560,7 +643,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
+            color: Colors.grey.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -574,12 +657,15 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
             children: [
               Icon(icon, color: const Color(0xFF1A3A8F), size: 24),
               const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -601,12 +687,15 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
             children: [
               Icon(icon, color: const Color(0xFF1A3A8F), size: 18),
               const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black54,
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black54,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -706,7 +795,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
 
   Widget _buildProfileViewsSection() {
     return FutureBuilder<List<ProfileViewModel>>(
-      future: ProfileViewService.getProfileViews(),
+      future: _profileViewsFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const SizedBox.shrink();
@@ -721,7 +810,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
@@ -734,12 +823,15 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                 children: [
                   const Icon(Icons.visibility_outlined, color: Color(0xFF1A3A8F), size: 22),
                   const SizedBox(width: 10),
-                  Text(
-                    "Who Viewed My Profile (${list.length})",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                  Expanded(
+                    child: Text(
+                      "Who Viewed My Profile (${list.length})",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -756,13 +848,17 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          view.viewerName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87,
+                        Expanded(
+                          child: Text(
+                            view.viewerName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           view.timestamp.split('T').first,
                           style: const TextStyle(

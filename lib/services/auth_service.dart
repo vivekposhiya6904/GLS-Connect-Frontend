@@ -129,6 +129,36 @@ class AuthService {
   }
 
   // ===============================
+  // EMAIL VERIFICATION (SEND OTP)
+  // ===============================
+
+  static Future<Map<String, dynamic>> sendOtp({
+    required String email,
+    String purpose = "ACCOUNT_REGISTRATION",
+  }) async {
+    final url = Uri.parse("${ApiConfig.baseUrl}/api/auth/verification/send");
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": email,
+          "purpose": purpose,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        throw Exception(data['message'] ?? 'Failed to send verification code');
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll("Exception: ", ""));
+    }
+  }
+
+  // ===============================
   // EMAIL VERIFICATION (VERIFY OTP)
   // ===============================
 

@@ -85,27 +85,59 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       return;
     }
 
-    await loadChatHistory();
-    await _checkPresence();
-    await _markAsRead();
+    try {
+      // Independent operations - a failure in presence or mark-as-read must not block message display
+      try {
+        await loadChatHistory();
+      } catch (e) {
+        debugPrint("Error loading chat history: $e");
+      }
 
-    // Register WebSocket Listeners for Chat Detail
-    _chatService.addMessageListener("chat_detail", _handleIncomingMessage);
-    _chatService.addStatusListener("chat_detail", _handleStatusUpdate);
-    _chatService.addTypingListener("chat_detail", _handleTypingEvent);
-    _chatService.addPresenceListener("chat_detail", _handlePresenceEvent);
+      try {
+        await _checkPresence();
+      } catch (e) {
+        debugPrint("Error checking presence: $e");
+      }
 
-    await _chatService.connect(userEmail: myEmail!);
+      try {
+        await _markAsRead();
+      } catch (e) {
+        debugPrint("Error marking as read: $e");
+      }
 
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
-      _scrollToBottom(animate: false);
+      // Register WebSocket Listeners for Chat Detail
+      _chatService.addMessageListener("chat_detail", _handleIncomingMessage);
+      _chatService.addStatusListener("chat_detail", _handleStatusUpdate);
+      _chatService.addTypingListener("chat_detail", _handleTypingEvent);
+      _chatService.addPresenceListener("chat_detail", _handlePresenceEvent);
+      _chatService.addErrorListener("chat_detail", _handleChatError);
+
+      try {
+        await _chatService.connect(userEmail: myEmail!);
+      } catch (e) {
+        debugPrint("Error connecting to chat service: $e");
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        _scrollToBottom(animate: false);
+      }
     }
   }
 
-  void _handleIncomingMessage(String messageJson) {
+  void _handleChatError(String error) {
+    debugPrint("Chat detail received error: $error");
+    if (mounted && isLoading) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void _handleIncomingMessage(String messageJson) async {
+    if (!mounted) return;
     try {
       final decoded = jsonDecode(messageJson);
       final msgModel = ChatMessageModel.fromJson(decoded);
@@ -115,17 +147,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if ((sender == targetEmail && receiver == myEmail) ||
           (sender == myEmail && receiver == targetEmail)) {
         final rawContent = decoded["content"] ?? "";
-        final decryptedText =
-            EncryptionService.decrypt(rawContent, myEmail!, targetEmail);
+        final decryptedText = await EncryptionService.decrypt(
+          rawContent,
+          myEmail!,
+          targetEmail,
+        );
 
         final finalMsg = msgModel.copyWith(content: decryptedText);
-        debugPrint("📱 CHAT SCREEN RECEIVED MESSAGE: sender=$sender, receiver=$receiver, content=$decryptedText");
+        debugPrint(
+          "📱 CHAT SCREEN RECEIVED MESSAGE: sender=$sender, receiver=$receiver, payloadLength=${decryptedText.length}",
+        );
 
-        _addOrUpdateMessage(finalMsg);
+        if (mounted) {
+          _addOrUpdateMessage(finalMsg);
 
-        // Automatically mark incoming messages as read when viewing conversation
-        if (sender == targetEmail) {
-          _markAsRead();
+          // Automatically mark incoming messages as read when viewing conversation
+          if (sender == targetEmail) {
+            _markAsRead();
+          }
         }
       }
     } catch (_) {}
@@ -182,7 +221,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void _handlePresenceEvent(String presenceJson) {
     try {
       final decoded = jsonDecode(presenceJson);
-      final email = (decoded["userEmail"]?.toString() ?? "").trim().toLowerCase();
+      final email = (decoded["userEmail"]?.toString() ?? "")
+          .trim()
+          .toLowerCase();
       final status = decoded["status"]?.toString();
 
       if (email == targetEmail && mounted) {
@@ -196,10 +237,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _checkPresence() async {
     if (token == null) return;
     try {
-      final res = await http.get(
-        Uri.parse("${ApiConfig.baseUrl}/api/chat/presence/$targetEmail"),
-        headers: {"Authorization": "Bearer $token"},
-      );
+      final res = await http
+          .get(
+            Uri.parse("${ApiConfig.baseUrl}/api/chat/presence/$targetEmail"),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (mounted) {
@@ -214,13 +257,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _markAsRead() async {
     if (token == null || myEmail == null) return;
     try {
-      await http.post(
-        Uri.parse("${ApiConfig.baseUrl}/api/chat/mark-read/$targetEmail"),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-      );
+      await http
+          .post(
+            Uri.parse("${ApiConfig.baseUrl}/api/chat/mark-read/$targetEmail"),
+            headers: {
+              "Authorization": "Bearer $token",
+              "Content-Type": "application/json",
+            },
+          )
+          .timeout(const Duration(seconds: 10));
     } catch (_) {}
   }
 
@@ -228,7 +273,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (!mounted) return;
     setState(() {
       // 1. Check by exact message ID
-      if (msg.id != null && msg.id!.isNotEmpty && !msg.id!.startsWith("temp_")) {
+      if (msg.id != null &&
+          msg.id!.isNotEmpty &&
+          !msg.id!.startsWith("temp_")) {
         final exactIdx = messages.indexWhere((m) => m.id == msg.id);
         if (exactIdx >= 0) {
           messages[exactIdx] = msg;
@@ -237,11 +284,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         }
 
         // 2. Reconcile with pending optimistic temp message
-        final tempIdx = messages.indexWhere((m) =>
-            m.id != null &&
-            m.id!.startsWith("temp_") &&
-            m.sender == msg.sender &&
-            m.content == msg.content);
+        final tempIdx = messages.indexWhere(
+          (m) =>
+              m.id != null &&
+              m.id!.startsWith("temp_") &&
+              m.sender == msg.sender &&
+              m.content == msg.content,
+        );
         if (tempIdx >= 0) {
           messages[tempIdx] = msg;
           _scrollToBottom();
@@ -258,23 +307,29 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> loadChatHistory() async {
     if (token == null || myEmail == null || targetEmail.isEmpty) return;
     try {
-      final response = await http.get(
-        Uri.parse("${ApiConfig.baseUrl}/api/chat/history/$targetEmail"),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-      );
+      final response = await http
+          .get(
+            Uri.parse("${ApiConfig.baseUrl}/api/chat/history/$targetEmail"),
+            headers: {
+              "Authorization": "Bearer $token",
+              "Content-Type": "application/json",
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        final loaded = data.map((item) {
+        final List<ChatMessageModel> loaded = [];
+        for (final item in data) {
           final model = ChatMessageModel.fromJson(item);
           final rawContent = item["content"] ?? "";
-          final decryptedText =
-              EncryptionService.decrypt(rawContent, myEmail!, targetEmail);
-          return model.copyWith(content: decryptedText);
-        }).toList();
+          final decryptedText = await EncryptionService.decrypt(
+            rawContent,
+            myEmail!,
+            targetEmail,
+          );
+          loaded.add(model.copyWith(content: decryptedText));
+        }
 
         if (mounted) {
           setState(() {
@@ -316,8 +371,23 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _typingDebounceTimer?.cancel();
     _chatService.sendTyping(receiver: targetEmail, isTyping: false);
 
-    final encryptedContent =
-        EncryptionService.encrypt(text, myEmail!, targetEmail);
+    String encryptedContent;
+    try {
+      encryptedContent = await EncryptionService.encrypt(
+        text,
+        myEmail!,
+        targetEmail,
+      );
+    } catch (e) {
+      debugPrint("Failed to encrypt message: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Unable to secure message. Key unavailable.")),
+        );
+      }
+      isSending = false;
+      return;
+    }
     final sendTime = DateTime.now();
     final clientTimestampStr = sendTime.toIso8601String();
     final tempId = "temp_${sendTime.millisecondsSinceEpoch}";
@@ -384,6 +454,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _chatService.removeStatusListener("chat_detail");
     _chatService.removeTypingListener("chat_detail");
     _chatService.removePresenceListener("chat_detail");
+    _chatService.removeErrorListener("chat_detail");
     _typingDebounceTimer?.cancel();
     _typingAutoResetTimer?.cancel();
     _scrollController.removeListener(_handleScroll);
@@ -422,10 +493,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     } else {
       return const Text(
         "Offline",
-        style: TextStyle(
-          fontSize: 12,
-          color: Colors.white70,
-        ),
+        style: TextStyle(fontSize: 12, color: Colors.white70),
       );
     }
   }
@@ -434,7 +502,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
-    final scaffoldBg = isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFC);
+    final scaffoldBg = isDark
+        ? const Color(0xFF121212)
+        : const Color(0xFFF8FAFC);
     final composerBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final inputBg = isDark ? const Color(0xFF2C2C2C) : const Color(0xFFF1F5F9);
 
@@ -490,22 +560,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         ),
                       )
                     : messages.isEmpty
-                        ? _buildEmptyConversationState(primaryColor)
-                        : ListView.builder(
-                            controller: _scrollController,
-                            physics: const AlwaysScrollableScrollPhysics(
-                                parent: BouncingScrollPhysics()),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            itemCount: messages.length,
-                            itemBuilder: (context, index) {
-                              final msg = messages[index];
-                              final isMe = msg.sender.toLowerCase() == myEmail;
-                              return MessageBubble(
-                                message: msg,
-                                isMe: isMe,
-                              );
-                            },
-                          ),
+                    ? _buildEmptyConversationState(primaryColor)
+                    : ListView.builder(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          final msg = messages[index];
+                          final isMe = msg.sender.toLowerCase() == myEmail;
+                          return MessageBubble(message: msg, isMe: isMe);
+                        },
+                      ),
               ),
               _buildMessageComposer(composerBg, inputBg, isDark, primaryColor),
             ],
@@ -516,7 +584,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               bottom: 80,
               child: FloatingActionButton.small(
                 onPressed: () => _scrollToBottom(animate: true),
-                backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                backgroundColor: isDark
+                    ? const Color(0xFF2C2C2C)
+                    : Colors.white,
                 foregroundColor: primaryColor,
                 elevation: 3,
                 child: const Icon(Icons.keyboard_arrow_down_rounded, size: 24),
@@ -560,10 +630,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             Text(
               "Start the conversation by sending a friendly greeting below.",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -572,7 +639,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildMessageComposer(
-      Color composerBg, Color inputBg, bool isDark, Color primaryColor) {
+    Color composerBg,
+    Color inputBg,
+    bool isDark,
+    Color primaryColor,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: composerBg,
@@ -615,15 +686,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         decoration: InputDecoration(
                           hintText: "Message...",
                           hintStyle: TextStyle(
-                            color: isDark ? Colors.white54 : Colors.grey.shade500,
+                            color: isDark
+                                ? Colors.white54
+                                : Colors.grey.shade500,
                             fontSize: 15,
                           ),
                           filled: false,
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                          ),
                           isDense: true,
                         ),
                       ),
@@ -646,7 +720,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           color: primaryColor.withValues(alpha: 0.35),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
-                        )
+                        ),
                       ]
                     : null,
               ),

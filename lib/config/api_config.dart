@@ -13,7 +13,7 @@ class ApiConfig {
     // the ip address of your it will run on the emulator with out any other
     // changes
 
-    // Android Emulator and physical Android device
-    return "http://10.76.161.155:8080"; // change this ip address with your ip adress
+    // Android Emulator and physical Android device with adb reverse tcp:8080 tcp:8080
+    return "http://192.168.0.10:8080";
   }
 }

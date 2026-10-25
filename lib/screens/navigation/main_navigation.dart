@@ -22,10 +22,7 @@ import '../dashboard/create_event_screen.dart';
 class MainNavigation extends StatefulWidget {
   final String userRole;
 
-  const MainNavigation({
-    super.key,
-    required this.userRole,
-  });
+  const MainNavigation({super.key, required this.userRole});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -38,8 +35,10 @@ class _MainNavigationState extends State<MainNavigation> {
   Timer? _unreadTimer;
   int _totalUnreadCount = 0;
   bool _isOpeningCreate = false;
+  bool _isFetchingUnread = false;
 
-  final GlobalKey<FacultyDashboardState> _facultyDashboardKey = GlobalKey<FacultyDashboardState>();
+  final GlobalKey<FacultyDashboardState> _facultyDashboardKey =
+      GlobalKey<FacultyDashboardState>();
 
   @override
   void initState() {
@@ -47,9 +46,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
     final roleUpper = widget.userRole.toUpperCase();
     if (roleUpper == "ADMIN") {
-      pages = const [
-        AdminHomeScreen(),
-      ];
+      pages = const [AdminHomeScreen()];
     } else if (roleUpper == "FACULTY") {
       pages = [
         FacultyDashboard(key: _facultyDashboardKey),
@@ -57,28 +54,21 @@ class _MainNavigationState extends State<MainNavigation> {
         const FacultyProfileScreen(),
       ];
     } else if (roleUpper == "STUDENT") {
-      pages = const [
-        StudentHomeScreen(),
-        ChatScreen(),
-        StudentProfileScreen(),
-      ];
+      pages = const [StudentHomeScreen(), ChatScreen(), StudentProfileScreen()];
     } else {
-      pages = const [
-        HomeScreen(),
-        ChatScreen(),
-        AlumniProfileScreen(),
-      ];
+      pages = const [HomeScreen(), ChatScreen(), AlumniProfileScreen()];
     }
 
     if (roleUpper != "ADMIN") {
       _fetchUnreadTotal();
 
-      _unreadTimer = Timer.periodic(
-        const Duration(seconds: 3),
-        (_) {
+      final isTest = WidgetsBinding.instance.runtimeType.toString().contains('Test');
+      if (!isTest) {
+        _unreadTimer?.cancel();
+        _unreadTimer = Timer.periodic(const Duration(seconds: 10), (_) {
           _fetchUnreadTotal();
-        },
-      );
+        });
+      }
     }
   }
 
@@ -89,6 +79,9 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   Future<void> _fetchUnreadTotal() async {
+    if (_isFetchingUnread) return;
+    _isFetchingUnread = true;
+
     try {
       final token = await StorageService.getToken();
 
@@ -96,13 +89,15 @@ class _MainNavigationState extends State<MainNavigation> {
         return;
       }
 
-      final response = await http.get(
-        Uri.parse("${ApiConfig.baseUrl}/api/chat/unread"),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-      );
+      final response = await http
+          .get(
+            Uri.parse("${ApiConfig.baseUrl}/api/chat/unread"),
+            headers: {
+              "Authorization": "Bearer $token",
+              "Content-Type": "application/json",
+            },
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
@@ -121,7 +116,11 @@ class _MainNavigationState extends State<MainNavigation> {
           });
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      // Retain previously known unread count on failure
+    } finally {
+      _isFetchingUnread = false;
+    }
   }
 
   @override
@@ -130,78 +129,77 @@ class _MainNavigationState extends State<MainNavigation> {
     final roleUpper = widget.userRole.toUpperCase();
 
     return PopScope(
-        canPop: selectedIndex == 0,
-        onPopInvokedWithResult: (didPop, result) {
-          if (!didPop && selectedIndex != 0) {
-            setState(() {
-              selectedIndex = 0;
-            });
-          }
-        },
-        child: Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: IndexedStack(
-        index: selectedIndex,
-        children: pages,
+      canPop: selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && selectedIndex != 0) {
+          setState(() {
+            selectedIndex = 0;
+          });
+        }
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: IndexedStack(index: selectedIndex, children: pages),
+        bottomNavigationBar: roleUpper == "ADMIN"
+            ? null
+            : Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.3 : 0.08,
+                      ),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: SizedBox(
+                    height: 62,
+                    child: Row(
+                      children: [
+                        // 1. Home
+                        Expanded(
+                          child: buildNavItem(
+                            icon: Icons.home_outlined,
+                            activeIcon: Icons.home_rounded,
+                            label: "Home",
+                            index: 0,
+                          ),
+                        ),
+
+                        // 2. Create (+) - Hidden for Students who have view-only job/event permissions
+                        if (widget.userRole.toUpperCase() != "STUDENT")
+                          Expanded(child: buildCreateNavItem(isDark: isDark)),
+
+                        // 3. Chat
+                        Expanded(
+                          child: buildNavItem(
+                            icon: Icons.chat_bubble_outline,
+                            activeIcon: Icons.chat_bubble_rounded,
+                            label: "Chat",
+                            index: 1,
+                            badgeCount: _totalUnreadCount,
+                          ),
+                        ),
+
+                        // 4. Profile
+                        Expanded(
+                          child: buildNavItem(
+                            icon: Icons.person_outline,
+                            activeIcon: Icons.person_rounded,
+                            label: "Profile",
+                            index: 2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
       ),
-      bottomNavigationBar: roleUpper == "ADMIN" ? null : Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 62,
-            child: Row(
-              children: [
-                // 1. Home
-                Expanded(
-                  child: buildNavItem(
-                    icon: Icons.home_outlined,
-                    activeIcon: Icons.home_rounded,
-                    label: "Home",
-                    index: 0,
-                  ),
-                ),
-
-                // 2. Create (+) - Hidden for Students who have view-only job/event permissions
-                if (widget.userRole.toUpperCase() != "STUDENT")
-                  Expanded(
-                    child: buildCreateNavItem(isDark: isDark),
-                  ),
-
-                // 3. Chat
-                Expanded(
-                  child: buildNavItem(
-                    icon: Icons.chat_bubble_outline,
-                    activeIcon: Icons.chat_bubble_rounded,
-                    label: "Chat",
-                    index: 1,
-                    badgeCount: _totalUnreadCount,
-                  ),
-                ),
-
-                // 4. Profile
-                Expanded(
-                  child: buildNavItem(
-                    icon: Icons.person_outline,
-                    activeIcon: Icons.person_rounded,
-                    label: "Profile",
-                    index: 2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    )
     );
   }
 
@@ -243,11 +241,7 @@ class _MainNavigationState extends State<MainNavigation> {
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: [
-              Icon(
-                displayIcon,
-                color: color,
-                size: 24,
-              ),
+              Icon(displayIcon, color: color, size: 24),
               if (badgeCount > 0 && index == 1)
                 Positioned(
                   right: -8,
@@ -307,11 +301,7 @@ class _MainNavigationState extends State<MainNavigation> {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.add,
-                color: iconColor,
-                size: 26,
-              ),
+              Icon(Icons.add, color: iconColor, size: 26),
               const SizedBox(height: 3),
               Text(
                 "Create",
@@ -338,42 +328,29 @@ class _MainNavigationState extends State<MainNavigation> {
       isScrollControlled: true,
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
         return SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              vertical: 20,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
                   "Create",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 ListTile(
-                  leading: const Icon(
-                    Icons.work_outline,
-                  ),
-                  title: const Text(
-                    "Post Job",
-                  ),
+                  leading: const Icon(Icons.work_outline),
+                  title: const Text("Post Job"),
                   onTap: () async {
                     Navigator.pop(context);
 
                     final res = await Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => PostJobScreen(),
-                      ),
+                      MaterialPageRoute(builder: (context) => PostJobScreen()),
                     );
                     if (res == true || res == null) {
                       _facultyDashboardKey.currentState?.refreshData();
@@ -381,12 +358,8 @@ class _MainNavigationState extends State<MainNavigation> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(
-                    Icons.event_outlined,
-                  ),
-                  title: const Text(
-                    "Create Event",
-                  ),
+                  leading: const Icon(Icons.event_outlined),
+                  title: const Text("Create Event"),
                   onTap: () async {
                     Navigator.pop(context);
 

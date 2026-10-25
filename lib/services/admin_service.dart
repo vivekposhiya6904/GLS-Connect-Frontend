@@ -93,7 +93,7 @@ class AdminService {
     }
   }
 
-  // Get all users
+  // Get all users (Excluding ADMIN accounts)
   static Future<List<AdminUserDto>> getAllUsers() async {
     try {
       final headers = await _getHeaders();
@@ -104,7 +104,10 @@ class AdminService {
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(response.body);
-        return jsonList.map((j) => AdminUserDto.fromJson(j)).toList();
+        return jsonList
+            .map((j) => AdminUserDto.fromJson(j))
+            .where((u) => u.roleName.toUpperCase() != 'ADMIN')
+            .toList();
       }
       return [];
     } catch (e) {
@@ -113,8 +116,11 @@ class AdminService {
     }
   }
 
-  // Get users by role (ALUMNI, FACULTY, USER, ADMIN)
+  // Get users by role (ALUMNI, FACULTY, USER, excluding ADMIN)
   static Future<List<AdminUserDto>> getUsersByRole(String roleName) async {
+    if (roleName.toUpperCase() == 'ADMIN') {
+      return [];
+    }
     try {
       final headers = await _getHeaders();
       final response = await http.get(
@@ -124,7 +130,10 @@ class AdminService {
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(response.body);
-        return jsonList.map((j) => AdminUserDto.fromJson(j)).toList();
+        return jsonList
+            .map((j) => AdminUserDto.fromJson(j))
+            .where((u) => u.roleName.toUpperCase() != 'ADMIN')
+            .toList();
       }
       return [];
     } catch (e) {

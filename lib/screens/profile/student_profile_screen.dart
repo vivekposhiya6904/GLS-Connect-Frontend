@@ -5,6 +5,7 @@ import '../../utils/storage_service.dart';
 import '../auth/login_screen.dart';
 import '../../utils/image_picker_helper.dart';
 import '../../config/api_config.dart';
+import '../../widgets/offline_indicator.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
@@ -16,6 +17,9 @@ class StudentProfileScreen extends StatefulWidget {
 class _StudentProfileScreenState extends State<StudentProfileScreen> {
   bool isEditing = false;
   bool isLoading = true;
+  bool _isOffline = false;
+  bool _isFromCache = false;
+  String? _cacheTimeAgo;
 
   String username = "";
   String email = "";
@@ -56,47 +60,72 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     super.dispose();
   }
 
+  void _applyProfileData(StudentProfileModel profile) {
+    if (profile.userName != null && profile.userName!.isNotEmpty) {
+      username = profile.userName!;
+    }
+    if (profile.email != null && profile.email!.isNotEmpty) {
+      email = profile.email!;
+    }
+    if (profile.universityNumber != null) {
+      universityNumber = profile.universityNumber!;
+    }
+
+    profilePictureUrl = profile.profilePictureUrl;
+    departmentController.text = profile.department ?? "MCA";
+    degreeController.text = profile.degree ?? "Master of Computer Applications";
+    batchController.text = profile.batchYear != null ? profile.batchYear.toString() : "";
+    semesterController.text = profile.semester ?? "Semester 4";
+    skillsController.text = profile.skills ?? "";
+    interestsController.text = profile.interests ?? "";
+    bioController.text = profile.bio ?? "";
+    contactController.text = profile.contactNumber ?? "";
+    cityController.text = profile.currentCity ?? "";
+    linkedInController.text = profile.linkedInUrl ?? "";
+    githubController.text = profile.githubUrl ?? "";
+  }
+
   Future<void> loadAllData() async {
-    setState(() => isLoading = true);
+    final name = await StorageService.getUserName();
+    final userEmail = await StorageService.getUserEmail();
+    username = name ?? "Student";
+    email = userEmail ?? "";
 
+    // 1. Try local encrypted cache first
+    StudentProfileModel? profileData;
     try {
-      final name = await StorageService.getUserName();
-      final userEmail = await StorageService.getUserEmail();
-      setState(() {
-        username = name ?? "Student";
-        email = userEmail ?? "";
-      });
-
-      final profile = await StudentProfileService.getProfile();
-
-      if (profile != null) {
-        if (profile.userName != null && profile.userName!.isNotEmpty) {
-          username = profile.userName!;
-        }
-        if (profile.email != null && profile.email!.isNotEmpty) {
-          email = profile.email!;
-        }
-        if (profile.universityNumber != null) {
-          universityNumber = profile.universityNumber!;
-        }
-
-        profilePictureUrl = profile.profilePictureUrl;
-        departmentController.text = profile.department ?? "MCA";
-        degreeController.text = profile.degree ?? "Master of Computer Applications";
-        batchController.text = profile.batchYear != null ? profile.batchYear.toString() : "";
-        semesterController.text = profile.semester ?? "Semester 4";
-        skillsController.text = profile.skills ?? "";
-        interestsController.text = profile.interests ?? "";
-        bioController.text = profile.bio ?? "";
-        contactController.text = profile.contactNumber ?? "";
-        cityController.text = profile.currentCity ?? "";
-        linkedInController.text = profile.linkedInUrl ?? "";
-        githubController.text = profile.githubUrl ?? "";
+      final cached = await StudentProfileService.getCachedProfile();
+      if (cached != null) {
+        profileData = cached.data;
+        _isFromCache = true;
+        _cacheTimeAgo = cached.timeAgoFormatted;
       }
     } catch (_) {}
 
-    if (mounted) {
-      setState(() => isLoading = false);
+    if (profileData != null) {
+      _applyProfileData(profileData);
+      isLoading = false;
+      if (mounted) setState(() {});
+    }
+
+    // 2. Fetch fresh profile from network
+    try {
+      final profile = await StudentProfileService.getProfile();
+      if (profile != null) {
+        _applyProfileData(profile);
+        _isFromCache = false;
+        _isOffline = false;
+        _cacheTimeAgo = null;
+      } else if (_isFromCache) {
+        _isOffline = true;
+      }
+    } catch (_) {
+      if (_isFromCache) {
+        _isOffline = true;
+      }
+    } finally {
+      isLoading = false;
+      if (mounted) setState(() {});
     }
   }
 
@@ -228,6 +257,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                 child: Column(
                   children: [
+                    if (_isOffline && _isFromCache)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: OfflineIndicatorBanner(
+                          timeAgo: _cacheTimeAgo,
+                          onRetry: loadAllData,
+                        ),
+                      ),
                     // Avatar & Header Card
                     Container(
                       width: double.infinity,

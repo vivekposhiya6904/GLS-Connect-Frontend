@@ -21,9 +21,13 @@ dependencies:
   crypto: ^3.0.3
   url_launcher: ^6.3.0
   device_info_plus: ^12.1.0
+  cryptography: ^2.9.0
+  flutter_secure_storage: ^10.3.4
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^6.0.0
 

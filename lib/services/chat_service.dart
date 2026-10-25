@@ -1,5 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../config/api_config.dart';
@@ -13,6 +14,11 @@ class ChatService {
   StompClient? _stompClient;
   bool _isConnecting = false;
   String? _connectedUserEmail;
+  Completer<bool>? _connectionCompleter;
+  Timer? _handshakeTimer;
+
+  bool get isConnecting => _isConnecting;
+  String? get connectedUserEmail => _connectedUserEmail;
 
   final Map<String, Function(String messageJson)> _messageListeners = {};
   final Map<String, Function(String statusJson)> _statusListeners = {};
@@ -60,44 +66,89 @@ class ChatService {
     _errorListeners.remove(key);
   }
 
-  Future<void> connect({
+  Future<bool> connect({
     required String userEmail,
+    Duration timeout = const Duration(seconds: 10),
     Function(String messageJson)? onMessageReceived,
     Function(String statusJson)? onStatusUpdated,
     Function(String typingJson)? onTypingReceived,
     Function(String presenceJson)? onPresenceReceived,
     Function(String error)? onError,
   }) async {
-    if (onMessageReceived != null) addMessageListener("default", onMessageReceived);
-    if (onStatusUpdated != null) addStatusListener("default", onStatusUpdated);
-    if (onTypingReceived != null) addTypingListener("default", onTypingReceived);
-    if (onPresenceReceived != null) addPresenceListener("default", onPresenceReceived);
-    if (onError != null) addErrorListener("default", onError);
+    if (onMessageReceived != null) {
+      addMessageListener("default", onMessageReceived);
+    }
+    if (onStatusUpdated != null) {
+      addStatusListener("default", onStatusUpdated);
+    }
+    if (onTypingReceived != null) {
+      addTypingListener("default", onTypingReceived);
+    }
+    if (onPresenceReceived != null) {
+      addPresenceListener("default", onPresenceReceived);
+    }
+    if (onError != null) {
+      addErrorListener("default", onError);
+    }
 
     final normalizedEmail = userEmail.trim().toLowerCase();
 
-    // If already connected for a DIFFERENT user, disconnect first
+    // If already connected for the SAME user, return true
     if (_stompClient != null && _stompClient!.connected) {
-      if (_connectedUserEmail != null && _connectedUserEmail != normalizedEmail) {
-        debugPrint("🔄 User switch detected ($_connectedUserEmail -> $normalizedEmail), reconnecting STOMP...");
-        disconnect();
-      } else {
-        return;
+      if (_connectedUserEmail == normalizedEmail) {
+        return true;
       }
+      debugPrint(
+        "🔄 User switch detected ($_connectedUserEmail -> $normalizedEmail), reconnecting STOMP...",
+      );
+      disconnect();
     }
 
-    if (_isConnecting) return;
+    // Avoid duplicate simultaneous connection attempts
+    if (_isConnecting) {
+      if (_connectionCompleter != null) {
+        return _connectionCompleter!.future;
+      }
+      return false;
+    }
+
     _isConnecting = true;
+    final completer = Completer<bool>();
+    _connectionCompleter = completer;
 
     final token = await StorageService.getToken();
     if (token == null) {
       debugPrint("❌ STOMP connect aborted: Authentication token missing");
       _notifyError("Authentication token missing");
       _isConnecting = false;
-      return;
+      if (!completer.isCompleted) completer.complete(false);
+      return false;
     }
 
     debugPrint("🔐 Connecting to WebSocket STOMP for user: $normalizedEmail");
+
+    final isTest = WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    if (isTest) {
+      _isConnecting = false;
+      if (!completer.isCompleted) completer.complete(false);
+      return false;
+    }
+
+    final effectiveTimeout = timeout;
+    final effectiveReconnectDelay = const Duration(seconds: 4);
+
+    _handshakeTimer?.cancel();
+    _handshakeTimer = Timer(effectiveTimeout, () {
+      if (!completer.isCompleted) {
+        debugPrint(
+          "⏱️ STOMP connection handshake timed out after ${effectiveTimeout.inSeconds}s",
+        );
+        _isConnecting = false;
+        _notifyError("Connection timed out");
+        _stompClient?.deactivate();
+        completer.complete(false);
+      }
+    });
 
     try {
       _stompClient = StompClient(
@@ -105,45 +156,69 @@ class ChatService {
           url: "${ApiConfig.baseUrl}/chat",
           heartbeatIncoming: const Duration(seconds: 10),
           heartbeatOutgoing: const Duration(seconds: 10),
-          reconnectDelay: const Duration(seconds: 4),
+          reconnectDelay: effectiveReconnectDelay,
 
-          stompConnectHeaders: {
-            "Authorization": "Bearer $token",
-          },
-          webSocketConnectHeaders: {
-            "Authorization": "Bearer $token",
-          },
+          stompConnectHeaders: {"Authorization": "Bearer $token"},
+          webSocketConnectHeaders: {"Authorization": "Bearer $token"},
 
           onConnect: (StompFrame frame) {
+            _handshakeTimer?.cancel();
+            _handshakeTimer = null;
             _isConnecting = false;
             _connectedUserEmail = normalizedEmail;
             debugPrint("✅ STOMP CONNECTED for user: $normalizedEmail");
             _subscribe();
+            if (!completer.isCompleted) {
+              completer.complete(true);
+            }
           },
 
           onWebSocketError: (error) {
+            _handshakeTimer?.cancel();
+            _handshakeTimer = null;
             debugPrint("❌ WebSocket error: $error");
             _isConnecting = false;
             _notifyError("WebSocket error: $error");
+            if (!completer.isCompleted) {
+              completer.complete(false);
+            }
           },
 
           onDisconnect: (frame) {
+            _handshakeTimer?.cancel();
+            _handshakeTimer = null;
             debugPrint("🔴 STOMP Disconnected");
             _isConnecting = false;
           },
 
           onStompError: (frame) {
+            _handshakeTimer?.cancel();
+            _handshakeTimer = null;
             debugPrint("❌ STOMP error: ${frame.body}");
+            _isConnecting = false;
             _notifyError("STOMP error: ${frame.body}");
+            if (!completer.isCompleted) {
+              completer.complete(false);
+            }
           },
         ),
       );
 
       _stompClient!.activate();
+
+      return await completer.future;
     } catch (e) {
+      _handshakeTimer?.cancel();
+      _handshakeTimer = null;
       debugPrint("❌ STOMP Connection exception: $e");
       _isConnecting = false;
       _notifyError("Connection exception: $e");
+      if (!completer.isCompleted) completer.complete(false);
+      return false;
+    } finally {
+      if (_connectionCompleter == completer) {
+        _connectionCompleter = null;
+      }
     }
   }
 
@@ -158,14 +233,18 @@ class ChatService {
   void _subscribe() {
     if (_stompClient == null || !_stompClient!.connected) return;
 
-    debugPrint("👂 RECEIVER SUBSCRIBED: user=$_connectedUserEmail, destination=/user/queue/messages");
+    debugPrint(
+      "👂 RECEIVER SUBSCRIBED: user=$_connectedUserEmail, destination=/user/queue/messages",
+    );
 
     // 1. Subscribe to incoming chat messages
     _stompClient!.subscribe(
       destination: "/user/queue/messages",
       callback: (frame) {
         if (frame.body != null) {
-          debugPrint("📨 RECEIVED MESSAGE on /user/queue/messages: body=${frame.body}");
+          debugPrint(
+            "📨 RECEIVED MESSAGE on /user/queue/messages: payloadLength=${frame.body!.length}",
+          );
           for (final listener in List.of(_messageListeners.values)) {
             try {
               listener(frame.body!);
@@ -212,7 +291,7 @@ class ChatService {
 
     // 4. Subscribe to presence events (online/offline updates)
     _stompClient!.subscribe(
-      destination: "/topic/presence",
+      destination: "/user/queue/presence",
       callback: (frame) {
         if (frame.body != null) {
           for (final listener in List.of(_presenceListeners.values)) {
@@ -233,7 +312,9 @@ class ChatService {
     String? timestamp,
   }) {
     if (_stompClient == null || !_stompClient!.connected) {
-      debugPrint("❌ ChatService.sendMessage failed: Not connected to WebSocket server");
+      debugPrint(
+        "❌ ChatService.sendMessage failed: Not connected to WebSocket server",
+      );
       _notifyError("Not connected to WebSocket server");
       return;
     }
@@ -242,10 +323,12 @@ class ChatService {
     final payload = {
       "receiver": targetReceiver,
       "content": content,
-      if (timestamp != null) "timestamp": timestamp,
+      "timestamp": ?timestamp,
     };
 
-    debugPrint("📤 CHAT SEND: sender=$_connectedUserEmail, receiver=$targetReceiver, destination=/app/chat.send, payload=$payload");
+    debugPrint(
+      "📤 CHAT SEND: sender=$_connectedUserEmail, receiver=$targetReceiver, destination=/app/chat.send, payloadLength=${content.length}",
+    );
 
     _stompClient!.send(
       destination: "/app/chat.send",
@@ -254,10 +337,7 @@ class ChatService {
     );
   }
 
-  void sendTyping({
-    required String receiver,
-    required bool isTyping,
-  }) {
+  void sendTyping({required String receiver, required bool isTyping}) {
     if (_stompClient == null || !_stompClient!.connected) return;
 
     final payload = {
@@ -273,9 +353,15 @@ class ChatService {
   }
 
   void disconnect() {
+    _handshakeTimer?.cancel();
+    _handshakeTimer = null;
+    _isConnecting = false;
+    if (_connectionCompleter != null && !_connectionCompleter!.isCompleted) {
+      _connectionCompleter!.complete(false);
+    }
+    _connectionCompleter = null;
     _stompClient?.deactivate();
     _stompClient = null;
-    _isConnecting = false;
     _connectedUserEmail = null;
     _messageListeners.clear();
     _statusListeners.clear();

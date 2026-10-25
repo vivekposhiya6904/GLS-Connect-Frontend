@@ -22,6 +22,7 @@ import '../../utils/city_constants.dart';
 import '../../utils/salary_helper.dart';
 import '../../utils/focus_helper.dart';
 import '../../widgets/app_search_bar.dart';
+import '../../widgets/offline_indicator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,6 +32,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  Future<int>? _unreadNotificationFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _unreadNotificationFuture = NotificationService.getUnreadCount();
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -89,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           actions: [
             FutureBuilder<int>(
-              future: NotificationService.getUnreadCount(),
+              future: _unreadNotificationFuture,
               builder: (context, snapshot) {
                 final unreadCount = snapshot.data ?? 0;
                 return Stack(
@@ -183,11 +192,14 @@ class EventListState extends State<EventList> {
   String selectedDepartment = "All";
   bool showPast = false;
   String myEmail = "";
+  bool _isOffline = false;
+  String? _cacheTimeAgo;
+  bool _isFromCache = false;
 
   @override
   void initState() {
     super.initState();
-    refreshData();
+    eventsFuture = _loadEvents();
     loadMyEmail();
   }
 
@@ -201,8 +213,63 @@ class EventListState extends State<EventList> {
   void refreshData() {
     if (mounted) {
       setState(() {
-        eventsFuture = EventService.getAllEvents();
+        eventsFuture = _loadEvents();
       });
+    }
+  }
+
+  Future<List<EventModel>?> _loadEvents() async {
+    // 1. Check local cache first
+    final cached = await EventService.getCachedAllEvents();
+    if (cached != null) {
+      _isFromCache = true;
+      _isOffline = false;
+      _cacheTimeAgo = cached.timeAgoFormatted;
+      // Start background refresh
+      _refreshInBackground();
+      return cached.data;
+    }
+
+    // 2. No cache, fetch from network
+    try {
+      final fresh = await EventService.getAllEvents();
+      _isFromCache = false;
+      _isOffline = false;
+      _cacheTimeAgo = null;
+      return fresh;
+    } catch (_) {
+      final fallback = await EventService.getCachedAllEvents();
+      if (fallback != null) {
+        _isFromCache = true;
+        _isOffline = true;
+        _cacheTimeAgo = fallback.timeAgoFormatted;
+        return fallback.data;
+      }
+      return null;
+    }
+  }
+
+  Future<void> _refreshInBackground() async {
+    try {
+      final fresh = await EventService.getAllEvents();
+      if (fresh != null && mounted) {
+        setState(() {
+          _isFromCache = false;
+          _isOffline = false;
+          _cacheTimeAgo = null;
+          eventsFuture = Future.value(fresh);
+        });
+      } else if (fresh == null && mounted) {
+        setState(() {
+          _isOffline = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isOffline = true;
+        });
+      }
     }
   }
 
@@ -354,6 +421,12 @@ class EventListState extends State<EventList> {
           ),
         ),
 
+        if (_isOffline && _isFromCache)
+          OfflineIndicatorBanner(
+            timeAgo: _cacheTimeAgo,
+            onRetry: refreshData,
+          ),
+
         /// EVENT LIST
         Expanded(
           child: FutureBuilder<List<EventModel>?>(
@@ -382,9 +455,7 @@ class EventListState extends State<EventList> {
                               const Text("Failed to load events"),
                               const SizedBox(height: 16),
                               ElevatedButton(
-                                onPressed: () => setState(() {
-                                  eventsFuture = EventService.getAllEvents();
-                                }),
+                                onPressed: refreshData,
                                 child: const Text("Retry"),
                               ),
                             ],
@@ -500,9 +571,7 @@ class EventListState extends State<EventList> {
 
               return RefreshIndicator(
                 onRefresh: () async {
-                  setState(() {
-                    eventsFuture = EventService.getAllEvents();
-                  });
+                  refreshData();
                 },
                 child: ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -514,11 +583,7 @@ class EventListState extends State<EventList> {
                     return EventCard(
                       event: event,
                       myEmail: myEmail,
-                      onRefresh: () {
-                        setState(() {
-                          eventsFuture = EventService.getAllEvents();
-                        });
-                      },
+                      onRefresh: refreshData,
                     );
                   },
                 ),
@@ -559,7 +624,7 @@ class _MyActivityPageState extends State<MyActivityPage> {
   @override
   void initState() {
     super.initState();
-    myEventsFuture = EventService.getMyEvents();
+    myEventsFuture = _loadMyEvents();
     if (widget.showPosts) {
       myPostsFuture = PostService.getMyPosts();
     }
@@ -569,9 +634,43 @@ class _MyActivityPageState extends State<MyActivityPage> {
   Future<List<JobModel>?> _loadMyJobs() async {
     final email = await StorageService.getUserEmail();
     myEmail = email ?? "";
-    final allJobs = await JobService.getAllJobs();
-    if (allJobs == null) return null;
-    return allJobs.where((j) => j.userEmail == myEmail).toList();
+    final cached = await JobService.getCachedMyJobs();
+    if (cached != null) {
+      _refreshMyJobsInBackground();
+      return cached.data;
+    }
+    return JobService.getMyJobs();
+  }
+
+  Future<void> _refreshMyJobsInBackground() async {
+    try {
+      final fresh = await JobService.getMyJobs();
+      if (fresh != null && mounted) {
+        setState(() {
+          myJobsFuture = Future.value(fresh);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<List<EventModel>?> _loadMyEvents() async {
+    final cached = await EventService.getCachedMyEvents();
+    if (cached != null) {
+      _refreshMyEventsInBackground();
+      return cached.data;
+    }
+    return EventService.getMyEvents();
+  }
+
+  Future<void> _refreshMyEventsInBackground() async {
+    try {
+      final fresh = await EventService.getMyEvents();
+      if (fresh != null && mounted) {
+        setState(() {
+          myEventsFuture = Future.value(fresh);
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -819,11 +918,14 @@ class _JobListState extends State<JobList> {
   String selectedSalary = "All";
   bool showPast = false;
   String myEmail = "";
+  bool _isOffline = false;
+  String? _cacheTimeAgo;
+  bool _isFromCache = false;
 
   @override
   void initState() {
     super.initState();
-    jobsFuture = JobService.getAllJobs();
+    jobsFuture = _loadJobs();
     loadMyEmail();
   }
 
@@ -832,6 +934,69 @@ class _JobListState extends State<JobList> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void refreshData() {
+    if (mounted) {
+      setState(() {
+        jobsFuture = _loadJobs();
+      });
+    }
+  }
+
+  Future<List<JobModel>?> _loadJobs() async {
+    // 1. Check local cache first
+    final cached = await JobService.getCachedAllJobs();
+    if (cached != null) {
+      _isFromCache = true;
+      _isOffline = false;
+      _cacheTimeAgo = cached.timeAgoFormatted;
+      // Start background refresh
+      _refreshInBackground();
+      return cached.data;
+    }
+
+    // 2. No cache, fetch from network
+    try {
+      final fresh = await JobService.getAllJobs();
+      _isFromCache = false;
+      _isOffline = false;
+      _cacheTimeAgo = null;
+      return fresh;
+    } catch (_) {
+      final fallback = await JobService.getCachedAllJobs();
+      if (fallback != null) {
+        _isFromCache = true;
+        _isOffline = true;
+        _cacheTimeAgo = fallback.timeAgoFormatted;
+        return fallback.data;
+      }
+      return null;
+    }
+  }
+
+  Future<void> _refreshInBackground() async {
+    try {
+      final fresh = await JobService.getAllJobs();
+      if (fresh != null && mounted) {
+        setState(() {
+          _isFromCache = false;
+          _isOffline = false;
+          _cacheTimeAgo = null;
+          jobsFuture = Future.value(fresh);
+        });
+      } else if (fresh == null && mounted) {
+        setState(() {
+          _isOffline = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isOffline = true;
+        });
+      }
+    }
   }
 
   Future<void> loadMyEmail() async {
@@ -890,6 +1055,12 @@ class _JobListState extends State<JobList> {
           ),
         ),
 
+        if (_isOffline && _isFromCache)
+          OfflineIndicatorBanner(
+            timeAgo: _cacheTimeAgo,
+            onRetry: refreshData,
+          ),
+
         /// JOB LIST
         Expanded(
           child: FutureBuilder<List<JobModel>?>(
@@ -918,9 +1089,7 @@ class _JobListState extends State<JobList> {
                               const Text("Failed to load jobs"),
                               const SizedBox(height: 16),
                               ElevatedButton(
-                                onPressed: () => setState(() {
-                                  jobsFuture = JobService.getAllJobs();
-                                }),
+                                onPressed: refreshData,
                                 child: const Text("Retry"),
                               ),
                             ],
@@ -1044,9 +1213,7 @@ class _JobListState extends State<JobList> {
 
               return RefreshIndicator(
                 onRefresh: () async {
-                  setState(() {
-                    jobsFuture = JobService.getAllJobs();
-                  });
+                  refreshData();
                 },
                 child: ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -1058,11 +1225,7 @@ class _JobListState extends State<JobList> {
                     return JobCard(
                       job: job,
                       myEmail: myEmail,
-                      onRefresh: () {
-                        setState(() {
-                          jobsFuture = JobService.getAllJobs();
-                        });
-                      },
+                      onRefresh: refreshData,
                     );
                   },
                 ),
