@@ -197,6 +197,9 @@ class ChatService {
             debugPrint("❌ STOMP error: ${frame.body}");
             _isConnecting = false;
             _notifyError("STOMP error: ${frame.body}");
+            if (frame.body != null && frame.body!.contains("Unauthorized")) {
+              _stompClient?.deactivate();
+            }
             if (!completer.isCompleted) {
               completer.complete(false);
             }
@@ -310,6 +313,7 @@ class ChatService {
     required String receiver,
     required String content,
     String? timestamp,
+    String? clientMessageId,
   }) {
     if (_stompClient == null || !_stompClient!.connected) {
       debugPrint(
@@ -320,14 +324,16 @@ class ChatService {
     }
 
     final targetReceiver = receiver.trim().toLowerCase();
+    final effectiveClientMessageId = clientMessageId ?? "cm_${DateTime.now().microsecondsSinceEpoch}";
     final payload = {
       "receiver": targetReceiver,
       "content": content,
       "timestamp": ?timestamp,
+      "clientMessageId": effectiveClientMessageId,
     };
 
     debugPrint(
-      "📤 CHAT SEND: sender=$_connectedUserEmail, receiver=$targetReceiver, destination=/app/chat.send, payloadLength=${content.length}",
+      "📤 CHAT SEND: sender=$_connectedUserEmail, receiver=$targetReceiver, destination=/app/chat.send, clientMsgId=$effectiveClientMessageId, payloadLength=${content.length}",
     );
 
     _stompClient!.send(

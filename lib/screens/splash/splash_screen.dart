@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/storage_service.dart';
+import '../../services/auth_service.dart';
 import '../auth/login_screen.dart';
 import '../router/dashboard_router.dart';
 
@@ -52,9 +52,9 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _initializeApp() async {
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 2));
 
-    final isLoggedIn = await StorageService.getLoginStatus();
+    final sessionValid = await AuthService.restoreSession();
 
     if (!mounted) return;
 
@@ -62,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen>
       context,
       MaterialPageRoute(
         builder: (_) =>
-        isLoggedIn ? const DashboardRouter() : const LoginScreen(),
+            sessionValid ? const DashboardRouter() : const LoginScreen(),
       ),
     );
   }

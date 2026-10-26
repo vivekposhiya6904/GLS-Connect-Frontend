@@ -129,6 +129,74 @@ class AuthService {
   }
 
   // ===============================
+  // RESTORE SESSION (STARTUP)
+  // ===============================
+  static Future<bool> restoreSession() async {
+    final token = await StorageService.getToken();
+    final isLoggedIn = await StorageService.getLoginStatus();
+
+    if (token == null || token.trim().isEmpty || !isLoggedIn) {
+      return false;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/users/me"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic>) {
+          if (data['name'] != null) await StorageService.saveUserName(data['name'].toString());
+          if (data['role'] != null || data['roleName'] != null) {
+            final role = (data['role'] ?? data['roleName']).toString();
+            await StorageService.saveUserRole(role);
+          }
+          if (data['email'] != null) await StorageService.saveUserEmail(data['email'].toString());
+          await StorageService.saveLoginStatus(true);
+        }
+        return true;
+      }
+
+      // If token expired / 401 Unauthorized, attempt refresh
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        final refreshResponse = await http.post(
+          Uri.parse("${ApiConfig.baseUrl}/api/users/refresh-token"),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          },
+        ).timeout(const Duration(seconds: 8));
+
+        if (refreshResponse.statusCode == 200) {
+          final refreshData = jsonDecode(refreshResponse.body);
+          if (refreshData is Map && refreshData['token'] != null) {
+            await StorageService.saveToken(refreshData['token'].toString());
+            if (refreshData['name'] != null) await StorageService.saveUserName(refreshData['name'].toString());
+            if (refreshData['role'] != null) await StorageService.saveUserRole(refreshData['role'].toString());
+            await StorageService.saveLoginStatus(true);
+            return true;
+          }
+        }
+
+        // If refresh failed because session was genuinely invalid/revoked:
+        await StorageService.logout();
+        return false;
+      }
+
+      // On server 50x or temporary error, preserve login so user can access cached data offline
+      return true;
+    } catch (_) {
+      // Backend sleeping / cold-start / device offline: preserve session for cached dashboard
+      return true;
+    }
+  }
+
+  // ===============================
   // EMAIL VERIFICATION (SEND OTP)
   // ===============================
 
