@@ -8,6 +8,7 @@ import '../../models/profile_view_model.dart';
 import '../../services/profile_view_service.dart';
 import '../../config/api_config.dart';
 import '../../widgets/offline_indicator.dart';
+import '../../utils/academic_options.dart';
 
 class AlumniProfileScreen extends StatefulWidget {
   const AlumniProfileScreen({super.key});
@@ -22,6 +23,7 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   bool _isOffline = false;
   bool _isFromCache = false;
   String? _cacheTimeAgo;
+  AlumniProfileModel? _savedProfile;
 
   String username = "";
   String? profilePictureUrl;
@@ -30,6 +32,11 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   final batchController = TextEditingController();
   final degreeController = TextEditingController();
   final departmentController = TextEditingController();
+  final customDegreeController = TextEditingController();
+  final customDepartmentController = TextEditingController();
+  String? selectedDegreeDropdown;
+  String? selectedDepartmentDropdown;
+
   final designationController = TextEditingController();
   final companyController = TextEditingController();
   final industryController = TextEditingController();
@@ -52,6 +59,8 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
     batchController.dispose();
     degreeController.dispose();
     departmentController.dispose();
+    customDegreeController.dispose();
+    customDepartmentController.dispose();
     designationController.dispose();
     companyController.dispose();
     industryController.dispose();
@@ -65,10 +74,48 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   }
 
   void _applyProfileData(AlumniProfileModel profile) {
+    _savedProfile = profile;
     profilePictureUrl = profile.profilePictureUrl;
     batchController.text = profile.batchYear?.toString() ?? "";
-    degreeController.text = profile.degree ?? "";
-    departmentController.text = profile.department ?? "";
+
+    final savedDegree = profile.degree?.trim() ?? "";
+    if (savedDegree.isNotEmpty) {
+      if (AcademicOptions.isPredefinedDegree(savedDegree)) {
+        selectedDegreeDropdown = savedDegree;
+        customDegreeController.text = "";
+        degreeController.text = savedDegree;
+      } else {
+        selectedDegreeDropdown = AcademicOptions.otherOption;
+        customDegreeController.text = savedDegree;
+        degreeController.text = savedDegree;
+      }
+    } else {
+      selectedDegreeDropdown = null;
+      customDegreeController.text = "";
+      degreeController.text = "";
+    }
+
+    final savedDept = profile.department?.trim() ?? "";
+    if (savedDept.isNotEmpty) {
+      final degreeContext = (selectedDegreeDropdown != null &&
+              selectedDegreeDropdown != AcademicOptions.otherOption)
+          ? selectedDegreeDropdown
+          : null;
+      if (AcademicOptions.isPredefinedDepartment(degreeContext, savedDept)) {
+        selectedDepartmentDropdown = savedDept;
+        customDepartmentController.text = "";
+        departmentController.text = savedDept;
+      } else {
+        selectedDepartmentDropdown = AcademicOptions.otherOption;
+        customDepartmentController.text = savedDept;
+        departmentController.text = savedDept;
+      }
+    } else {
+      selectedDepartmentDropdown = null;
+      customDepartmentController.text = "";
+      departmentController.text = "";
+    }
+
     designationController.text = profile.designation ?? "";
     companyController.text = profile.companyName ?? "";
     industryController.text = profile.industry ?? "";
@@ -78,6 +125,15 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
     githubController.text = profile.githubUrl ?? "";
     contactController.text = profile.contactNumber ?? "";
     cityController.text = profile.currentCity ?? "";
+  }
+
+  void _cancelEditing() {
+    if (_savedProfile != null) {
+      _applyProfileData(_savedProfile!);
+    }
+    setState(() {
+      isEditing = false;
+    });
   }
 
   Future<void> loadAllData() async {
@@ -132,10 +188,111 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   }
 
   Future<void> saveProfile() async {
+    final batchInt = int.tryParse(batchController.text.trim());
+
+    String finalDegree = "";
+    if (selectedDegreeDropdown == AcademicOptions.otherOption) {
+      finalDegree = customDegreeController.text.trim();
+      if (finalDegree.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Please enter your custom degree name."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      if (finalDegree.toLowerCase() == "other") {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Please enter a specific degree name, not 'Other'."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      if (finalDegree.length > 100) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Degree name must be 100 characters or less."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    } else if (selectedDegreeDropdown != null && selectedDegreeDropdown!.isNotEmpty) {
+      finalDegree = selectedDegreeDropdown!;
+    } else {
+      finalDegree = degreeController.text.trim();
+    }
+
+    String finalDept = "";
+    if (selectedDepartmentDropdown == AcademicOptions.otherOption) {
+      finalDept = customDepartmentController.text.trim();
+      if (finalDept.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Please enter your custom department name."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      if (finalDept.toLowerCase() == "other") {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Please enter a specific department name, not 'Other'."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      if (finalDept.length > 100) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Department name must be 100 characters or less."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    } else if (selectedDepartmentDropdown != null && selectedDepartmentDropdown!.isNotEmpty) {
+      finalDept = selectedDepartmentDropdown!;
+    } else {
+      finalDept = departmentController.text.trim();
+    }
+
+    if (batchInt == null || finalDegree.isEmpty || finalDept.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please select or enter a valid Batch Year, Degree, and Department."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    degreeController.text = finalDegree;
+    departmentController.text = finalDept;
+
     final updatedProfile = AlumniProfileModel(
-      batchYear: int.tryParse(batchController.text),
-      degree: degreeController.text,
-      department: departmentController.text,
+      batchYear: batchInt,
+      degree: finalDegree,
+      department: finalDept,
       designation: designationController.text,
       companyName: companyController.text,
       industry: industryController.text,
@@ -151,9 +308,27 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
     final success = await AlumniProfileService.updateProfile(updatedProfile);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile Updated Successfully")),
-      );
+      _savedProfile = updatedProfile;
+      setState(() {
+        isEditing = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Profile Updated Successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to update profile. Please try again."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -570,20 +745,270 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
     );
   }
 
+  Widget _buildBatchYearDropdown() {
+    final currentVal = int.tryParse(batchController.text.trim());
+    final years = AcademicOptions.getBatchYears(customYear: currentVal);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Batch Year",
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<int>(
+          key: const Key('alumni_batch_year_dropdown'),
+          value: (currentVal != null && years.contains(currentVal)) ? currentVal : null,
+          isExpanded: true,
+          decoration: InputDecoration(
+            hintText: "Select Batch Year",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          items: years.map((y) {
+            return DropdownMenuItem<int>(
+              value: y,
+              child: Text(y.toString(), style: const TextStyle(fontSize: 14)),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                batchController.text = val.toString();
+              });
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDegreeDropdown() {
+    final degrees = AcademicOptions.getDegrees();
+    final isOtherSelected = selectedDegreeDropdown == AcademicOptions.otherOption;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Degree",
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          key: const Key('alumni_degree_dropdown'),
+          value: (selectedDegreeDropdown != null && degrees.contains(selectedDegreeDropdown))
+              ? selectedDegreeDropdown
+              : null,
+          isExpanded: true,
+          decoration: InputDecoration(
+            hintText: "Select Degree",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          items: degrees.map((d) {
+            return DropdownMenuItem<String>(
+              value: d,
+              child: Text(d, style: const TextStyle(fontSize: 14)),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                selectedDegreeDropdown = val;
+                if (val == AcademicOptions.otherOption) {
+                  degreeController.text = customDegreeController.text.trim();
+                } else {
+                  degreeController.text = val;
+                }
+
+                // Check if currently selected department is still valid for this degree
+                final validDepts = AcademicOptions.getDepartmentsForDegree(
+                  degree: val == AcademicOptions.otherOption ? null : val,
+                );
+                if (selectedDepartmentDropdown != null &&
+                    selectedDepartmentDropdown != AcademicOptions.otherOption &&
+                    !validDepts.contains(selectedDepartmentDropdown)) {
+                  selectedDepartmentDropdown = null;
+                  departmentController.text = "";
+                }
+              });
+            }
+          },
+        ),
+        if (isOtherSelected) ...[
+          const SizedBox(height: 10),
+          TextFormField(
+            key: const Key('alumni_custom_degree_field'),
+            controller: customDegreeController,
+            maxLength: 100,
+            decoration: InputDecoration(
+              labelText: "Enter Degree Name",
+              hintText: "e.g. B.Arch, M.Phil, Ph.D",
+              counterText: "",
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            onChanged: (val) {
+              degreeController.text = val.trim();
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDepartmentDropdown() {
+    final depts = AcademicOptions.getDepartmentsForDegree(
+      degree: (selectedDegreeDropdown != null && selectedDegreeDropdown != AcademicOptions.otherOption)
+          ? selectedDegreeDropdown
+          : null,
+    );
+    final isOtherSelected = selectedDepartmentDropdown == AcademicOptions.otherOption;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Department",
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          key: const Key('alumni_department_dropdown'),
+          value: (selectedDepartmentDropdown != null && depts.contains(selectedDepartmentDropdown))
+              ? selectedDepartmentDropdown
+              : null,
+          isExpanded: true,
+          decoration: InputDecoration(
+            hintText: "Select Department",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          items: depts.map((d) {
+            return DropdownMenuItem<String>(
+              value: d,
+              child: Text(d, style: const TextStyle(fontSize: 14)),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                selectedDepartmentDropdown = val;
+                if (val == AcademicOptions.otherOption) {
+                  departmentController.text = customDepartmentController.text.trim();
+                } else {
+                  departmentController.text = val;
+                }
+              });
+            }
+          },
+        ),
+        if (isOtherSelected) ...[
+          const SizedBox(height: 10),
+          TextFormField(
+            key: const Key('alumni_custom_department_field'),
+            controller: customDepartmentController,
+            maxLength: 100,
+            decoration: InputDecoration(
+              labelText: "Enter Department Name",
+              hintText: "e.g. Artificial Intelligence, Data Science",
+              counterText: "",
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF1A3A8F), width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            onChanged: (val) {
+              departmentController.text = val.trim();
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildEditableField(String label, String value, bool isMultiline) {
+    if (label == "Batch Year") {
+      return _buildBatchYearDropdown();
+    }
+    if (label == "Degree") {
+      return _buildDegreeDropdown();
+    }
+    if (label == "Department") {
+      return _buildDepartmentDropdown();
+    }
+
     TextEditingController? controller;
 
     // Match the correct controller
     switch (label) {
-      case "Batch Year":
-        controller = batchController;
-        break;
-      case "Degree":
-        controller = degreeController;
-        break;
-      case "Department":
-        controller = departmentController;
-        break;
       case "Designation":
         controller = designationController;
         break;
@@ -654,28 +1079,80 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   }
 
   Widget _buildEditProfileButton() {
+    if (isEditing) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _cancelEditing,
+                icon: const Icon(Icons.close_rounded, color: Colors.grey),
+                label: const Text(
+                  "Cancel",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 52),
+                  side: BorderSide(color: Colors.grey.shade400),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: saveProfile,
+                icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                label: const Text(
+                  "Save",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: ElevatedButton.icon(
-        onPressed: () async {
-          if (isEditing) {
-            await saveProfile();
-          }
+        onPressed: () {
           setState(() {
-            isEditing = !isEditing;
+            isEditing = true;
           });
         },
-        icon: Icon(isEditing ? Icons.check_circle_outline : Icons.edit_outlined, color: Colors.white),
-        label: Text(
-          isEditing ? "Save Changes" : "Edit Profile",
-          style: const TextStyle(
+        icon: const Icon(Icons.edit_outlined, color: Colors.white),
+        label: const Text(
+          "Edit Profile",
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: isEditing ? Colors.green.shade700 : const Color(0xFF1A3A8F),
+          backgroundColor: const Color(0xFF1A3A8F),
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 52),
           shape: RoundedRectangleBorder(
