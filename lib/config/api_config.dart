@@ -14,6 +14,6 @@ class ApiConfig {
     // changes
 
     // Android Emulator and physical Android device with adb reverse tcp:8080 tcp:8080
-    return "http://192.168.0.10:8080";
+    return "http://192.168.0.6:8080";
   }
 }
