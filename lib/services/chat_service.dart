@@ -328,7 +328,7 @@ class ChatService {
     final payload = {
       "receiver": targetReceiver,
       "content": content,
-      "timestamp": ?timestamp,
+      if (timestamp != null) "timestamp": timestamp,
       "clientMessageId": effectiveClientMessageId,
     };
 

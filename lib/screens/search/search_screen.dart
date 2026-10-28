@@ -1,3 +1,4 @@
+import '../../widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -252,10 +253,10 @@ class _SearchScreenState extends State<SearchScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          ProfileAvatar(
+            imageUrl: profile["imageUrl"] ?? profile["profilePictureUrl"],
+            name: profile["name"],
             radius: 32,
-            backgroundImage: NetworkImage(
-                "https://i.pravatar.cc/150?u=${profile["name"]}"),
           ),
           const SizedBox(width: 16),
           Expanded(

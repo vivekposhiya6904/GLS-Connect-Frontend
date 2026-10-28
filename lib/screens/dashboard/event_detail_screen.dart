@@ -405,19 +405,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           ],
         ),
       ),
-      bottomSheet: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -437,22 +438,33 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               icon: Icon(
                 isMyEvent
                     ? Icons.person_rounded
-                    : (!hasOrganizer ? Icons.info_outline : Icons.chat_bubble_outline),
+                    : (!hasOrganizer
+                        ? Icons.info_outline
+                        : Icons.chat_bubble_outline),
                 size: 18,
               ),
               label: Text(
                 isMyEvent
                     ? "You organized this event"
-                    : (!hasOrganizer ? "Organizer unavailable" : "Contact Organizer"),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    : (!hasOrganizer
+                        ? "Organizer unavailable"
+                        : "Contact Organizer"),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A3A8F),
-                disabledBackgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                disabledBackgroundColor:
+                    isDark ? Colors.grey.shade800 : Colors.grey.shade300,
                 foregroundColor: Colors.white,
-                disabledForegroundColor: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                disabledForegroundColor:
+                    isDark ? Colors.grey.shade500 : Colors.grey.shade600,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 elevation: (isMyEvent || !hasOrganizer) ? 0 : 2,
               ),
             ),
@@ -460,8 +472,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         ),
       ),
     );
-  }
-
+  }  
   Widget _buildMetaRow({
     required IconData icon,
     required String title,
@@ -469,26 +480,40 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     required bool isDark,
   }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF1A3A8F)),
+        Icon(
+          icon,
+          size: 18,
+          color: const Color(0xFF1A3A8F),
+        ),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                value,
+                softWrap: true,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? Colors.white
+                      : const Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

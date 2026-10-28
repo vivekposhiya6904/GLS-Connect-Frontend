@@ -25,6 +25,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Map<String, bool> onlineStatusMap = {};
   Map<String, String> userNamesMap = {};
   Map<String, String> userRolesMap = {};
+  Map<String, String> userProfilePicsMap = {};
 
   final ChatService _chatService = ChatService();
   final TextEditingController _searchController = TextEditingController();
@@ -226,15 +227,20 @@ class _ChatScreenState extends State<ChatScreen> {
 
           final Map<String, String> names = {};
           final Map<String, String> roles = {};
+          final Map<String, String> profilePics = {};
           for (var u in usersList) {
             final email = (u['email']?.toString() ?? "").trim().toLowerCase();
             final name = (u['name']?.toString() ?? "").trim();
             final role = ((u['roleName'] ?? u['role'])?.toString() ?? "").trim();
+            final pic = (u['profilePictureUrl'] ?? u['photoUrl'])?.toString().trim();
             if (email.isNotEmpty && name.isNotEmpty) {
               names[email] = name;
             }
             if (email.isNotEmpty && role.isNotEmpty) {
               roles[email] = role;
+            }
+            if (email.isNotEmpty && pic != null && pic.isNotEmpty) {
+              profilePics[email] = pic;
             }
           }
 
@@ -242,6 +248,7 @@ class _ChatScreenState extends State<ChatScreen> {
             allUsers = usersList;
             userNamesMap = names;
             userRolesMap = roles;
+            userProfilePicsMap = profilePics;
             if (searchText.isNotEmpty) {
               filterUsers(searchText);
             } else {
@@ -637,6 +644,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 ChatAvatar(
                   name: displayName,
+                  imageUrl: userProfilePicsMap[otherUser],
                   radius: 26,
                   isOnline: isOnline,
                 ),
@@ -785,6 +793,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 builder: (_) => ChatDetailScreen(
                   name: displayName,
                   receiverEmail: email,
+                  imageUrl: userProfilePicsMap[email],
                 ),
               ),
             ).then((_) => loadData(showLoading: false));
@@ -795,6 +804,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 ChatAvatar(
                   name: displayName,
+                  imageUrl: userProfilePicsMap[email],
                   radius: 24,
                   isOnline: isOnline,
                 ),

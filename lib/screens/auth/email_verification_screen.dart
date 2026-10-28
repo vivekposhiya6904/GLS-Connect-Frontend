@@ -16,11 +16,15 @@ const Color glsTextMuted = Color(0xFF8899BB);
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
   final String purpose;
+  final int initialCooldownSeconds;
+  final bool otpDispatched;
 
   const EmailVerificationScreen({
     super.key,
     required this.email,
     this.purpose = "ACCOUNT_REGISTRATION",
+    this.initialCooldownSeconds = 60,
+    this.otpDispatched = true,
   });
 
   @override
@@ -38,7 +42,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   void initState() {
     super.initState();
-    _startCooldownTimer();
+    _startCooldownTimer(widget.initialCooldownSeconds);
   }
 
   @override
@@ -51,6 +55,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   void _startCooldownTimer([int seconds = 60]) {
     _cooldownTimer?.cancel();
     setState(() => _cooldownSeconds = seconds);
+
+    if (seconds <= 0) return;
 
     _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_cooldownSeconds <= 1) {
@@ -79,6 +85,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   Future<void> _verifyOtp() async {
+    if (_isVerifying) return;
+
     final otp = _otpController.text.trim();
     if (otp.length != 6) {
       _showMessage("Please enter the complete 6-digit code");
@@ -117,7 +125,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     setState(() => _isResending = true);
 
     try {
-      await AuthService.resendOtp(
+      final res = await AuthService.resendOtp(
         email: widget.email,
         purpose: widget.purpose,
       );
@@ -125,7 +133,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       if (!mounted) return;
 
       _showMessage("A fresh 6-digit code has been sent to your inbox", isError: false);
-      _startCooldownTimer(60);
+      int cooldown = 60;
+      if (res['cooldownSeconds'] != null) {
+        cooldown = int.tryParse(res['cooldownSeconds'].toString()) ?? 60;
+      }
+      _startCooldownTimer(cooldown);
     } catch (e) {
       _showMessage(e.toString());
     } finally {
@@ -175,7 +187,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: glsBlue.withOpacity(0.08),
+                  color: glsBlue.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -212,14 +224,38 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 ),
               ),
 
-              const SizedBox(height: 36),
+              if (!widget.otpDispatched) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.amber.shade400),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: Colors.amber.shade900, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "If you already received a code recently, please enter it below. Otherwise, tap Resend Code when the timer completes.",
+                          style: TextStyle(color: Colors.amber.shade900, fontSize: 12.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 32),
 
               // ── OTP Input
-              Align(
+              const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "ENTER 6-DIGIT CODE",
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: glsBlue,
@@ -289,7 +325,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   onPressed: _isVerifying ? null : _verifyOtp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: glsBlue,
-                    disabledBackgroundColor: glsBlue.withOpacity(0.55),
+                    disabledBackgroundColor: glsBlue.withValues(alpha: 0.55),
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
                   ),
@@ -316,7 +352,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     "Didn't receive the email?",
                     style: TextStyle(
                       fontSize: 12,
-                      color: glsTextMuted.withOpacity(0.9),
+                      color: glsTextMuted.withValues(alpha: 0.9),
                       fontWeight: FontWeight.w500,
                     ),
                   ),

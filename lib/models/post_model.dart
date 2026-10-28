@@ -9,6 +9,7 @@ class PostModel {
   final String userRole;
   final String posterDepartment;
   final String posterDesignation;
+  final String? userProfilePictureUrl;
 
   PostModel({
     this.id,
@@ -21,6 +22,7 @@ class PostModel {
     required this.userRole,
     required this.posterDepartment,
     required this.posterDesignation,
+    this.userProfilePictureUrl,
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class PostModel {
       userRole: json['userRole'] ?? '',
       posterDepartment: json['posterDepartment'] ?? 'N/A',
       posterDesignation: json['posterDesignation'] ?? 'N/A',
+      userProfilePictureUrl: json['userProfilePictureUrl'] ?? json['authorProfilePictureUrl'],
     );
   }
 
@@ -50,6 +53,7 @@ class PostModel {
       'userRole': userRole,
       'posterDepartment': posterDepartment,
       'posterDesignation': posterDesignation,
+      'userProfilePictureUrl': userProfilePictureUrl,
     };
   }
 }

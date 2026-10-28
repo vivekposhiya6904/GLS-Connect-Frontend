@@ -7,6 +7,7 @@ import '../../services/job_service.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../services/faculty_profile_service.dart';
 import '../../config/api_config.dart';
+import '../../widgets/profile_avatar.dart';
 import '../profile/profile_detail_screen.dart';
 import '../../utils/date_helper.dart';
 import '../../utils/salary_helper.dart';
@@ -1019,27 +1020,13 @@ class ProfileCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                CircleAvatar(
+                ProfileAvatar(
+                  imageUrl: profilePictureUrl,
+                  name: name,
                   radius: 22,
                   backgroundColor: const Color(0xFFE0E7FF),
-                  backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
-                      ? NetworkImage(
-                          profilePictureUrl!.startsWith("http")
-                              ? profilePictureUrl!
-                              : "${ApiConfig.baseUrl}$profilePictureUrl",
-                        )
-                      : null,
-                  onBackgroundImageError: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
-                      ? (exception, stackTrace) {
-                          // Handled safely without crashing
-                        }
-                      : null,
-                  child: profilePictureUrl == null || profilePictureUrl!.isEmpty
-                      ? const Icon(
-                          Icons.person,
-                          color: Colors.indigo,
-                        )
-                      : null,
+                  foregroundColor: Colors.indigo,
+                  showInitials: false,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

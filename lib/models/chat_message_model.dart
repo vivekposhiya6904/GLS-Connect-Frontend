@@ -15,6 +15,7 @@ enum MessageType {
 class ChatMessageModel {
   final String? id;
   final String? conversationId;
+  final String? clientMessageId;
   final String sender;
   final String receiver;
   final String content;
@@ -25,6 +26,7 @@ class ChatMessageModel {
   ChatMessageModel({
     this.id,
     this.conversationId,
+    this.clientMessageId,
     required this.sender,
     required this.receiver,
     required this.content,
@@ -54,7 +56,12 @@ class ChatMessageModel {
     DateTime parseTimestamp(dynamic ts) {
       if (ts == null) return DateTime.now();
       try {
-        final parsed = DateTime.parse(ts.toString());
+        if (ts is num) {
+          return DateTime.fromMillisecondsSinceEpoch(ts.toInt()).toLocal();
+        }
+        final str = ts.toString().trim();
+        if (str.isEmpty) return DateTime.now();
+        final parsed = DateTime.parse(str);
         return parsed.isUtc ? parsed.toLocal() : parsed;
       } catch (_) {
         return DateTime.now();
@@ -64,6 +71,7 @@ class ChatMessageModel {
     return ChatMessageModel(
       id: json["id"]?.toString(),
       conversationId: json["conversationId"]?.toString(),
+      clientMessageId: json["clientMessageId"]?.toString(),
       sender: (json["sender"]?.toString() ?? "").trim().toLowerCase(),
       receiver: (json["receiver"]?.toString() ?? "").trim().toLowerCase(),
       content: json["content"]?.toString() ?? "",
@@ -77,18 +85,20 @@ class ChatMessageModel {
     return {
       if (id != null) "id": id,
       if (conversationId != null) "conversationId": conversationId,
+      if (clientMessageId != null) "clientMessageId": clientMessageId,
       "sender": sender,
       "receiver": receiver,
       "content": content,
       "type": type.name.toUpperCase(),
       "status": status.name.toUpperCase(),
-      "timestamp": timestamp.toIso8601String(),
+      "timestamp": timestamp.toUtc().toIso8601String(),
     };
   }
 
   ChatMessageModel copyWith({
     String? id,
     String? conversationId,
+    String? clientMessageId,
     String? sender,
     String? receiver,
     String? content,
@@ -99,6 +109,7 @@ class ChatMessageModel {
     return ChatMessageModel(
       id: id ?? this.id,
       conversationId: conversationId ?? this.conversationId,
+      clientMessageId: clientMessageId ?? this.clientMessageId,
       sender: sender ?? this.sender,
       receiver: receiver ?? this.receiver,
       content: content ?? this.content,

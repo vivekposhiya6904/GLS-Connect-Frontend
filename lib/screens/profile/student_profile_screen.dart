@@ -5,6 +5,7 @@ import '../../utils/storage_service.dart';
 import '../auth/login_screen.dart';
 import '../../utils/image_picker_helper.dart';
 import '../../config/api_config.dart';
+import '../../widgets/profile_avatar.dart';
 import '../../widgets/offline_indicator.dart';
 import '../../utils/academic_options.dart';
 
@@ -196,6 +197,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     final uploadedUrl = await StudentProfileService.uploadProfileImage(image);
 
     if (uploadedUrl != null && mounted) {
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+      await StorageService.saveUserProfilePicture(uploadedUrl);
       setState(() {
         profilePictureUrl = uploadedUrl;
       });
@@ -448,20 +452,13 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                         children: [
                           Stack(
                             children: [
-                              CircleAvatar(
+                              ProfileAvatar(
+                                imageUrl: profilePictureUrl,
+                                name: username,
                                 radius: 46,
+                                enableCacheBust: true,
                                 backgroundColor: const Color(0xFF1A3A8F).withValues(alpha: 0.15),
-                                backgroundImage: (profilePictureUrl != null &&
-                                        profilePictureUrl!.isNotEmpty)
-                                    ? NetworkImage(
-                                        profilePictureUrl!.startsWith('http')
-                                            ? profilePictureUrl!
-                                            : "${ApiConfig.baseUrl}$profilePictureUrl",
-                                      )
-                                    : null,
-                                child: (profilePictureUrl == null || profilePictureUrl!.isEmpty)
-                                    ? const Icon(Icons.person, size: 50, color: Color(0xFF1A3A8F))
-                                    : null,
+                                foregroundColor: const Color(0xFF1A3A8F),
                               ),
                               Positioned(
                                 bottom: 0,

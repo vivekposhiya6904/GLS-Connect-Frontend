@@ -12,7 +12,7 @@ import '../../services/event_service.dart';
 import '../../services/post_service.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../services/faculty_profile_service.dart';
-import '../../config/api_config.dart';
+import '../../widgets/profile_avatar.dart';
 import '../profile/profile_detail_screen.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/event_card.dart';
@@ -1615,17 +1615,12 @@ class ProfileCard extends StatelessWidget {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: CircleAvatar(
+        leading: ProfileAvatar(
+          imageUrl: profilePictureUrl,
+          name: name,
           radius: 22,
           backgroundColor: const Color(0xFFE0E7FF),
-          backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
-              ? NetworkImage(profilePictureUrl!.startsWith("http")
-                  ? profilePictureUrl!
-                  : "${ApiConfig.baseUrl}$profilePictureUrl")
-              : null,
-          child: profilePictureUrl == null || profilePictureUrl!.isEmpty
-              ? const Icon(Icons.person, color: Colors.indigo)
-              : null,
+          foregroundColor: Colors.indigo,
         ),
         title: Text(
           name,

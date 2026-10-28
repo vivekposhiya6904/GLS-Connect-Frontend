@@ -3,21 +3,24 @@ class UserModel {
   final String name;
   final String email;
   final String role;
+  final String? profilePictureUrl;
 
   UserModel({
     this.id,
     required this.name,
     required this.email,
     required this.role,
+    this.profilePictureUrl,
   });
 
   // Convert JSON → UserModel
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'],
-      name: json['name'],
-      email: json['email'],
-      role: json['role'],
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      role: json['role'] ?? json['roleName'] ?? 'USER',
+      profilePictureUrl: json['profilePictureUrl']?.toString(),
     );
   }
 
@@ -28,6 +31,7 @@ class UserModel {
       "name": name,
       "email": email,
       "role": role,
+      "profilePictureUrl": profilePictureUrl,
     };
   }
 }

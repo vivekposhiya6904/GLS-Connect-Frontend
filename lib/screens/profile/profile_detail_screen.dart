@@ -7,6 +7,7 @@ import '../../services/faculty_profile_service.dart';
 import '../../services/student_profile_service.dart';
 import '../../services/profile_view_service.dart';
 import '../../config/api_config.dart';
+import '../../widgets/profile_avatar.dart';
 import '../chat/chat_detail_screen.dart';
 import '../../utils/url_helper.dart';
 
@@ -142,25 +143,12 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                         ),
                       ),
                       child: Center(
-                        child: CircleAvatar(
+                        child: ProfileAvatar(
+                          imageUrl: _profilePictureUrl,
+                          name: widget.userName,
                           radius: 50,
                           backgroundColor: Colors.white.withValues(alpha: 0.9),
-                          backgroundImage: _profilePictureUrl != null && _profilePictureUrl!.isNotEmpty
-                              ? NetworkImage(
-                                  _profilePictureUrl!.startsWith('http')
-                                      ? _profilePictureUrl!
-                                      : "${ApiConfig.baseUrl}$_profilePictureUrl")
-                              : null,
-                          child: (_profilePictureUrl == null || _profilePictureUrl!.isEmpty)
-                              ? Text(
-                                  widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'U',
-                                  style: const TextStyle(
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1A3A8F),
-                                  ),
-                                )
-                              : null,
+                          foregroundColor: const Color(0xFF1A3A8F),
                         ),
                       ),
                     ),

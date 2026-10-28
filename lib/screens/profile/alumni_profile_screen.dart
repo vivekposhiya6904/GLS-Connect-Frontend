@@ -7,6 +7,7 @@ import '../../utils/image_picker_helper.dart';
 import '../../models/profile_view_model.dart';
 import '../../services/profile_view_service.dart';
 import '../../config/api_config.dart';
+import '../../widgets/profile_avatar.dart';
 import '../../widgets/offline_indicator.dart';
 import '../../utils/academic_options.dart';
 
@@ -426,21 +427,14 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
                         ),
                       ],
                     ),
-                    child: CircleAvatar(
+                    child: ProfileAvatar(
+                      imageUrl: profilePictureUrl,
+                      name: username,
                       radius: 60,
+                      enableCacheBust: true,
                       backgroundColor: Colors.white,
-                      backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
-                          ? NetworkImage(profilePictureUrl!.startsWith("http")
-                              ? profilePictureUrl!
-                              : "${ApiConfig.baseUrl}$profilePictureUrl")
-                          : null,
-                      child: profilePictureUrl == null || profilePictureUrl!.isEmpty
-                          ? const Icon(
-                              Icons.person_outline_rounded,
-                              size: 70,
-                              color: Color(0xFF1A3A8F),
-                            )
-                          : null,
+                      foregroundColor: const Color(0xFF1A3A8F),
+                      fallbackIcon: Icons.person_outline_rounded,
                     ),
                   ),
                   Positioned(
@@ -1205,11 +1199,31 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
       final url = await AlumniProfileService.uploadProfileImage(picked);
       if (url != null) {
         if (!mounted) return;
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+        await StorageService.saveUserProfilePicture(url);
         setState(() {
           profilePictureUrl = url;
         });
-        await saveProfile();
-        await loadProfile();
+        if (_savedProfile != null) {
+          final updated = AlumniProfileModel(
+            batchYear: _savedProfile!.batchYear,
+            degree: _savedProfile!.degree,
+            department: _savedProfile!.department,
+            designation: _savedProfile!.designation,
+            companyName: _savedProfile!.companyName,
+            industry: _savedProfile!.industry,
+            skills: _savedProfile!.skills,
+            workExperience: _savedProfile!.workExperience,
+            linkedInUrl: _savedProfile!.linkedInUrl,
+            githubUrl: _savedProfile!.githubUrl,
+            contactNumber: _savedProfile!.contactNumber,
+            currentCity: _savedProfile!.currentCity,
+            profilePictureUrl: url,
+          );
+          _savedProfile = updated;
+          await AlumniProfileService.updateProfile(updated);
+        }
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

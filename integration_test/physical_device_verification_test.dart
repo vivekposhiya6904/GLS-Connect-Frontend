@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:alumni_management/main.dart';
 import 'package:alumni_management/screens/navigation/main_navigation.dart';
 import 'package:alumni_management/screens/profile/faculty_profile_screen.dart';
 import 'package:alumni_management/screens/profile/student_profile_screen.dart';
 import 'package:alumni_management/screens/profile/alumni_profile_screen.dart';
 import 'package:alumni_management/screens/dashboard/admin_home_screen.dart';
 import 'package:alumni_management/screens/auth/login_screen.dart';
+import 'package:alumni_management/screens/auth/email_verification_screen.dart';
 import 'package:alumni_management/screens/search/search_screen.dart';
 
 void main() {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Physical Device Full Application Verification', () {
     testWidgets('1. Faculty Module: MainNavigation and FacultyProfileScreen Overflow Check on Device', (tester) async {
@@ -188,6 +188,62 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SearchScreen), findsOneWidget);
+    });
+
+    testWidgets('7. Admin Module: Add User Dialog Opens, Validates, and Dismisses Without Crash', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'userRole': 'ADMIN',
+        'userName': 'Admin User',
+        'user_email': 'admin@alumni.com',
+        'auth_token': 'dummy_jwt_token',
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AdminHomeScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Users'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Add User'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add New User'), findsOneWidget);
+      expect(find.text('Full Name'), findsOneWidget);
+
+      // Tap Create User to verify client validation
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Create User'));
+      await tester.pumpAndSettle();
+      expect(find.text('Please enter full name'), findsOneWidget);
+
+      // Tap Cancel to dismiss cleanly without assertion failure
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Add New User'), findsNothing);
+    });
+
+    testWidgets('8. Email Verification Screen: Renders Email, Cooldown, and Handles Empty Input', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: EmailVerificationScreen(
+            email: 'student.verify@glsu.edu.in',
+            purpose: 'ACCOUNT_ACTIVATION',
+            initialCooldownSeconds: 30,
+            otpDispatched: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('student.verify@glsu.edu.in'), findsOneWidget);
+      expect(find.textContaining('Resend in 30s'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Verify Code'));
+      await tester.pumpAndSettle();
+      expect(find.text('Please enter the complete 6-digit code'), findsOneWidget);
     });
   });
 }

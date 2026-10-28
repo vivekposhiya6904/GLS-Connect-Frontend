@@ -1,3 +1,4 @@
+import '../../widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/job_model.dart';
@@ -325,10 +326,12 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 ),
                 child: Row(
                   children: [
-                    const CircleAvatar(
+                    ProfileAvatar(
+                      imageUrl: widget.job.photoUrl,
+                      name: widget.job.userName,
                       radius: 20,
-                      backgroundColor: Color(0xFFF0F4FF),
-                      child: Icon(Icons.person, color: Color(0xFF1A3A8F), size: 22),
+                      backgroundColor: const Color(0xFFF0F4FF),
+                      foregroundColor: const Color(0xFF1A3A8F),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -363,32 +366,40 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           ],
         ),
       ),
-      bottomSheet: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
+      
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: (isExpired || isMyJob)
                   ? null
                   : () async {
-                      final emailToUse = (widget.job.companyEmail != null && widget.job.companyEmail!.trim().isNotEmpty)
-                          ? widget.job.companyEmail!.trim()
-                          : widget.job.userEmail.trim();
+                      final emailToUse =
+                          (widget.job.companyEmail != null &&
+                                  widget.job.companyEmail!.trim().isNotEmpty)
+                              ? widget.job.companyEmail!.trim()
+                              : widget.job.userEmail.trim();
 
                       if (emailToUse.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("No contact email provided for this job.")),
+                          const SnackBar(
+                            content: Text(
+                              "No contact email provided for this job.",
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -397,7 +408,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                         scheme: 'mailto',
                         path: emailToUse,
                         queryParameters: {
-                          'subject': 'Application for ${widget.job.jobTitle} position at ${widget.job.companyName}',
+                          'subject':
+                              'Application for ${widget.job.jobTitle} position at ${widget.job.companyName}',
                         },
                       );
 
@@ -405,12 +417,19 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                         if (await canLaunchUrl(emailLaunchUri)) {
                           await launchUrl(emailLaunchUri);
                         } else {
-                          await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            emailLaunchUri,
+                            mode: LaunchMode.externalApplication,
+                          );
                         }
                       } catch (e) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Email client opened for: $emailToUse")),
+                            SnackBar(
+                              content: Text(
+                                "Email client opened for: $emailToUse",
+                              ),
+                            ),
                           );
                         }
                       }
@@ -418,22 +437,31 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               icon: Icon(
                 isExpired
                     ? Icons.block_rounded
-                    : (isMyJob ? Icons.person_rounded : Icons.mail_outline_rounded),
+                    : (isMyJob
+                        ? Icons.person_rounded
+                        : Icons.mail_outline_rounded),
                 size: 18,
               ),
               label: Text(
                 isExpired
                     ? "Applications Closed"
                     : (isMyJob ? "You posted this job" : "Apply Now"),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A3A8F),
-                disabledBackgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                disabledBackgroundColor:
+                    isDark ? Colors.grey.shade800 : Colors.grey.shade300,
                 foregroundColor: Colors.white,
-                disabledForegroundColor: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                disabledForegroundColor:
+                    isDark ? Colors.grey.shade500 : Colors.grey.shade600,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 elevation: (isExpired || isMyJob) ? 0 : 2,
               ),
             ),

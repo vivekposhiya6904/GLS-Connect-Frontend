@@ -6,6 +6,7 @@ import '../../services/faculty_profile_service.dart';
 import '../../utils/image_picker_helper.dart';
 import '../../services/alumni_profile_service.dart';
 import '../../config/api_config.dart';
+import '../../widgets/profile_avatar.dart';
 import '../../models/profile_view_model.dart';
 import '../../services/profile_view_service.dart';
 import '../../widgets/offline_indicator.dart';
@@ -263,21 +264,13 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                           ),
                                         ],
                                       ),
-                                      child: CircleAvatar(
+                                      child: ProfileAvatar(
+                                        imageUrl: profilePictureUrl,
+                                        name: username,
                                         radius: 55,
+                                        enableCacheBust: true,
                                         backgroundColor: Colors.white,
-                                        backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
-                                            ? NetworkImage(profilePictureUrl!.startsWith("http")
-                                                ? profilePictureUrl!
-                                                : "${ApiConfig.baseUrl}$profilePictureUrl")
-                                            : null,
-                                        child: profilePictureUrl == null || profilePictureUrl!.isEmpty
-                                            ? const Icon(
-                                                Icons.person,
-                                                size: 60,
-                                                color: Color(0xFF1A3A8F),
-                                              )
-                                            : null,
+                                        foregroundColor: const Color(0xFF1A3A8F),
                                       ),
                                     ),
                                     Positioned(
@@ -766,9 +759,12 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Uploading profile picture...")),
       );
-      final url = await AlumniProfileService.uploadProfileImage(picked);
+      final url = await FacultyProfileService.uploadProfileImage(picked);
       if (url != null) {
         if (!mounted) return;
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+        await StorageService.saveUserProfilePicture(url);
         setState(() {
           profilePictureUrl = url;
         });

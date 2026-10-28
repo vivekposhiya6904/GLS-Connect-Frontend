@@ -7,11 +7,19 @@ class LoginResult {
   final bool success;
   final bool isUnverified;
   final String? errorMessage;
+  final String? email;
+  final bool otpDispatched;
+  final int cooldownSeconds;
+  final String purpose;
 
   LoginResult({
     required this.success,
     this.isUnverified = false,
     this.errorMessage,
+    this.email,
+    this.otpDispatched = false,
+    this.cooldownSeconds = 60,
+    this.purpose = "ACCOUNT_ACTIVATION",
   });
 }
 
@@ -96,11 +104,29 @@ class AuthService {
 
       String errorMsg = "Invalid email or password";
       bool isUnverified = false;
+      String? unverifiedEmail;
+      bool otpDispatched = false;
+      int cooldownSeconds = 60;
+      String purpose = "ACCOUNT_ACTIVATION";
 
       try {
         final data = jsonDecode(response.body);
-        if (data['message'] != null) {
-          errorMsg = data['message'];
+        if (data is Map<String, dynamic>) {
+          if (data['message'] != null) {
+            errorMsg = data['message'].toString();
+          }
+          if (data['email'] != null) {
+            unverifiedEmail = data['email'].toString();
+          }
+          if (data['otpDispatched'] != null) {
+            otpDispatched = data['otpDispatched'] == true;
+          }
+          if (data['cooldownSeconds'] != null) {
+            cooldownSeconds = int.tryParse(data['cooldownSeconds'].toString()) ?? 60;
+          }
+          if (data['purpose'] != null) {
+            purpose = data['purpose'].toString();
+          }
         }
       } catch (_) {}
 
@@ -112,6 +138,10 @@ class AuthService {
         success: false,
         isUnverified: isUnverified,
         errorMessage: errorMsg,
+        email: unverifiedEmail ?? email,
+        otpDispatched: otpDispatched,
+        cooldownSeconds: cooldownSeconds,
+        purpose: purpose,
       );
 
     } catch (e) {

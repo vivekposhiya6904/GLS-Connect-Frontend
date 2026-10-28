@@ -1,3 +1,4 @@
+import '../../widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
 import '../../config/api_config.dart';
 import '../../models/post_model.dart';
@@ -155,13 +156,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
               children: [
                 GestureDetector(
                   onTap: () => _openAuthorProfile(post),
-                  child: CircleAvatar(
+                  child: ProfileAvatar(
+                    imageUrl: post.userProfilePictureUrl,
+                    name: post.userName,
                     radius: 20,
                     backgroundColor: const Color(0xFFE0E7FF),
-                    child: Text(
-                      post.userName.isNotEmpty ? post.userName[0].toUpperCase() : 'U',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo),
-                    ),
+                    foregroundColor: Colors.indigo,
                   ),
                 ),
                 const SizedBox(width: 10),

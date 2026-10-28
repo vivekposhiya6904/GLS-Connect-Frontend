@@ -5,6 +5,8 @@ import '../models/faculty_profile_model.dart';
 import '../utils/storage_service.dart';
 import '../config/api_config.dart';
 import 'cache_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'profile_image_service.dart';
 
 class FacultyProfileService {
   static const String _profileKey = "profile_faculty";
@@ -203,5 +205,12 @@ class FacultyProfileService {
       print("🔥 Error in getAllFacultyProfiles(): $e");
       return null;
     }
+  }
+
+  static Future<String?> uploadProfileImage(
+    XFile imageFile, {
+    http.Client? client,
+  }) async {
+    return ProfileImageService.uploadProfileImage(imageFile, client: client);
   }
 }

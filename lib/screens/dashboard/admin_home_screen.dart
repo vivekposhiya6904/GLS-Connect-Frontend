@@ -1,3 +1,4 @@
+import '../../widgets/profile_avatar.dart';
 import 'package:flutter/material.dart';
 import '../../services/admin_service.dart';
 import '../../services/event_service.dart';
@@ -55,14 +56,17 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     super.dispose();
   }
 
-  Future<void> _loadDashboardData() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadDashboardData({bool showFullLoader = false}) async {
+    if (showFullLoader || _stats == null) {
+      if (mounted) setState(() => _isLoading = true);
+    }
     try {
       final stats = await AdminService.getAdminStats();
       final users = await AdminService.getAllUsers();
       final events = await EventService.getAllEvents() ?? [];
       final jobs = await JobService.getAllJobs() ?? [];
 
+      if (!mounted) return;
       setState(() {
         _stats = stats;
         _allUsers = users;
@@ -71,9 +75,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         _allJobs = jobs;
       });
     } catch (e) {
-      _showMessage("Error loading admin data: $e");
+      if (mounted) _showMessage("Error loading admin data: $e");
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted && _isLoading) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -111,114 +117,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
   // ─────────────────────────────────────────────────────────────────
   Future<void> _showAddUserDialog() async {
     AppFocusHelper.unfocus(context);
-    final nameCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-    final passwordCtrl = TextEditingController();
-    String selectedRole = 'STUDENT';
-    String selectedDept = 'MCA';
-
-    await showDialog(
+    final created = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF1A3A8F)),
-              SizedBox(width: 10),
-              Text("Add New User", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: "Full Name", hintText: "e.g. John Doe"),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: "Email Address", hintText: "e.g. john@gls.edu.in"),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: passwordCtrl,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: "Password", hintText: "Minimum 6 chars"),
-                ),
-                const SizedBox(height: 16),
-                const Text("Role", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                DropdownButton<String>(
-                  value: selectedRole,
-                  isExpanded: true,
-                  items: ['STUDENT', 'FACULTY', 'ALUMNI'].map((r) {
-                    return DropdownMenuItem(value: r, child: Text(r));
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setDialogState(() => selectedRole = val);
-                  },
-                ),
-                const SizedBox(height: 10),
-                const Text("Department", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                DropdownButton<String>(
-                  value: selectedDept,
-                  isExpanded: true,
-                  items: ['MCA', 'BCA', 'MBA', 'IT', 'CS'].map((d) {
-                    return DropdownMenuItem(value: d, child: Text(d));
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setDialogState(() => selectedDept = val);
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A3A8F)),
-              onPressed: () async {
-                final name = nameCtrl.text.trim();
-                final email = emailCtrl.text.trim();
-                final password = passwordCtrl.text.trim();
-
-                if (name.isEmpty || email.isEmpty || password.isEmpty) {
-                  _showMessage("Please fill all fields");
-                  return;
-                }
-
-                Navigator.pop(ctx);
-                setState(() => _isLoading = true);
-                final success = await AdminService.createUser(
-                  name: name,
-                  email: email,
-                  password: password,
-                  roleName: selectedRole,
-                  department: selectedDept,
-                );
-
-                if (success) {
-                  _showMessage("User '$name' created successfully!", isError: false);
-                  _loadDashboardData();
-                } else {
-                  _showMessage("Failed to create user");
-                  setState(() => _isLoading = false);
-                }
-              },
-              child: const Text("Create User", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
+      barrierDismissible: false,
+      builder: (_) => const _AddUserDialog(),
     );
 
-    nameCtrl.dispose();
-    emailCtrl.dispose();
-    passwordCtrl.dispose();
+    if (created == true && mounted) {
+      _showMessage("User created successfully!", isError: false);
+      _loadDashboardData(showFullLoader: false);
+    }
   }
 
   Future<void> _confirmDeleteUser(AdminUserDto user) async {
@@ -715,7 +623,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                 : ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.fromLTRB(
+                      12,
+                      12,
+                      12,
+                      18 + MediaQuery.of(context).padding.bottom,
+                    ),
                     itemCount: _filteredUsers.length,
                     itemBuilder: (context, index) {
                       final u = _filteredUsers[index];
@@ -738,13 +651,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                         elevation: 1.5,
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          leading: CircleAvatar(
+                          leading: ProfileAvatar(
+                            imageUrl: u.profilePictureUrl,
+                            name: u.name,
                             radius: 22,
                             backgroundColor: roleColor.withValues(alpha: 0.15),
-                            child: Text(
-                              u.name.isNotEmpty ? u.name[0].toUpperCase() : 'U',
-                              style: TextStyle(color: roleColor, fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
+                            foregroundColor: roleColor,
                           ),
                           title: Text(u.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                           subtitle: Column(
@@ -886,7 +798,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                   )
                 : ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      16,
+                      16,
+                      18 + MediaQuery.of(context).padding.bottom,
+                    ),
                     itemCount: displayEvents.length,
                     itemBuilder: (context, index) {
                       final event = displayEvents[index];
@@ -1132,7 +1049,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                   )
                 : ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      16,
+                      16,
+                      18 + MediaQuery.of(context).padding.bottom,
+                    ),
                     itemCount: displayJobs.length,
                     itemBuilder: (context, index) {
                       final job = displayJobs[index];
@@ -1274,6 +1196,207 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         fontSize: 12,
       ),
       onSelected: (_) => onSelected(),
+    );
+  }
+}
+
+class _AddUserDialog extends StatefulWidget {
+  const _AddUserDialog();
+
+  @override
+  State<_AddUserDialog> createState() => _AddUserDialogState();
+}
+
+class _AddUserDialogState extends State<_AddUserDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  String _selectedRole = 'STUDENT';
+  String _selectedDept = 'MCA';
+  bool _isSubmitting = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    final result = await AdminService.createUserDetailed(
+      name: _nameCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
+      password: _passwordCtrl.text.trim(),
+      roleName: _selectedRole,
+      department: _selectedDept,
+    );
+
+    if (!mounted) return;
+
+    if (result.success) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _isSubmitting = false;
+        _errorMessage = result.message ?? "Failed to create user";
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Row(
+        children: [
+          Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF1A3A8F)),
+          SizedBox(width: 10),
+          Text("Add New User", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_errorMessage != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(color: Colors.red.shade800, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              TextFormField(
+                controller: _nameCtrl,
+                enabled: !_isSubmitting,
+                decoration: const InputDecoration(
+                  labelText: "Full Name",
+                  hintText: "e.g. John Doe",
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return "Please enter full name";
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _emailCtrl,
+                enabled: !_isSubmitting,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: "Email Address",
+                  hintText: "e.g. john@gls.edu.in",
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return "Please enter email address";
+                  }
+                  if (!val.contains('@') || !val.contains('.')) {
+                    return "Please enter a valid email";
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _passwordCtrl,
+                enabled: !_isSubmitting,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: "Password",
+                  hintText: "Minimum 6 chars",
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().length < 6) {
+                    return "Password must be at least 6 characters";
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text("Role", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+              DropdownButton<String>(
+                value: _selectedRole,
+                isExpanded: true,
+                items: ['STUDENT', 'FACULTY', 'ALUMNI'].map((r) {
+                  return DropdownMenuItem(value: r, child: Text(r));
+                }).toList(),
+                onChanged: _isSubmitting
+                    ? null
+                    : (val) {
+                        if (val != null) setState(() => _selectedRole = val);
+                      },
+              ),
+              const SizedBox(height: 10),
+              const Text("Department", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+              DropdownButton<String>(
+                value: _selectedDept,
+                isExpanded: true,
+                items: ['MCA', 'BCA', 'MBA', 'IT', 'CS'].map((d) {
+                  return DropdownMenuItem(value: d, child: Text(d));
+                }).toList(),
+                onChanged: _isSubmitting
+                    ? null
+                    : (val) {
+                        if (val != null) setState(() => _selectedDept = val);
+                      },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(false),
+          child: const Text("Cancel"),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1A3A8F),
+            disabledBackgroundColor: const Color(0xFF1A3A8F).withValues(alpha: 0.6),
+          ),
+          onPressed: _isSubmitting ? null : _submit,
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text("Create User", style: TextStyle(color: Colors.white)),
+        ),
+      ],
     );
   }
 }

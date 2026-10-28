@@ -4,12 +4,20 @@ import '../config/api_config.dart';
 import '../models/event_model.dart';
 import '../utils/storage_service.dart';
 
+class AdminCreateUserResult {
+  final bool success;
+  final String? message;
+
+  AdminCreateUserResult({required this.success, this.message});
+}
+
 class AdminUserDto {
   final int id;
   final String name;
   final String email;
   final String roleName;
   final String department;
+  final String? profilePictureUrl;
 
   AdminUserDto({
     required this.id,
@@ -17,6 +25,7 @@ class AdminUserDto {
     required this.email,
     required this.roleName,
     required this.department,
+    this.profilePictureUrl,
   });
 
   factory AdminUserDto.fromJson(Map<String, dynamic> json) {
@@ -26,6 +35,7 @@ class AdminUserDto {
       email: json['email'] ?? '',
       roleName: json['roleName'] ?? json['role'] ?? 'USER',
       department: json['department'] ?? 'MCA',
+      profilePictureUrl: json['profilePictureUrl']?.toString(),
     );
   }
 }
@@ -142,8 +152,8 @@ class AdminService {
     }
   }
 
-  // Create User by Admin
-  static Future<bool> createUser({
+  // Create User by Admin (detailed result)
+  static Future<AdminCreateUserResult> createUserDetailed({
     required String name,
     required String email,
     required String password,
@@ -163,11 +173,42 @@ class AdminService {
           "department": department,
         }),
       );
-      return response.statusCode == 200 || response.statusCode == 201;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return AdminCreateUserResult(success: true, message: "User created successfully");
+      }
+
+      String errorMsg = "Failed to create user (HTTP ${response.statusCode})";
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic> && decoded.containsKey('message')) {
+          errorMsg = decoded['message'].toString();
+        }
+      } catch (_) {}
+
+      return AdminCreateUserResult(success: false, message: errorMsg);
     } catch (e) {
       print("❌ Error in createUser: $e");
-      return false;
+      return AdminCreateUserResult(success: false, message: "Network error: $e");
     }
+  }
+
+  // Create User by Admin (boolean backward compatibility)
+  static Future<bool> createUser({
+    required String name,
+    required String email,
+    required String password,
+    required String roleName,
+    required String department,
+  }) async {
+    final result = await createUserDetailed(
+      name: name,
+      email: email,
+      password: password,
+      roleName: roleName,
+      department: department,
+    );
+    return result.success;
   }
 
   // Delete User

@@ -62,68 +62,38 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (_) => const DashboardRouter()),
         );
       } else if (result.isUnverified) {
-        _showUnverifiedPrompt(email);
+        final targetEmail = (result.email != null && result.email!.isNotEmpty)
+            ? result.email!
+            : email;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EmailVerificationScreen(
+              email: targetEmail,
+              purpose: result.purpose,
+              initialCooldownSeconds: result.cooldownSeconds,
+              otpDispatched: result.otpDispatched,
+            ),
+          ),
+        );
       } else {
-        _showMessage(result.errorMessage ?? "Invalid email or password");
+        _showMessage(result.errorMessage ?? "Invalid email or password", isError: true);
       }
     } catch (e) {
-      _showMessage("Network error. Please try again.");
+      _showMessage("Network error. Please try again.", isError: true);
     }
 
     if (mounted) setState(() => _isLoading = false);
   }
 
-  void _showUnverifiedPrompt(String email) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Account Not Verified", style: TextStyle(fontWeight: FontWeight.bold, color: glsBlue)),
-        content: Text(
-          "Your account with $email is registered but has not been verified yet. Please enter your verification code to continue.",
-          style: const TextStyle(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: glsTextMuted)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: glsBlue,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              _showMessage("Sending verification code to $email...");
-              try {
-                await AuthService.sendOtp(email: email);
-              } catch (_) {
-                // If cooldown active or code recently sent, proceed safely
-              }
-              if (!mounted) return;
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EmailVerificationScreen(email: email),
-                ),
-              );
-            },
-            child: const Text("Verify Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showMessage(String msg) {
+  void _showMessage(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           msg,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: glsBlue,
+        backgroundColor: isError ? Colors.red.shade700 : glsBlue,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),

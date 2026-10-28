@@ -6,6 +6,7 @@ import '../utils/storage_service.dart';
 import '../config/api_config.dart';
 import 'package:image_picker/image_picker.dart';
 import 'cache_service.dart';
+import 'profile_image_service.dart';
 
 class StudentProfileService {
   static const String _profileKey = "profile_student";
@@ -105,21 +106,37 @@ class StudentProfileService {
   static Future<StudentProfileModel?> getProfileByUserId(int userId) async {
     try {
       final token = await StorageService.getToken();
-
-      final headers = {
-        "Content-Type": "application/json",
-        if (token != null) "Authorization": "Bearer $token",
-      };
-
       final response = await http.get(
         Uri.parse("${ApiConfig.baseUrl}/api/student/user/$userId"),
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        return StudentProfileModel.fromJson(
-          jsonDecode(response.body),
-        );
+        return StudentProfileModel.fromJson(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<List<StudentProfileModel>?> getAllStudentProfiles() async {
+    try {
+      final token = await StorageService.getToken();
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/api/student"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        return jsonList.map((json) => StudentProfileModel.fromJson(json)).toList();
       }
       return null;
     } catch (e) {
@@ -169,31 +186,6 @@ class StudentProfileService {
   }
 
   static Future<String?> uploadProfileImage(XFile imageFile) async {
-    try {
-      final token = await StorageService.getToken();
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse("${ApiConfig.baseUrl}/api/users/profile-image"),
-      );
-
-      if (token != null) {
-        request.headers['Authorization'] = 'Bearer $token';
-      }
-
-      request.files.add(
-        await http.MultipartFile.fromPath('image', imageFile.path),
-      );
-
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 25));
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['url'];
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
+    return ProfileImageService.uploadProfileImage(imageFile);
   }
 }

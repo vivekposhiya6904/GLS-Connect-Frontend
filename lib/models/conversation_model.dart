@@ -38,7 +38,12 @@ class ConversationModel {
     DateTime parseTimestamp(dynamic ts) {
       if (ts == null) return DateTime.now();
       try {
-        final parsed = DateTime.parse(ts.toString());
+        if (ts is num) {
+          return DateTime.fromMillisecondsSinceEpoch(ts.toInt()).toLocal();
+        }
+        final str = ts.toString().trim();
+        if (str.isEmpty) return DateTime.now();
+        final parsed = DateTime.parse(str);
         return parsed.isUtc ? parsed.toLocal() : parsed;
       } catch (_) {
         return DateTime.now();

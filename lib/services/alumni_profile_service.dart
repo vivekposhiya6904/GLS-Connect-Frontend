@@ -6,6 +6,7 @@ import '../utils/storage_service.dart';
 import '../config/api_config.dart';
 import 'package:image_picker/image_picker.dart';
 import 'cache_service.dart';
+import 'profile_image_service.dart';
 
 class AlumniProfileService {
   static const String _profileKey = "profile_alumni";
@@ -198,30 +199,10 @@ class AlumniProfileService {
     }
   }
 
-  static Future<String?> uploadProfileImage(XFile imageFile) async {
-    try {
-      final token = await StorageService.getToken();
-      final request = http.MultipartRequest(
-        "POST",
-        Uri.parse("${ApiConfig.baseUrl}/api/users/profile-image"),
-      );
-      
-      request.headers["Authorization"] = "Bearer $token";
-      
-      final file = await http.MultipartFile.fromPath("image", imageFile.path);
-      request.files.add(file);
-      
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data["url"];
-      }
-      return null;
-    } catch (e) {
-      print("🔥 Error in uploadProfileImage(): $e");
-      return null;
-    }
+    static Future<String?> uploadProfileImage(
+    XFile imageFile, {
+    http.Client? client,
+  }) async {
+    return ProfileImageService.uploadProfileImage(imageFile, client: client);
   }
 }

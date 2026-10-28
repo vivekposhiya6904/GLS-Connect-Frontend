@@ -69,6 +69,24 @@ class StorageService {
   }
 
   // ===============================
+  // USER PROFILE PICTURE
+  // ===============================
+  static Future<void> saveUserProfilePicture(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("user_profile_picture", url);
+  }
+
+  static Future<String?> getUserProfilePicture() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("user_profile_picture");
+  }
+
+  static Future<void> clearUserProfilePicture() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove("user_profile_picture");
+  }
+
+  // ===============================
   // 🔥 JWT TOKEN STORAGE
   // ===============================
   static Future<void> saveToken(String token) async {

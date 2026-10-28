@@ -1,3 +1,4 @@
+import '../config/api_config.dart';
 import 'package:flutter/material.dart';
 
 class ChatAvatar extends StatelessWidget {
@@ -52,16 +53,23 @@ class ChatAvatar extends StatelessWidget {
     final bgColor = backgroundColor ?? _getDeterministicColor(name);
     final borderColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
+    final resolvedUrl = ApiConfig.resolveUrl(imageUrl);
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
         CircleAvatar(
           radius: radius,
           backgroundColor: bgColor,
-          backgroundImage: (imageUrl != null && imageUrl!.isNotEmpty)
-              ? NetworkImage(imageUrl!)
+          backgroundImage: (resolvedUrl != null && resolvedUrl.isNotEmpty)
+              ? NetworkImage(resolvedUrl)
               : null,
-          child: (imageUrl == null || imageUrl!.isEmpty)
+          onBackgroundImageError: (resolvedUrl != null && resolvedUrl.isNotEmpty)
+              ? (exception, stackTrace) {
+                  // Handled gracefully without breaking UI
+                }
+              : null,
+          child: (resolvedUrl == null || resolvedUrl.isEmpty)
               ? Text(
                   _getInitials(name),
                   style: TextStyle(
