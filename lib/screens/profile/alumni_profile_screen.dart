@@ -10,6 +10,7 @@ import '../../config/api_config.dart';
 import '../../widgets/profile_avatar.dart';
 import '../../widgets/offline_indicator.dart';
 import '../../utils/academic_options.dart';
+import '../../widgets/edit_name_dialog.dart';
 
 class AlumniProfileScreen extends StatefulWidget {
   const AlumniProfileScreen({super.key});
@@ -182,6 +183,19 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
   Future<void> loadUserName() async {
     final name = await StorageService.getUserName();
     username = name ?? "";
+  }
+
+  void _openEditNameDialog() {
+    EditNameDialog.show(
+      context,
+      currentName: username,
+      onNameUpdated: (newName) {
+        setState(() {
+          username = newName;
+        });
+        loadAllData();
+      },
+    );
   }
 
   Future<void> loadProfile() async {
@@ -457,14 +471,32 @@ class _AlumniProfileScreenState extends State<AlumniProfileScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              username.isEmpty ? "Alumni Member" : username,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 0.5,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    username.isEmpty ? "Alumni Member" : username,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.white),
+                  tooltip: "Edit Name",
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: _openEditNameDialog,
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             if (designationController.text.isNotEmpty ||

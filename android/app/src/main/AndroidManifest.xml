@@ -3,6 +3,9 @@
 
     <!-- Internet permission -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     
     <!-- Image Picker & Camera Permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -43,6 +46,11 @@
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true">
 
+        <!-- Default Notification Channel for Chat -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="chat_messages" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

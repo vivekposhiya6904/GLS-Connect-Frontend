@@ -1,3 +1,4 @@
+import '../services/fcm_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/chat_service.dart';
 import '../services/cache_service.dart';
@@ -112,6 +113,9 @@ class StorageService {
   // LOGOUT
   // ===============================
   static Future<void> logout() async {
+    try {
+      await FcmService.unregisterCurrentTokenWithBackend();
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     try {

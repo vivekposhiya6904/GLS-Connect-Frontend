@@ -29,6 +29,22 @@ class SalaryHelper {
     return "₹$formattedNumber LPA";
   }
 
+  /// Formats any salary string into clean numeric value for text editing.
+  /// Examples:
+  /// "7 LPA" -> "7"
+  /// "4.5 LPA" -> "4.5"
+  /// "₹4.5 LPA" -> "4.5"
+  /// "12" -> "12"
+  /// "8.5" -> "8.5"
+  static String formatNumericOnly(String? salary) {
+    if (salary == null || salary.trim().isEmpty) return "";
+    final lpa = parseLpa(salary);
+    if (lpa == null) {
+      return salary.replaceAll(RegExp(r'[^0-9.]'), '').trim();
+    }
+    return (lpa % 1 == 0) ? lpa.toInt().toString() : lpa.toString();
+  }
+
   /// Extracts numeric LPA value for calculations and filtering.
   static double? parseLpa(String? salary) {
     if (salary == null || salary.trim().isEmpty) return null;

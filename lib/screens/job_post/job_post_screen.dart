@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../models/job_model.dart';
 import '../../services/job_service.dart';
 import '../../utils/city_constants.dart';
+import '../../utils/salary_helper.dart';
 
 class PostJobScreen extends StatefulWidget {
   final JobModel? jobToEdit;
@@ -42,7 +44,7 @@ class _PostJobScreenState extends State<PostJobScreen> {
       company.text = j.companyName;
       selectedCity = CityConstants.matchCanonicalCity(j.location);
       cityOptions = CityConstants.getDropdownOptions(currentCity: selectedCity);
-      salary.text = j.salary;
+      salary.text = SalaryHelper.formatNumericOnly(j.salary);
       description.text = j.jobDescription;
       companyLink.text = j.companyLink ?? "";
       companyEmail.text = j.companyEmail ?? "";
@@ -90,9 +92,11 @@ class _PostJobScreenState extends State<PostJobScreen> {
 
     try {
       final cleanSalary = salary.text.trim();
-      final lpaFormatted = cleanSalary.toLowerCase().endsWith("lpa")
+      final parsedLpa = SalaryHelper.parseLpa(cleanSalary);
+      final numStr = parsedLpa == null
           ? cleanSalary
-          : "$cleanSalary LPA";
+          : ((parsedLpa % 1 == 0) ? parsedLpa.toInt().toString() : parsedLpa.toString());
+      final lpaFormatted = "$numStr LPA";
 
       final dateStr =
           "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}";
@@ -143,9 +147,13 @@ class _PostJobScreenState extends State<PostJobScreen> {
         Navigator.pop(context, true);
       } else {
         if (!mounted) return;
+        final errorMsg = JobService.lastErrorMessage ??
+            (isEditing
+                ? "Failed to update job. Please check your inputs."
+                : "Failed to post job. Please check your inputs.");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Failed to post job. Please check your inputs."),
+          SnackBar(
+            content: Text(errorMsg),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -251,16 +259,20 @@ class _PostJobScreenState extends State<PostJobScreen> {
               formInputField(
                 controller: salary,
                 label: "Annual Salary (LPA)*",
-                hint: "e.g. 4.5, 6.25, 12",
+                hint: "e.g. 4.5, 6, 12",
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                ],
+                suffixText: "LPA",
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
                     return "Salary is required.";
                   }
-                  final clean = val.trim().replaceAll("(?i)lpa", "").replaceAll("₹", "").trim();
-                  final num = double.tryParse(clean);
+                  final trimmed = val.trim();
+                  final num = double.tryParse(trimmed);
                   if (num == null) {
-                    return "Please enter a valid annual salary in LPA (e.g. 4.5).";
+                    return "Please enter a valid numeric salary (e.g. 4.5, 12).";
                   }
                   if (num <= 0) {
                     return "Salary must be greater than 0 LPA.";
@@ -486,9 +498,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
                           width: 22,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                         )
-                      : const Text(
-                          "Post Job",
-                          style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                      : Text(
+                          widget.jobToEdit != null ? "Update Job" : "Post Job",
+                          style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                 ),
               ),
@@ -508,6 +520,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
     String? hint,
     int maxLines = 1,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? suffixText,
     String? Function(String?)? validator,
   }) {
     return Padding(
@@ -516,11 +530,14 @@ class _PostJobScreenState extends State<PostJobScreen> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         validator: validator,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+          suffixText: suffixText,
+          suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A3A8F)),
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),

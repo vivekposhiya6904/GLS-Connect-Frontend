@@ -368,6 +368,23 @@ class CacheService {
     }
   }
 
+  /// Removes a specific cached item for a user
+  static Future<void> removeData({required String key, required String userEmail}) async {
+    if (userEmail.trim().isEmpty) return;
+    final storageKey = _scopedKey(key, userEmail);
+    _memoryCache.remove(storageKey);
+    _memoryTimestamps.remove(storageKey);
+    if (_prefs != null) {
+      await _prefs!.remove(storageKey);
+    }
+    _testSecureStorage.remove(storageKey);
+    if (!_isTesting) {
+      try {
+        await secureStorage.delete(key: storageKey);
+      } catch (_) {}
+    }
+  }
+
   /// Clears all cached items belonging to a specific user
   static Future<void> clearUserCache(String userEmail) async {
     if (userEmail.trim().isEmpty) return;

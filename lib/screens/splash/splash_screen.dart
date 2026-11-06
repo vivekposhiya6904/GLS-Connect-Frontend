@@ -1,3 +1,4 @@
+import '../../services/notification_navigation_service.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
@@ -58,6 +59,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
+    NotificationNavigationService.processPendingNavigation();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

@@ -11,6 +11,7 @@ import 'cache_service.dart';
 class JobService {
   static const String _allJobsKey = "jobs_all";
   static const String _myJobsKey = "jobs_my";
+  static String? lastErrorMessage;
 
   /// Get all jobs from backend with offline caching & fallback
   static Future<List<JobModel>?> getAllJobs({
@@ -239,6 +240,7 @@ class JobService {
     String? companyLink,
     String? companyEmail,
   }) async {
+    lastErrorMessage = null;
     try {
       final token = await StorageService.getToken();
 
@@ -266,13 +268,29 @@ class JobService {
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         print("✅ Job created successfully");
+        final email = await StorageService.getUserEmail();
+        if (email != null && email.isNotEmpty) {
+          await CacheService.removeData(key: _allJobsKey, userEmail: email);
+          await CacheService.removeData(key: _myJobsKey, userEmail: email);
+        }
         return true;
       }
 
       print("❌ Failed to create job: ${response.statusCode}");
+      try {
+        final data = jsonDecode(response.body);
+        if (data is Map && data['message'] != null) {
+          lastErrorMessage = data['message'].toString();
+        } else if (response.body.isNotEmpty && !response.body.startsWith("<")) {
+          lastErrorMessage = response.body;
+        }
+      } catch (_) {
+        lastErrorMessage = "Failed to create job (Status ${response.statusCode})";
+      }
       return false;
     } catch (e) {
       print("❌ Error creating job: $e");
+      lastErrorMessage = e.toString();
       return false;
     }
   }
@@ -293,6 +311,7 @@ class JobService {
     String? companyLink,
     String? companyEmail,
   }) async {
+    lastErrorMessage = null;
     try {
       final token = await StorageService.getToken();
 
@@ -320,13 +339,29 @@ class JobService {
 
       if (response.statusCode == 200) {
         print("✅ Job updated successfully");
+        final email = await StorageService.getUserEmail();
+        if (email != null && email.isNotEmpty) {
+          await CacheService.removeData(key: _allJobsKey, userEmail: email);
+          await CacheService.removeData(key: _myJobsKey, userEmail: email);
+        }
         return true;
       }
 
       print("❌ Failed to update job: ${response.statusCode}");
+      try {
+        final data = jsonDecode(response.body);
+        if (data is Map && data['message'] != null) {
+          lastErrorMessage = data['message'].toString();
+        } else if (response.body.isNotEmpty && !response.body.startsWith("<")) {
+          lastErrorMessage = response.body;
+        }
+      } catch (_) {
+        lastErrorMessage = "Failed to update job (Status ${response.statusCode})";
+      }
       return false;
     } catch (e) {
       print("❌ Error updating job: $e");
+      lastErrorMessage = e.toString();
       return false;
     }
   }

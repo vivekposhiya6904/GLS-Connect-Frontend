@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../utils/storage_service.dart';
 import '../auth/login_screen.dart';
+import '../../widgets/edit_name_dialog.dart';
 
 class AdminProfileScreen extends StatefulWidget {
   const AdminProfileScreen({super.key});
@@ -28,6 +29,19 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         if (e != null && e.isNotEmpty) email = e;
       });
     }
+  }
+
+  void _openEditNameDialog() {
+    EditNameDialog.show(
+      context,
+      currentName: name,
+      onNameUpdated: (newName) {
+        setState(() {
+          name = newName;
+        });
+        _loadAdminInfo();
+      },
+    );
   }
 
   void _logout() async {
@@ -88,13 +102,31 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     child: Icon(Icons.admin_panel_settings_rounded, size: 52, color: Colors.amber),
                   ),
                   const SizedBox(height: 14),
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF0D1B40),
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF0D1B40),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF1A3A8F)),
+                        tooltip: "Edit Name",
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _openEditNameDialog,
+                      ),
+                    ],
                   ),
                   if (email.isNotEmpty) ...[
                     const SizedBox(height: 4),

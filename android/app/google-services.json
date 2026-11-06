@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "815950847494",
+    "project_id": "alumni-connect-80612",
+    "storage_bucket": "alumni-connect-80612.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:815950847494:android:7bc06fa200bdd2bc0fad87",
+        "android_client_info": {
+          "package_name": "com.jet.alumni.alumni_management"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyIgfB4M4K_InYk-kI2w1UCWfPm9aTZPo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

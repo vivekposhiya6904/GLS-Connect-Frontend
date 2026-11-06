@@ -1,3 +1,4 @@
+import 'fcm_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:alumni_management/config/api_config.dart';
@@ -98,6 +99,7 @@ class AuthService {
         await StorageService.saveUserRole(role);
         await StorageService.saveUserEmail(email);
         await StorageService.saveLoginStatus(true);
+        try { await FcmService.registerCurrentTokenWithBackend(); } catch (_) {}
 
         return LoginResult(success: true);
       }
@@ -188,6 +190,9 @@ class AuthService {
           }
           if (data['email'] != null) await StorageService.saveUserEmail(data['email'].toString());
           await StorageService.saveLoginStatus(true);
+          try {
+            await FcmService.registerCurrentTokenWithBackend();
+          } catch (_) {}
         }
         return true;
       }

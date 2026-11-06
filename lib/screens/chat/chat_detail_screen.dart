@@ -1,3 +1,4 @@
+import '../../services/notification_navigation_service.dart';
 import 'dart:async';
 
 import 'dart:convert';
@@ -91,6 +92,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.initState();
 
     targetEmail = widget.receiverEmail.trim().toLowerCase();
+    NotificationNavigationService.setActiveChat(targetEmail);
 
     _scrollController.addListener(_handleScroll);
 
@@ -907,6 +909,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
 
   void dispose() {
+    NotificationNavigationService.clearActiveChat();
 
     _chatService.removeMessageListener("chat_detail");
 

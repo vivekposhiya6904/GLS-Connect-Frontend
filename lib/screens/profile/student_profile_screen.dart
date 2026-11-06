@@ -8,6 +8,7 @@ import '../../config/api_config.dart';
 import '../../widgets/profile_avatar.dart';
 import '../../widgets/offline_indicator.dart';
 import '../../utils/academic_options.dart';
+import '../../widgets/edit_name_dialog.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
@@ -229,6 +230,19 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
         const SnackBar(content: Text("Failed to upload image. Please try again.")),
       );
     }
+  }
+
+  void _openEditNameDialog() {
+    EditNameDialog.show(
+      context,
+      currentName: username,
+      onNameUpdated: (newName) {
+        setState(() {
+          username = newName;
+        });
+        loadAllData();
+      },
+    );
   }
 
   Future<void> saveProfile() async {
@@ -478,13 +492,31 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Text(
-                            username.isNotEmpty ? username : "Student User",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  username.isNotEmpty ? username : "Student User",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF1A3A8F)),
+                                tooltip: "Edit Name",
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: _openEditNameDialog,
+                              ),
+                            ],
                           ),
                           if (email.isNotEmpty) ...[
                             const SizedBox(height: 4),

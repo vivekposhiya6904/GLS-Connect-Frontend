@@ -19,7 +19,7 @@ class ApiConfig {
     }
 
     // Android Emulator and physical Android device with adb reverse tcp:8080 tcp:8080
-    return "http://192.168.0.16:8080";
+    return "http://10.76.161.155:8080";
   }
 
   /// Resolves an image URL or resource path against the configured backend baseUrl.

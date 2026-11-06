@@ -10,6 +10,7 @@ import '../../widgets/profile_avatar.dart';
 import '../../models/profile_view_model.dart';
 import '../../services/profile_view_service.dart';
 import '../../widgets/offline_indicator.dart';
+import '../../widgets/edit_name_dialog.dart';
 
 class FacultyProfileScreen extends StatefulWidget {
   const FacultyProfileScreen({super.key});
@@ -150,6 +151,20 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     final name = await StorageService.getUserName();
     username = name ?? "";
     nameController.text = username;
+  }
+
+  void _openEditNameDialog() {
+    EditNameDialog.show(
+      context,
+      currentName: username,
+      onNameUpdated: (newName) {
+        setState(() {
+          username = newName;
+          nameController.text = newName;
+        });
+        loadAllData();
+      },
+    );
   }
 
   Future<void> loadProfile() async {
@@ -296,16 +311,33 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                               // Name
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  username.isNotEmpty ? username : "Faculty Member",
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        username.isNotEmpty ? username : "Faculty Member",
+                                        style: const TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.white),
+                                      tooltip: "Edit Name",
+                                      visualDensity: VisualDensity.compact,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: _openEditNameDialog,
+                                    ),
+                                  ],
                                 ),
                               ),
                               const SizedBox(height: 4),
