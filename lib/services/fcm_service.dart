@@ -52,6 +52,8 @@ class FcmService {
       await _localNotifications.initialize(
         initSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
+          debugPrint("🔥 TAP EVENT: LOCAL NOTIFICATION");
+          debugPrint("🔥 PAYLOAD: ${response.payload}");
           if (response.payload != null && response.payload!.isNotEmpty) {
             try {
               final Map<String, dynamic> data = jsonDecode(response.payload!);
@@ -92,13 +94,16 @@ class FcmService {
 
       // 6. Background notification tap handler (app open from background)
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        debugPrint("📱 Notification tapped from background: ${message.data}");
+        debugPrint("🔥 TAP EVENT: BACKGROUND FCM");
+        debugPrint("🔥 PAYLOAD: ${message.data}");
+
         NotificationNavigationService.handleNotificationPayload(message.data);
       });
 
       // 7. Check if app was launched from terminated state via notification tap
       final initialMessage =
           await FirebaseMessaging.instance.getInitialMessage();
+      debugPrint("🔥 INITIAL MESSAGE: ${initialMessage?.data}");
       if (initialMessage != null) {
         debugPrint(
             "🚀 App launched from terminated state via notification: ${initialMessage.data}");

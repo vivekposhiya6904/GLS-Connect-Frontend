@@ -33,7 +33,8 @@ class NotificationNavigationService {
   /// Centralized notification payload routing
   static Future<void> handleNotificationPayload(
       Map<String, dynamic> data) async {
-    debugPrint("🧭 Routing notification payload: $data");
+    debugPrint("🔥 NOTIFICATION NAVIGATION FUNCTION CALLED");
+    debugPrint("🔥 NAVIGATOR STATE: ${navigatorKey.currentState}");
 
     final notificationType = data['notificationType']?.toString();
     if (notificationType != 'CHAT_MESSAGE') {

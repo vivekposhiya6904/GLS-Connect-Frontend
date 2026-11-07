@@ -57,16 +57,20 @@ class _SplashScreenState extends State<SplashScreen>
 
     final sessionValid = await AuthService.restoreSession();
 
-    if (!mounted) return;
+    if (!mounted) return; 
 
-    NotificationNavigationService.processPendingNavigation();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) =>
-            sessionValid ? const DashboardRouter() : const LoginScreen(),
+          sessionValid ? const DashboardRouter() : const LoginScreen(),
       ),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if(!mounted) return;
+      NotificationNavigationService.processPendingNavigation();
+    });
   }
 
   @override
