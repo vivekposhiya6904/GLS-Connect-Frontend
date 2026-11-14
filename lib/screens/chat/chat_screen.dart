@@ -51,7 +51,10 @@ class _ChatScreenState extends State<ChatScreen> {
     await loadData();
 
     if (myEmail.isNotEmpty) {
-      _chatService.addMessageListener("chat_screen", (_) => loadData(showLoading: false));
+      _chatService.addMessageListener("chat_screen", (messageJson) {
+        debugPrint("Chat list received  message event: $messageJson");
+        loadData(showLoading: false);
+      });
       _chatService.addStatusListener("chat_screen", (_) => loadData(showLoading: false));
       _chatService.addPresenceListener("chat_screen", (presenceJson) {
         try {
