@@ -260,6 +260,56 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (_) {}
   }
 
+
+  Future<void>  _deleteChat(String partnerEmail) async {
+    final token = await StorageService.getToken();
+
+    if (token == null || token.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please sign in again to delete this chat.")),
+        );
+      }
+      return;
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse(
+          "${ApiConfig.baseUrl}/api/chat/conversations/"
+          "${Uri.encodeComponent(partnerEmail)}",
+        ),
+        headers: {
+          "Authorization" : "Bearer $token",
+          "Content-Type" : "application/json",
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        await loadData(showLoading: false);
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Chat removed from your list.")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Could not delete chat(${response.statusCode})."),
+          ),
+        );
+      }
+    } catch (_) {
+      if(!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Could not delete chat. Check your connection."))
+      );
+    }
+  }
+
   void filterUsers(String value) {
     setState(() {
       searchText = value;
@@ -345,6 +395,173 @@ class _ChatScreenState extends State<ChatScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _showChatOptions(
+  String displayName, {
+  String? email,
+  String? imageUrl,
+  VoidCallback? onDelete,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = theme.primaryColor;
+
+    final surfaceColor = isDark ? const Color(0xFF1F1F1F) : Colors.white;
+    final titleColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subtitleColor = isDark ? Colors.white54 : const Color(0xFF7A869A);
+    final dividerColor = isDark ? const Color(0xFF2C2C2C) : const Color(0xFFEEF1F5);
+    final tileColor = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF5F7FA);
+    final iconCircleColor = isDark ? Colors.white.withValues(alpha: 0.07) : Colors.white;
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 26, 20, 12),
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.13),
+                    blurRadius: 32,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ChatAvatar(
+                    name: displayName,
+                    imageUrl: imageUrl,
+                    radius: 31,
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.1,
+                      color: titleColor,
+                    ),
+                  ),
+                  if (email != null && email.trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        email.trim(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.2,
+                          color: subtitleColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 22),
+                  Container(height: 1, color: dividerColor),
+                  const SizedBox(height: 10),
+
+                  // ---- Delete chat ----
+                  Material(
+                    color: tileColor,
+                    borderRadius: BorderRadius.circular(16),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.pop(dialogContext); 
+                        onDelete?.call();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: iconCircleColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.delete_outline_rounded,
+                                size: 20,
+                                color: isDark ? Colors.white70 : const Color(0xFF5B6675),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Delete chat",
+                                    style: TextStyle(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: titleColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "Remove this conversation from your list",
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 11.8,
+                                      height: 1.3,
+                                      color: subtitleColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    style: TextButton.styleFrom(
+                      foregroundColor: primaryColor,
+                      minimumSize: const Size.fromHeight(46),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      "Cancel",
+                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -627,6 +844,14 @@ class _ChatScreenState extends State<ChatScreen> {
         final isOnline = onlineStatusMap[otherUser] ?? false;
 
         return InkWell(
+          onLongPress: () {
+             _showChatOptions(
+                displayName,
+                email: otherUser,
+                imageUrl: userProfilePicsMap[otherUser],
+                onDelete: () => _deleteChat(otherUser),
+              );
+          },
           onTap: () {
             Navigator.push(
               context,
