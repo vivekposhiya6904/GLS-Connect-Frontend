@@ -1,5 +1,5 @@
 ================================================================================
-GLS CONNECT — UI REGRESSION TEST RESULTS REPORT
+Alumni Connect — UI REGRESSION TEST RESULTS REPORT
 Document: ui_regression_test_results.txt
 Date: 2026-10-15
 Framework: Flutter Test Framework / Dart SDK 3.10.8 / Flutter 3.38.9

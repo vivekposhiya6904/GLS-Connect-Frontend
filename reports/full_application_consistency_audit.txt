@@ -1,10 +1,10 @@
 ================================================================================
-GLS CONNECT - FULL APPLICATION UI & FEATURE CONSISTENCY AUDIT REPORT
+Alumni Connect - FULL APPLICATION UI & FEATURE CONSISTENCY AUDIT REPORT
 ================================================================================
 Audit Date:         October 13, 2026
 Auditor:            Senior Software Architect, Flutter UI/UX Auditor,
                     Spring Boot Backend Specialist & QA Engineer
-Target System:      Alumni Management System (GLS Connect)
+Target System:      Alumni Management System (Alumni Connect)
 Frontend Project:   GLS-Connect-Frontend (Flutter / Dart)
 Backend Project:    Alumni_Backend (Spring Boot 3.x / Java 17)
 Database Engines:   PostgreSQL (alumni_db) & MongoDB (Chat Storage)
@@ -19,7 +19,7 @@ SECTION 1 - REPORT METADATA
 ================================================================================
 
 1.1 Report Title:
-    GLS Connect Alumni Management System - Comprehensive Cross-Module
+    Alumni Connect Alumni Management System - Comprehensive Cross-Module
     UI/UX, Functional, Backend, and Architectural Consistency Audit Report.
 
 1.2 Audit Date:
@@ -87,7 +87,7 @@ SECTION 1 - REPORT METADATA
 SECTION 2 - EXECUTIVE SUMMARY
 ================================================================================
 
-A comprehensive cross-module audit of the GLS Connect Alumni Management
+A comprehensive cross-module audit of the Alumni Connect Alumni Management
 System was conducted to evaluate consistency across the four user modules:
 Student, Alumni, Faculty, and Admin.
 
@@ -192,11 +192,11 @@ SECTION 4 - CROSS-MODULE COMPARISON MATRIX
 +------------------------+-----------------------------------------------------+
 | Feature Area           | Comparison Across Modules                           |
 +------------------------+-----------------------------------------------------+
-| App Bar Styling        | - Student: Blue (0xFF1A3A8F), title 'GLS Connect',  |
+| App Bar Styling        | - Student: Blue (0xFF1A3A8F), title 'Alumni Connect',  |
 |                        |   amber badge 'STUDENT', notifications bell.        |
-|                        | - Alumni: Blue (0xFF1A3A8F), title 'GLS Connect',   |
+|                        | - Alumni: Blue (0xFF1A3A8F), title 'Alumni Connect',   |
 |                        |   amber badge 'ALUMNI', notifications bell + count. |
-|                        | - Faculty: Blue (0xFF1A3A8F), title 'GLS Connect',  |
+|                        | - Faculty: Blue (0xFF1A3A8F), title 'Alumni Connect',  |
 |                        |   amber badge 'FACULTY', NO notification icon.      |
 |                        | - Admin: Blue (0xFF1A3A8F), title 'Admin Portal',    |
 |                        |   amber badge 'ADMIN', Logout icon.                 |

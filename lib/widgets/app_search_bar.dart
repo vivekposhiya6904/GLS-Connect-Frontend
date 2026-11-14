@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Standardized, accessible search bar component used across GLS Connect
+/// Standardized, accessible search bar component used across Alumni Connect
 class AppSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;

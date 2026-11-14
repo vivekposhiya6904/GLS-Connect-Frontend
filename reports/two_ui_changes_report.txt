@@ -1,5 +1,5 @@
 ================================================================================
-GLS CONNECT — TWO PRECISE UI CHANGES VERIFICATION REPORT
+Alumni Connect — TWO PRECISE UI CHANGES VERIFICATION REPORT
 ================================================================================
 Date: 2026-10-15
 Environment: Flutter 3.x / Dart / Android / Material 3
@@ -71,7 +71,7 @@ Status: IMPLEMENTATION AND VERIFICATION COMPLETED
   * Removed the decorative `Container`, gradient, border, and `boxShadow`.
   * Rendered a clean, plain `Icon(Icons.add, color: iconColor, size: 26)`.
   * Set `iconColor` to `const Color(0xFF0D1B2A)` (dark, near-black matching the reference
-    image and other active navigation items in GLS Connect).
+    image and other active navigation items in Alumni Connect).
   * Maintained full touch target accessibility via the `InkWell` wrapped column.
   * Maintained `_isOpeningCreate` debounce protection to prevent multiple bottom sheets.
   * Preserved modal sheet options: "Post Job" and "Create Event".

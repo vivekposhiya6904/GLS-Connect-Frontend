@@ -30,7 +30,7 @@ void main() {
       expect(find.byType(HomeScreen), findsOneWidget);
 
       // 2. Verify Header Title and ALUMNI badge
-      expect(find.text("GLS Connect"), findsOneWidget);
+      expect(find.text("Alumni Connect"), findsOneWidget);
       expect(find.text("ALUMNI"), findsOneWidget);
 
       // 3. Verify Header Actions: Notifications (Redundant global search removed, NO Admin logout or chat in AppBar)

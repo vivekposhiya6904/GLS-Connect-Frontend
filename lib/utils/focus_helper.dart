@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Centralized, production-grade focus and keyboard management utility
-/// for GLS Connect.
+/// for Alumni Connect.
 class AppFocusHelper {
   AppFocusHelper._();
 

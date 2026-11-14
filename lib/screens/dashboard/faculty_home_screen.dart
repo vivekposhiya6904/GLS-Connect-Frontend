@@ -33,7 +33,7 @@ class FacultyDashboardState extends State<FacultyDashboard> {
               const SizedBox(width: 8),
               const Flexible(
                 child: Text(
-                  "GLS Connect",
+                  "Alumni Connect",
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                   overflow: TextOverflow.ellipsis,
                 ),

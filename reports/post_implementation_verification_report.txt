@@ -1,5 +1,5 @@
 ================================================================================
-GLS CONNECT ALUMNI MANAGEMENT SYSTEM
+Alumni Connect ALUMNI MANAGEMENT SYSTEM
 POST-IMPLEMENTATION AUDIT, ORIGINAL DEFECT VERIFICATION,
 REGRESSION TESTING, AND UI CONSISTENCY VALIDATION REPORT
 ================================================================================

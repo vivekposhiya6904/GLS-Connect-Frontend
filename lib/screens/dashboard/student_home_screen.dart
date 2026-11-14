@@ -39,7 +39,7 @@ class StudentHomeScreen extends StatelessWidget {
               const SizedBox(width: 8),
               const Flexible(
                 child: Text(
-                  "GLS Connect",
+                  "Alumni Connect",
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

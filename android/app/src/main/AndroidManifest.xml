@@ -40,7 +40,7 @@
     </queries>
 
     <application
-        android:label="GLS Connect"
+        android:label="Alumni Connect"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

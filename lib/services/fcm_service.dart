@@ -139,7 +139,7 @@ class FcmService {
 
     final title = message.notification?.title ??
         message.data['senderName'] ??
-        "GLS Connect";
+        "Alumni Connect";
     final body = message.notification?.body ??
         message.data['content'] ??
         "New message";

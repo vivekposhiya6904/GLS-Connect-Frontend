@@ -228,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "GLS Connect",
+                "Alumni Connect",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,

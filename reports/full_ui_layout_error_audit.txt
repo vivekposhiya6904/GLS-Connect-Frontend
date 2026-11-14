@@ -1,5 +1,5 @@
 ================================================================================
-GLS CONNECT — ULTIMATE UI STABILITY, OVERFLOW REPAIR & AUDIT REPORT
+Alumni Connect — ULTIMATE UI STABILITY, OVERFLOW REPAIR & AUDIT REPORT
 Document: full_ui_layout_error_audit.txt
 Date: 2026-10-15
 Author: Principal Flutter Engineer, UI/UX Architect, Senior QA Automation Engineer
@@ -10,7 +10,7 @@ Status: Complete & Mentor-Ready
 1. EXECUTIVE SUMMARY & BASELINE FINDINGS
 --------------------------------------------------------------------------------
 A comprehensive UI stability and layout overflow audit was conducted across the
-GLS Connect Alumni Management System (Frontend: GLS-Connect-Frontend, Backend:
+Alumni Connect Alumni Management System (Frontend: GLS-Connect-Frontend, Backend:
 Alumni_Backend).
 
 Baseline State Prior to Fixes:
@@ -123,7 +123,7 @@ E. Shared Components & Overlays:
 - Symptom: "A RenderFlex overflowed by 112 pixels on the right".
 - Affected Screens: StudentHomeScreen, HomeScreen (Alumni), FacultyDashboard.
 - Root Cause: AppBar title was defined as:
-    Row(children: [Icon(26px), Text("GLS Connect", 20px), Spacer(), Container(RoleBadge)])
+    Row(children: [Icon(26px), Text("Alumni Connect", 20px), Spacer(), Container(RoleBadge)])
   On a 320px wide screen, with notification actions taking 56px and leading taking 16px,
   the title received a max width constraint of ~232px. The rigid Spacer() with flex: 1
   attempted to expand while the children totaled > 232px, triggering an unhandled 112px overflow.
@@ -164,19 +164,19 @@ E. Shared Components & Overlays:
    - ProfileList: Wrapped directory empty and error states in LayoutBuilder + SingleChildScrollView.
    - MyActivityPage: Wrapped _buildMyJobsList, _buildMyEventsList, and _buildMyPostsList empty states
      in LayoutBuilder + SingleChildScrollView.
-   - HomeScreen AppBar: Replaced rigid Spacer() with Flexible(child: Text("GLS Connect", overflow: TextOverflow.ellipsis)),
+   - HomeScreen AppBar: Replaced rigid Spacer() with Flexible(child: Text("Alumni Connect", overflow: TextOverflow.ellipsis)),
      compact role badge padding, and withValues() migration.
 
 2. lib/screens/dashboard/student_home_screen.dart:
    - JobList: Applied LayoutBuilder + SingleChildScrollView + ConstrainedBox pattern across all empty/error states.
    - JobList._openFilterSheet: Added isScrollControlled: true, SafeArea, and SingleChildScrollView.
    - ProfileList: Applied LayoutBuilder + SingleChildScrollView pattern.
-   - StudentHomeScreen AppBar: Replaced rigid Spacer() with Flexible(child: Text("GLS Connect", overflow: TextOverflow.ellipsis))
+   - StudentHomeScreen AppBar: Replaced rigid Spacer() with Flexible(child: Text("Alumni Connect", overflow: TextOverflow.ellipsis))
      and compact STUDENT badge.
    - Syntax validation: Verified clean FutureBuilder brackets.
 
 3. lib/screens/dashboard/faculty_home_screen.dart:
-   - FacultyDashboard AppBar: Replaced rigid Spacer() with Flexible(child: Text("GLS Connect", overflow: TextOverflow.ellipsis))
+   - FacultyDashboard AppBar: Replaced rigid Spacer() with Flexible(child: Text("Alumni Connect", overflow: TextOverflow.ellipsis))
      and compact FACULTY badge.
 
 4. lib/widgets/job_card.dart:

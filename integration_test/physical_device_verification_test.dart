@@ -32,7 +32,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify Faculty home is visible with tabs
-      expect(find.text('GLS Connect'), findsOneWidget);
+      expect(find.text('Alumni Connect'), findsOneWidget);
       expect(find.text('FACULTY'), findsOneWidget);
 
       // Navigate to Profile tab

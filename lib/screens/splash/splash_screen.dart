@@ -146,14 +146,40 @@ class _SplashScreenState extends State<SplashScreen>
 
                     const SizedBox(height: 35),
 
-                    const Text(
-                      'GLS Connect',
-                      style: TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.bold,
+                     Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Alumni ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.8,
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'Connect',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w300,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 36,
+                        height: 1.05,
                         color: Color(0xFF23459A),
+                        shadows: [
+                          Shadow(
+                            color: Color(0x2923459A),
+                            blurRadius: 24,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
                       ),
                     ),
+
 
                     const SizedBox(height: 12),
 

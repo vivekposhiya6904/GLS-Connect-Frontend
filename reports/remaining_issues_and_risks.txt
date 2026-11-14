@@ -1,5 +1,5 @@
 ================================================================================
-GLS CONNECT ALUMNI MANAGEMENT SYSTEM
+Alumni Connect ALUMNI MANAGEMENT SYSTEM
 REMAINING ISSUES, TESTING LIMITATIONS, AND RISK ASSESSMENT
 ================================================================================
 Date: 2026-10-13

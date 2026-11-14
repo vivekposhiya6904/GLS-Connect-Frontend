@@ -485,7 +485,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
 
               Text(
-                "GLS Connect",
+                "Alumni Connect",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,

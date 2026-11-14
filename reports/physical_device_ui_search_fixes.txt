@@ -1,8 +1,8 @@
 ================================================================================
-GLS CONNECT — PHYSICAL DEVICE UI FIXES, NAVIGATION REDESIGN & SEARCH IMPROVEMENT
+Alumni Connect — PHYSICAL DEVICE UI FIXES, NAVIGATION REDESIGN & SEARCH IMPROVEMENT
 ================================================================================
 Date: 2026-10-13
-Repository: GLS Connect Alumni Management System
+Repository: Alumni Connect Alumni Management System
 Projects:
   - Frontend: GLS-Connect-Frontend (Flutter / Dart)
   - Backend: Alumni_Backend (Spring Boot / Java)
@@ -67,7 +67,7 @@ Author: Senior Flutter Architect, UI/UX Designer & QA Specialist
 --------------------------------------------------------------------------------
 - Problem:
   The bottom navigation (+) action for Alumni and Faculty previously rendered as a dark/black
-  circular FAB that broke the GLS Connect university brand palette.
+  circular FAB that broke the Alumni Connect university brand palette.
 
 - Root Cause:
   The previous FAB container in `MainNavigation` used a default or dark accent override

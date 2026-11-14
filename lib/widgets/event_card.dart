@@ -261,7 +261,7 @@ class EventCard extends StatelessWidget {
                           child: Text(
                             event.createdByName != null && event.createdByName!.isNotEmpty
                                 ? "By ${event.createdByName!}"
-                                : (event.targetDepartment ?? "GLS Connect"),
+                                : (event.targetDepartment ?? "Alumni Connect"),
                             style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w500,
