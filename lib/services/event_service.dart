@@ -6,10 +6,22 @@ import '../config/api_config.dart';
 import '../models/event_model.dart';
 import '../utils/storage_service.dart';
 import 'cache_service.dart';
+import 'package:http_parser/http_parser.dart';
 
 class EventService {
   static const String _allEventsKey = "events_all";
   static const String _myEventsKey = "events_my";
+
+  static MediaType _getImageMediaType(XFile file) {
+    final name = file.name.toLowerCase();
+
+    if (name.endsWith('.png')) return MediaType('image', 'png');
+    if (name.endsWith('.webp')) return MediaType('image', 'webp');
+    if (name.endsWith('.gif')) return MediaType('image', 'gif');
+    if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return MediaType('image', '');
+
+    return MediaType('image', 'jpeg');
+  }
 
   static Future<List<EventModel>?> getAllEvents({
     http.Client? client,
@@ -187,6 +199,8 @@ class EventService {
       request.fields['note'] = note ?? '';
 
       if (imageFile != null) {
+        final mediaType = _getImageMediaType(imageFile);
+
         if (kIsWeb) {
           final bytes = await imageFile.readAsBytes();
           request.files.add(
@@ -194,22 +208,24 @@ class EventService {
               'image',
               bytes,
               filename: imageFile.name,
+              contentType: mediaType,
             ),
           );
         } else {
           request.files.add(
-            await http.MultipartFile.fromPath('image', imageFile.path),
+            await http.MultipartFile.fromPath('image', imageFile.path, contentType: mediaType),
           );
         }
       }
 
-      final response = await request.send();
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("✅ Event created successfully");
         return true;
       }
-      print("❌ Failed to create event: ${response.statusCode}");
+      print("❌ Failed to create event: ${response.statusCode} - ${response.body}");
       return false;
     } catch (e) {
       print("❌ Error creating event: $e");
@@ -245,6 +261,8 @@ class EventService {
       request.fields['note'] = note ?? '';
 
       if (imageFile != null) {
+        final mediaType = _getImageMediaType(imageFile);
+
         if (kIsWeb) {
           final bytes = await imageFile.readAsBytes();
           request.files.add(
@@ -252,22 +270,25 @@ class EventService {
               'image',
               bytes,
               filename: imageFile.name,
+              contentType: mediaType,
             ),
           );
         } else {
           request.files.add(
-            await http.MultipartFile.fromPath('image', imageFile.path),
+            await http.MultipartFile.fromPath('image', imageFile.path, contentType: mediaType),
           );
         }
       }
 
-      final response = await request.send();
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("✅ Event updated successfully");
         return true;
       }
-      print("❌ Failed to update event: ${response.statusCode}");
+      print("❌ Failed to update event: ${response.statusCode}-${response.body}");
       return false;
     } catch (e) {
       print("❌ Error updating event: $e");

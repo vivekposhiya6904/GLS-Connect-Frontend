@@ -422,38 +422,27 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: (isMyEvent || !hasOrganizer)
+              onPressed: isMyEvent || isExpired
                   ? null
                   : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatDetailScreen(
-                            name: widget.event.createdByName ?? "Organizer",
-                            receiverEmail: widget.event.createdByEmail!,
-                          ),
-                        ),
-                      );
-                    },
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Registration will be available soon."),
+                      ),
+                    );
+                  },
               icon: Icon(
-                isMyEvent
-                    ? Icons.person_rounded
-                    : (!hasOrganizer
-                        ? Icons.info_outline
-                        : Icons.chat_bubble_outline),
+                isMyEvent ? Icons.person_rounded : Icons.how_to_reg_rounded,
                 size: 18,
               ),
               label: Text(
-                isMyEvent
-                    ? "You organized this event"
-                    : (!hasOrganizer
-                        ? "Organizer unavailable"
-                        : "Contact Organizer"),
+                isMyEvent ? "You organized this event" : "Register",
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A3A8F),
                 disabledBackgroundColor:
@@ -465,7 +454,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                elevation: (isMyEvent || !hasOrganizer) ? 0 : 2,
+                elevation: isMyEvent || isExpired ? 0 : 2,
               ),
             ),
           ),

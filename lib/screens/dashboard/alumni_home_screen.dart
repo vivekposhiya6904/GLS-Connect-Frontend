@@ -796,14 +796,48 @@ class _MyActivityPageState extends State<MyActivityPage> {
           itemCount: events.length,
           itemBuilder: (context, index) {
             final event = events[index];
-            return EventCard(
-              event: event,
-              myEmail: myEmail,
-              onRefresh: () {
-                setState(() {
-                  myEventsFuture = EventService.getMyEvents();
-                });
-              },
+            return Column(
+              children: [
+                EventCard(
+                  event: event,
+                  myEmail: myEmail,
+                  onRefresh: () {
+                    setState(() {
+                      myEventsFuture = EventService.getMyEvents();
+                    });
+                  },
+                ),
+                
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(top: 8, bottom: 16),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E1E1E)
+                      : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.people_outline, color: Color(0xFF1A3A8F)),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          "Registrations",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Text("Registration data will appear here.."),
+                    ],
+                  ),
+                ),
+              ],
             );
           },
         );
