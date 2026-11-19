@@ -505,7 +505,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed:
-                  isMyEvent ||
+                  widget.isAdmin ||
+                      isMyEvent ||
                       isExpired ||
                       _isRegistered ||
                       _isRegistering ||
@@ -560,7 +561,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               ),
               label: Text(
                 isMyEvent
-                    ? "You organized this event"
+                    ? "You organized this event."
+                    : widget.isAdmin
+                    ? "Admin can't register."
                     : _isCheckingRegistration
                     ? "Checking Registration..."
                     : _isRegistering

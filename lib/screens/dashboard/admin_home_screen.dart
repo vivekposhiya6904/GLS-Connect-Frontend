@@ -24,7 +24,8 @@ class AdminHomeScreen extends StatefulWidget {
   State<AdminHomeScreen> createState() => _AdminHomeScreenState();
 }
 
-class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProviderStateMixin {
+class _AdminHomeScreenState extends State<AdminHomeScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = false;
 
@@ -89,10 +90,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
       _filteredUsers = _allUsers.where((u) {
         final role = u.roleName.toUpperCase();
         if (role == 'ADMIN') return false;
-        final matchesRole = _userRoleFilter == 'ALL' ||
+        final matchesRole =
+            _userRoleFilter == 'ALL' ||
             role == _userRoleFilter ||
-            (_userRoleFilter == 'STUDENT' && (role == 'STUDENT' || role == 'USER'));
-        final matchesQuery = query.isEmpty ||
+            (_userRoleFilter == 'STUDENT' &&
+                (role == 'STUDENT' || role == 'USER'));
+        final matchesQuery =
+            query.isEmpty ||
             u.name.toLowerCase().contains(query) ||
             u.email.toLowerCase().contains(query) ||
             u.department.toLowerCase().contains(query);
@@ -106,7 +110,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: isError ? Colors.redAccent : Colors.green,
+        backgroundColor: isError ? Color(0xFF1A3A8F) : Colors.green,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -140,21 +144,38 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFF1A3A8F),
+              size: 28,
+            ),
             SizedBox(width: 8),
             Text("Delete User", style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: Text("Are you sure you want to remove ${user.name} (${user.email})? This action cannot be undone."),
+        content: Text(
+          "Are you sure you want to remove ${user.name} (${user.email})? This action cannot be undone.",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              backgroundColor: Color(0xFF1A3A8F),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete User", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Delete User",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -185,18 +206,31 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.delete_forever_rounded, color: Colors.redAccent, size: 28),
+            Icon(
+              Icons.delete_forever_rounded,
+              color: Color(0xFF1A3A8F),
+              size: 28,
+            ),
             SizedBox(width: 8),
             Text("Delete Event", style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text("Are you sure you want to delete '${event.title}'?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF1A3A8F)),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Delete",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -223,18 +257,36 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.delete_forever_rounded, color: Colors.redAccent, size: 28),
+            Icon(
+              Icons.delete_forever_rounded,
+              color: Color(0xFF1A3A8F),
+              size: 28,
+            ),
             SizedBox(width: 8),
-            Text("Delete Job Post", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              "Delete Job Post",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
-        content: Text("Are you sure you want to delete '${job.jobTitle}' at '${job.companyName}'?"),
+        content: Text(
+          "Are you sure you want to delete '${job.jobTitle}' at '${job.companyName}'?",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF1A3A8F)),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Delete",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -261,12 +313,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.logout_rounded, color: Colors.redAccent),
+            Icon(Icons.logout_rounded, color: Color(0xFF1A3A8F)),
             SizedBox(width: 10),
             Text("Logout", style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text("Are you sure you want to log out of the Admin Portal?"),
+        content: const Text(
+          "Are you sure you want to log out of the Admin Portal?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -274,11 +328,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              backgroundColor: Color(0xFF1A3A8F),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Logout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Logout",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -312,15 +374,25 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           elevation: 2,
           title: Row(
             children: [
-              const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 28),
+              const Icon(
+                Icons.admin_panel_settings_rounded,
+                color: Colors.amber,
+                size: 28,
+              ),
               const SizedBox(width: 10),
               const Text(
                 "Admin Portal",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -328,7 +400,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                 ),
                 child: const Text(
                   "ADMIN",
-                  style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.amber,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -346,17 +422,28 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
             indicatorWeight: 3,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
             tabs: const [
-              Tab(text: "Overview", icon: Icon(Icons.dashboard_rounded, size: 20)),
-              Tab(text: "Users", icon: Icon(Icons.people_alt_rounded, size: 20)),
+              Tab(
+                text: "Overview",
+                icon: Icon(Icons.dashboard_rounded, size: 20),
+              ),
+              Tab(
+                text: "Users",
+                icon: Icon(Icons.people_alt_rounded, size: 20),
+              ),
               Tab(text: "Events", icon: Icon(Icons.event_rounded, size: 20)),
               Tab(text: "Jobs", icon: Icon(Icons.work_rounded, size: 20)),
             ],
           ),
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFF1A3A8F)))
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFF1A3A8F)),
+              )
             : TabBarView(
                 controller: _tabController,
                 children: [
@@ -383,16 +470,34 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
         children: [
           const Text(
             "System Dashboard Statistics",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D1B40)),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0D1B40),
+            ),
           ),
           const SizedBox(height: 14),
 
           // Row 1: Users & Alumni
           Row(
             children: [
-              Expanded(child: _metricCard("Total Users", "${stats.totalUsers}", Icons.people_alt_rounded, Colors.blue)),
+              Expanded(
+                child: _metricCard(
+                  "Total Users",
+                  "${stats.totalUsers}",
+                  Icons.people_alt_rounded,
+                  Colors.blue,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _metricCard("Total Alumni", "${stats.totalAlumni}", Icons.school_rounded, Colors.indigo)),
+              Expanded(
+                child: _metricCard(
+                  "Total Alumni",
+                  "${stats.totalAlumni}",
+                  Icons.school_rounded,
+                  Colors.indigo,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -400,9 +505,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           // Row 2: Faculty & Students
           Row(
             children: [
-              Expanded(child: _metricCard("Total Faculty", "${stats.totalFaculty}", Icons.badge_rounded, Colors.teal)),
+              Expanded(
+                child: _metricCard(
+                  "Total Faculty",
+                  "${stats.totalFaculty}",
+                  Icons.badge_rounded,
+                  Colors.teal,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _metricCard("Total Students", "${stats.totalStudents}", Icons.person_rounded, Colors.blueGrey)),
+              Expanded(
+                child: _metricCard(
+                  "Total Students",
+                  "${stats.totalStudents}",
+                  Icons.person_rounded,
+                  Colors.blueGrey,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -410,9 +529,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           // Row 3: Total Jobs & Active Jobs
           Row(
             children: [
-              Expanded(child: _metricCard("Total Jobs", "${stats.totalJobs}", Icons.work_rounded, Colors.brown)),
+              Expanded(
+                child: _metricCard(
+                  "Total Jobs",
+                  "${stats.totalJobs}",
+                  Icons.work_rounded,
+                  Colors.brown,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _metricCard("Active Jobs", "${stats.activeJobs}", Icons.business_center_rounded, Colors.green)),
+              Expanded(
+                child: _metricCard(
+                  "Active Jobs",
+                  "${stats.activeJobs}",
+                  Icons.business_center_rounded,
+                  Colors.green,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -420,9 +553,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           // Row 4: Total Events & Active Events
           Row(
             children: [
-              Expanded(child: _metricCard("Total Events", "${stats.totalEvents}", Icons.event_rounded, Colors.purple)),
+              Expanded(
+                child: _metricCard(
+                  "Total Events",
+                  "${stats.totalEvents}",
+                  Icons.event_rounded,
+                  Colors.purple,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _metricCard("Active Events", "${stats.activeEvents}", Icons.event_available_rounded, Colors.deepOrange)),
+              Expanded(
+                child: _metricCard(
+                  "Active Events",
+                  "${stats.activeEvents}",
+                  Icons.event_available_rounded,
+                  Colors.deepOrange,
+                ),
+              ),
             ],
           ),
         ],
@@ -453,7 +600,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -470,7 +621,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
           const SizedBox(height: 10),
           Text(
             count,
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -502,15 +657,27 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1A3A8F),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: () {
                   _userSearchFocusNode.unfocus();
                   _showAddUserDialog();
                 },
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: const Text("Add User", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                label: const Text(
+                  "Add User",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
               ),
             ],
           ),
@@ -580,21 +747,30 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
             child: _filteredUsers.isEmpty
                 ? ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     children: [
                       const SizedBox(height: 60),
                       Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                            const Icon(
+                              Icons.search_off_rounded,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(height: 12),
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
                                 "No users match your search query or filters",
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -612,7 +788,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF1A3A8F),
                                 foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ],
@@ -622,7 +800,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                   )
                 : ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: EdgeInsets.fromLTRB(
                       12,
                       12,
@@ -640,17 +819,22 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                       final roleColor = isAlumni
                           ? Colors.indigo
                           : isFaculty
-                              ? Colors.teal
-                              : isAdmin
-                                  ? Colors.amber.shade900
-                                  : Colors.blueGrey;
+                          ? Colors.teal
+                          : isAdmin
+                          ? Colors.amber.shade900
+                          : Colors.blueGrey;
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 1.5,
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           leading: ProfileAvatar(
                             imageUrl: u.profilePictureUrl,
                             name: u.name,
@@ -658,30 +842,57 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                             backgroundColor: roleColor.withValues(alpha: 0.15),
                             foregroundColor: roleColor,
                           ),
-                          title: Text(u.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          title: Text(
+                            u.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 2),
-                              Text(u.email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              Text(
+                                u.email,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
                               const SizedBox(height: 6),
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: roleColor.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: roleColor.withValues(alpha: 0.3)),
+                                      border: Border.all(
+                                        color: roleColor.withValues(alpha: 0.3),
+                                      ),
                                     ),
                                     child: Text(
                                       role,
-                                      style: TextStyle(color: roleColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        color: roleColor,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                   if (u.department.isNotEmpty) ...[
                                     const SizedBox(width: 8),
-                                    Text("• ${u.department}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                    Text(
+                                      "• ${u.department}",
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
                                   ],
                                 ],
                               ),
@@ -690,7 +901,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                           trailing: u.roleName.toUpperCase() == 'ADMIN'
                               ? null
                               : IconButton(
-                                  icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                                  icon: const Icon(
+                                    Icons.delete_forever_rounded,
+                                    color: Color(0xFF1A3A8F),
+                                  ),
                                   onPressed: () => _confirmDeleteUser(u),
                                   tooltip: "Remove User",
                                 ),
@@ -750,7 +964,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                       _filterChip(
                         label: "Upcoming",
                         isSelected: _eventFilter == 'UPCOMING',
-                        onSelected: () => setState(() => _eventFilter = 'UPCOMING'),
+                        onSelected: () =>
+                            setState(() => _eventFilter = 'UPCOMING'),
                       ),
                       const SizedBox(width: 8),
                       _filterChip(
@@ -771,15 +986,27 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1A3A8F),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const CreateEventScreen()),
                 ).then((_) => _loadDashboardData()),
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: const Text("New Event", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                label: const Text(
+                  "New Event",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ],
           ),
@@ -793,7 +1020,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: const [
                       SizedBox(height: 80),
-                      Center(child: Text("No events found", style: TextStyle(color: Colors.grey))),
+                      Center(
+                        child: Text(
+                          "No events found",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
                     ],
                   )
                 : ListView.builder(
@@ -852,26 +1084,46 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                       children: [
                         Text(
                           event.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Color(0xFF0F172A),
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: badgeColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
+                                border: Border.all(
+                                  color: badgeColor.withValues(alpha: 0.3),
+                                ),
                               ),
                               child: Text(
                                 statusText,
-                                style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: badgeColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                            if (event.targetDepartment != null && event.targetDepartment!.isNotEmpty) ...[
+                            if (event.targetDepartment != null &&
+                                event.targetDepartment!.isNotEmpty) ...[
                               const SizedBox(width: 8),
-                              Text("• ${event.targetDepartment}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              Text(
+                                "• ${event.targetDepartment}",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ],
                           ],
                         ),
@@ -879,15 +1131,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A3A8F)),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      color: Color(0xFF1A3A8F),
+                    ),
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => CreateEventScreen(eventToEdit: event)),
+                      MaterialPageRoute(
+                        builder: (_) => CreateEventScreen(eventToEdit: event),
+                      ),
                     ).then((_) => _loadDashboardData()),
                     tooltip: "Edit Event",
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                    icon: const Icon(
+                      Icons.delete_forever_rounded,
+                      color: Color(0xFF1A3A8F),
+                    ),
                     onPressed: () => _confirmDeleteEvent(event),
                     tooltip: "Delete Event",
                   ),
@@ -898,11 +1158,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                 event.description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black87,
+                  height: 1.4,
+                ),
               ),
 
               // Network Image Preview
-              if (event.imageUrl != null && event.imageUrl!.trim().isNotEmpty) ...[
+              if (event.imageUrl != null &&
+                  event.imageUrl!.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
@@ -921,29 +1186,50 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     DateHelper.formatFriendlyDate(event.eventDate),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       event.location,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              if (event.createdByName != null && event.createdByName!.isNotEmpty) ...[
+              if (event.createdByName != null &&
+                  event.createdByName!.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
                   "Organized by: ${event.createdByName}",
-                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ],
             ],
@@ -1022,15 +1308,27 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1A3A8F),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => PostJobScreen()),
                 ).then((_) => _loadDashboardData()),
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: const Text("Post Job", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                label: const Text(
+                  "Post Job",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ],
           ),
@@ -1044,7 +1342,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: const [
                       SizedBox(height: 80),
-                      Center(child: Text("No jobs found", style: TextStyle(color: Colors.grey))),
+                      Center(
+                        child: Text(
+                          "No jobs found",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
                     ],
                   )
                 : ListView.builder(
@@ -1103,48 +1406,85 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                       color: const Color(0xFF1A3A8F).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.work_rounded, color: Color(0xFF1A3A8F), size: 24),
+                    child: const Icon(
+                      Icons.work_rounded,
+                      color: Color(0xFF1A3A8F),
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(job.jobTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A))),
+                        Text(
+                          job.jobTitle,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text("${job.companyName} • ${job.location}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          "${job.companyName} • ${job.location}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: badgeColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             statusText,
-                            style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: badgeColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A3A8F)),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      color: Color(0xFF1A3A8F),
+                    ),
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => PostJobScreen(jobToEdit: job)),
+                      MaterialPageRoute(
+                        builder: (_) => PostJobScreen(jobToEdit: job),
+                      ),
                     ).then((_) => _loadDashboardData()),
                     tooltip: "Edit Job",
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                    icon: const Icon(
+                      Icons.delete_forever_rounded,
+                      color: Color(0xFF1A3A8F),
+                    ),
                     onPressed: () => _confirmDeleteJob(job),
                     tooltip: "Delete Job",
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              Text(job.jobDescription, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+              Text(
+                job.jobDescription,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, color: Colors.black87),
+              ),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -1152,19 +1492,31 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
                 children: [
                   if (job.salary.isNotEmpty)
                     Chip(
-                      label: Text("💰 ${SalaryHelper.formatLpa(job.salary)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      label: Text(
+                        "💰 ${SalaryHelper.formatLpa(job.salary)}",
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       backgroundColor: Colors.green.withValues(alpha: 0.1),
                       visualDensity: VisualDensity.compact,
                     ),
                   if (job.experienceRequired.isNotEmpty)
                     Chip(
-                      label: Text("⏳ ${job.experienceRequired}", style: const TextStyle(fontSize: 11)),
+                      label: Text(
+                        "⏳ ${job.experienceRequired}",
+                        style: const TextStyle(fontSize: 11),
+                      ),
                       backgroundColor: Colors.blue.withValues(alpha: 0.1),
                       visualDensity: VisualDensity.compact,
                     ),
                   if (job.jobType.isNotEmpty)
                     Chip(
-                      label: Text("📌 ${job.jobType}", style: const TextStyle(fontSize: 11)),
+                      label: Text(
+                        "📌 ${job.jobType}",
+                        style: const TextStyle(fontSize: 11),
+                      ),
                       backgroundColor: Colors.orange.withValues(alpha: 0.1),
                       visualDensity: VisualDensity.compact,
                     ),
@@ -1172,7 +1524,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> with SingleTickerProv
               ),
               if (job.userName.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text("Posted by ${job.userName} (${job.userEmail})", style: const TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic)),
+                Text(
+                  "Posted by ${job.userName} (${job.userEmail})",
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ],
             ],
           ),
@@ -1262,7 +1621,10 @@ class _AddUserDialogState extends State<_AddUserDialog> {
         children: [
           Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF1A3A8F)),
           SizedBox(width: 10),
-          Text("Add New User", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(
+            "Add New User",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
         ],
       ),
       content: SingleChildScrollView(
@@ -1284,12 +1646,19 @@ class _AddUserDialogState extends State<_AddUserDialog> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.red.shade700,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: TextStyle(color: Colors.red.shade800, fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.red.shade800,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -1346,7 +1715,14 @@ class _AddUserDialogState extends State<_AddUserDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              const Text("Role", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+              const Text(
+                "Role",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
               DropdownButton<String>(
                 value: _selectedRole,
                 isExpanded: true,
@@ -1360,7 +1736,14 @@ class _AddUserDialogState extends State<_AddUserDialog> {
                       },
               ),
               const SizedBox(height: 10),
-              const Text("Department", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+              const Text(
+                "Department",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
               DropdownButton<String>(
                 value: _selectedDept,
                 isExpanded: true,
@@ -1379,22 +1762,32 @@ class _AddUserDialogState extends State<_AddUserDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(false),
+          onPressed: _isSubmitting
+              ? null
+              : () => Navigator.of(context).pop(false),
           child: const Text("Cancel"),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1A3A8F),
-            disabledBackgroundColor: const Color(0xFF1A3A8F).withValues(alpha: 0.6),
+            disabledBackgroundColor: const Color(
+              0xFF1A3A8F,
+            ).withValues(alpha: 0.6),
           ),
           onPressed: _isSubmitting ? null : _submit,
           child: _isSubmitting
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
-              : const Text("Create User", style: TextStyle(color: Colors.white)),
+              : const Text(
+                  "Create User",
+                  style: TextStyle(color: Colors.white),
+                ),
         ),
       ],
     );
