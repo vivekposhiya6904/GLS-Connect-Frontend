@@ -58,7 +58,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const Flexible(
                 child: Text(
                   "Alumni Connect",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -72,7 +76,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: const Text(
                   "ALUMNI",
-                  style: TextStyle(color: Colors.amber, fontSize: 10.5, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.amber,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -90,8 +98,14 @@ class _HomeScreenState extends State<HomeScreen> {
             tabs: [
               Tab(text: "Events", icon: Icon(Icons.event_rounded, size: 18)),
               Tab(text: "Jobs", icon: Icon(Icons.work_rounded, size: 18)),
-              Tab(text: "My Activity", icon: Icon(Icons.history_rounded, size: 18)),
-              Tab(text: "Alumni", icon: Icon(Icons.people_alt_rounded, size: 18)),
+              Tab(
+                text: "My Activity",
+                icon: Icon(Icons.history_rounded, size: 18),
+              ),
+              Tab(
+                text: "Alumni",
+                icon: Icon(Icons.people_alt_rounded, size: 18),
+              ),
               Tab(text: "Faculty", icon: Icon(Icons.badge_rounded, size: 18)),
             ],
           ),
@@ -295,7 +309,8 @@ class EventListState extends State<EventList> {
           builder: (context, setSheetState) {
             return SafeArea(
               child: SingleChildScrollView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                   left: 20,
@@ -311,7 +326,10 @@ class EventListState extends State<EventList> {
                       children: [
                         const Text(
                           "Filter Events",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close),
@@ -321,29 +339,61 @@ class EventListState extends State<EventList> {
                     ),
                     const Divider(),
                     const SizedBox(height: 10),
-                    const Text("Department", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const Text(
+                      "Department",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       value: selectedDepartment,
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                       ),
-                      items: ["All", "Computer Science", "Information Technology", "Business Administration", "Commerce", "Computer Applications"]
-                          .map((dept) => DropdownMenuItem(value: dept, child: Text(dept)))
-                          .toList(),
+                      items:
+                          [
+                                "All",
+                                "Computer Science",
+                                "Information Technology",
+                                "Business Administration",
+                                "Commerce",
+                                "Computer Applications",
+                              ]
+                              .map(
+                                (dept) => DropdownMenuItem(
+                                  value: dept,
+                                  child: Text(dept),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (val) {
-                        if (val != null) setSheetState(() => selectedDepartment = val);
+                        if (val != null)
+                          setSheetState(() => selectedDepartment = val);
                       },
                     ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Show Past Events", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const Text(
+                          "Show Past Events",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
                         Switch(
                           value: showPast,
-                          onChanged: (val) => setSheetState(() => showPast = val),
+                          onChanged: (val) =>
+                              setSheetState(() => showPast = val),
                           activeColor: const Color(0xFF1A3A8F),
                         ),
                       ],
@@ -356,14 +406,19 @@ class EventListState extends State<EventList> {
                           backgroundColor: const Color(0xFF1A3A8F),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         onPressed: () {
                           AppFocusHelper.unfocus(context);
                           setState(() {});
                           Navigator.pop(ctx);
                         },
-                        child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          "Apply Filters",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],
@@ -422,10 +477,7 @@ class EventListState extends State<EventList> {
         ),
 
         if (_isOffline && _isFromCache)
-          OfflineIndicatorBanner(
-            timeAgo: _cacheTimeAgo,
-            onRetry: refreshData,
-          ),
+          OfflineIndicatorBanner(timeAgo: _cacheTimeAgo, onRetry: refreshData),
 
         /// EVENT LIST
         Expanded(
@@ -440,9 +492,12 @@ class EventListState extends State<EventList> {
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: Center(
                         child: Padding(
                           padding: const EdgeInsets.all(24.0),
@@ -450,7 +505,11 @@ class EventListState extends State<EventList> {
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                              const Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: Colors.red,
+                              ),
                               const SizedBox(height: 16),
                               const Text("Failed to load events"),
                               const SizedBox(height: 16),
@@ -473,9 +532,12 @@ class EventListState extends State<EventList> {
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: const Center(
                         child: Padding(
                           padding: EdgeInsets.all(24.0),
@@ -483,7 +545,11 @@ class EventListState extends State<EventList> {
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.event_busy_outlined, size: 48, color: Colors.grey),
+                              Icon(
+                                Icons.event_busy_outlined,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
                               SizedBox(height: 16),
                               Text("No events available"),
                             ],
@@ -497,14 +563,18 @@ class EventListState extends State<EventList> {
 
               final filteredEvents = events.where((event) {
                 final query = searchQuery.trim().toLowerCase();
-                final matchesSearch = query.isEmpty ||
+                final matchesSearch =
+                    query.isEmpty ||
                     event.title.toLowerCase().contains(query) ||
                     event.location.toLowerCase().contains(query) ||
                     event.description.toLowerCase().contains(query) ||
-                    (event.targetDepartment != null && event.targetDepartment!.toLowerCase().contains(query));
+                    (event.targetDepartment != null &&
+                        event.targetDepartment!.toLowerCase().contains(query));
 
-                final matchesDepartment = selectedDepartment == "All" ||
-                    (event.targetDepartment != null && event.targetDepartment == selectedDepartment);
+                final matchesDepartment =
+                    selectedDepartment == "All" ||
+                    (event.targetDepartment != null &&
+                        event.targetDepartment == selectedDepartment);
 
                 final isExpired = DateHelper.isExpired(event.eventDate);
                 final matchesPast = showPast ? true : !isExpired;
@@ -516,21 +586,35 @@ class EventListState extends State<EventList> {
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: Center(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 16.0,
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                              const Icon(
+                                Icons.search_off_rounded,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(height: 12),
                               const Text(
                                 "No events match your search or filters",
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 6),
@@ -538,7 +622,10 @@ class EventListState extends State<EventList> {
                                 searchQuery.isNotEmpty
                                     ? "Try adjusting your query or resetting filters."
                                     : "Try selecting different filter options.",
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 16),
@@ -552,12 +639,17 @@ class EventListState extends State<EventList> {
                                     showPast = false;
                                   });
                                 },
-                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                icon: const Icon(
+                                  Icons.refresh_rounded,
+                                  size: 18,
+                                ),
                                 label: const Text("Reset Search & Filters"),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF1A3A8F),
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
                             ],
@@ -575,7 +667,8 @@ class EventListState extends State<EventList> {
                 },
                 child: ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredEvents.length,
                   itemBuilder: (context, index) {
@@ -723,9 +816,19 @@ class _MyActivityPageState extends State<MyActivityPage> {
                       children: [
                         Icon(Icons.work_outline, size: 52, color: Colors.grey),
                         SizedBox(height: 16),
-                        Text("No Job Posts Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                        Text(
+                          "No Job Posts Yet",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
                         SizedBox(height: 6),
-                        Text("Jobs you post will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                        Text(
+                          "Jobs you post will appear here.",
+                          style: TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),
@@ -777,11 +880,25 @@ class _MyActivityPageState extends State<MyActivityPage> {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.event_note_outlined, size: 52, color: Colors.grey),
+                        Icon(
+                          Icons.event_note_outlined,
+                          size: 52,
+                          color: Colors.grey,
+                        ),
                         SizedBox(height: 16),
-                        Text("No Events Created Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                        Text(
+                          "No Events Created Yet",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
                         SizedBox(height: 6),
-                        Text("Events you create will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                        Text(
+                          "Events you create will appear here.",
+                          style: TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),
@@ -796,6 +913,7 @@ class _MyActivityPageState extends State<MyActivityPage> {
           itemCount: events.length,
           itemBuilder: (context, index) {
             final event = events[index];
+
             return Column(
               children: [
                 EventCard(
@@ -807,36 +925,8 @@ class _MyActivityPageState extends State<MyActivityPage> {
                     });
                   },
                 ),
-                
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(top: 8, bottom: 16),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF1E1E1E)
-                      : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Theme.of(context).brightness == Brightness.dark 
-                        ? Colors.grey.shade800
-                        : Colors.grey.shade200,
-                    ),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.people_outline, color: Color(0xFF1A3A8F)),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          "Registrations",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Text("Registration data will appear here.."),
-                    ],
-                  ),
-                ),
+                if (event.id != null)
+                  EventRegistrationsPanel(eventId: event.id!),
               ],
             );
           },
@@ -866,11 +956,25 @@ class _MyActivityPageState extends State<MyActivityPage> {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.dynamic_feed_outlined, size: 52, color: Colors.grey),
+                        Icon(
+                          Icons.dynamic_feed_outlined,
+                          size: 52,
+                          color: Colors.grey,
+                        ),
                         SizedBox(height: 16),
-                        Text("No Posts Shared Yet", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                        Text(
+                          "No Posts Shared Yet",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
                         SizedBox(height: 6),
-                        Text("Posts you share will appear here.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                        Text(
+                          "Posts you share will appear here.",
+                          style: TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),
@@ -886,9 +990,15 @@ class _MyActivityPageState extends State<MyActivityPage> {
             final post = posts[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: ListTile(
-                title: Text(post.content, maxLines: 2, overflow: TextOverflow.ellipsis),
+                title: Text(
+                  post.content,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 subtitle: Text(post.createdAt?.split('T').first ?? ''),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
@@ -915,6 +1025,174 @@ class _MyActivityPageState extends State<MyActivityPage> {
   }
 }
 
+class EventRegistrationsPanel extends StatefulWidget {
+  final int eventId;
+
+  const EventRegistrationsPanel({super.key, required this.eventId});
+
+  @override
+  State<EventRegistrationsPanel> createState() =>
+      _EventRegistrationsPanelState();
+}
+
+class _EventRegistrationsPanelState extends State<EventRegistrationsPanel> {
+  late Future<List<Map<String, dynamic>>?> _registrationsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRegistrations();
+  }
+
+  void _loadRegistrations() {
+    _registrationsFuture = EventService.getEventRegistrations(widget.eventId);
+  }
+
+  Future<void> _openRegistrants() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EventRegistrantsScreen(eventId: widget.eventId),
+      ),
+    );
+
+    if (mounted) {
+      setState(_loadRegistrations);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return FutureBuilder<List<Map<String, dynamic>>?>(
+      future: _registrationsFuture,
+      builder: (context, snapshot) {
+        final registrations = snapshot.data;
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        final hasError = snapshot.hasError || registrations == null;
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: isLoading || hasError ? null : _openRegistrants,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  const Icon(Icons.people_outline, color: Color(0xFF1A3A8F)),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      "Registrations",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  if (isLoading)
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else if (hasError)
+                    const Text("Could not load")
+                  else
+                    Text("${registrations.length}"),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.chevron_right, color: Colors.grey),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class EventRegistrantsScreen extends StatefulWidget {
+  final int eventId;
+
+  const EventRegistrantsScreen({super.key, required this.eventId});
+
+  @override
+  State<EventRegistrantsScreen> createState() => _EventRegistrantsScreenState();
+}
+
+class _EventRegistrantsScreenState extends State<EventRegistrantsScreen> {
+  late Future<List<Map<String, dynamic>>?> _registrationsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _registrationsFuture = EventService.getEventRegistrations(widget.eventId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Event Registrants"),
+        backgroundColor: const Color(0xFF1A3A8F),
+        foregroundColor: Colors.white,
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>?>(
+        future: _registrationsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final registrations = snapshot.data;
+
+          if (snapshot.hasError || registrations == null) {
+            return const Center(child: Text("Could not load registrations."));
+          }
+
+          if (registrations.isEmpty) {
+            return const Center(
+              child: Text("No students have registered yet."),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: registrations.length,
+            itemBuilder: (context, index) {
+              final registration = registrations[index];
+              final userId =
+                  int.tryParse(registration["userId"]?.toString() ?? "") ?? 0;
+              final name = registration["name"]?.toString() ?? "Student";
+              final email = registration["email"]?.toString() ?? "";
+              final universityNumber =
+                  registration["universityNumber"]?.toString() ?? "";
+
+              return ProfileCard(
+                name: name,
+                role: [
+                  if (email.isNotEmpty) email,
+                  if (universityNumber.isNotEmpty) universityNumber,
+                ].join(" • "),
+                userId: userId,
+                userRole: registration["userRole"]?.toString() ?? "STUDENT",
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
 /// ================= ALUMNI =================
 class AlumniPage extends StatelessWidget {
   const AlumniPage({super.key});
@@ -933,7 +1211,6 @@ class FacultyPage extends StatelessWidget {
     return const ProfileList(role: "FACULTY");
   }
 }
-
 
 /// ================= JOB LIST =================
 class JobList extends StatefulWidget {
@@ -1046,13 +1323,11 @@ class _JobListState extends State<JobList> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-
         /// 🔍 SEARCH + FILTER BUTTON
         Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-
               /// SEARCH BAR
               Expanded(
                 child: AppSearchBar(
@@ -1090,10 +1365,7 @@ class _JobListState extends State<JobList> {
         ),
 
         if (_isOffline && _isFromCache)
-          OfflineIndicatorBanner(
-            timeAgo: _cacheTimeAgo,
-            onRetry: refreshData,
-          ),
+          OfflineIndicatorBanner(timeAgo: _cacheTimeAgo, onRetry: refreshData),
 
         /// JOB LIST
         Expanded(
@@ -1108,9 +1380,12 @@ class _JobListState extends State<JobList> {
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: Center(
                         child: Padding(
                           padding: const EdgeInsets.all(24.0),
@@ -1118,7 +1393,11 @@ class _JobListState extends State<JobList> {
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                              const Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: Colors.red,
+                              ),
                               const SizedBox(height: 16),
                               const Text("Failed to load jobs"),
                               const SizedBox(height: 16),
@@ -1141,9 +1420,12 @@ class _JobListState extends State<JobList> {
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: const Center(
                         child: Padding(
                           padding: EdgeInsets.all(24.0),
@@ -1151,7 +1433,11 @@ class _JobListState extends State<JobList> {
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.work_outline, size: 48, color: Colors.grey),
+                              Icon(
+                                Icons.work_outline,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
                               SizedBox(height: 16),
                               Text("No jobs available"),
                             ],
@@ -1166,46 +1452,70 @@ class _JobListState extends State<JobList> {
               // Filter jobs
               final filteredJobs = jobs.where((job) {
                 final query = searchQuery.trim().toLowerCase();
-                final matchesSearch = query.isEmpty ||
+                final matchesSearch =
+                    query.isEmpty ||
                     job.jobTitle.toLowerCase().contains(query) ||
                     job.companyName.toLowerCase().contains(query) ||
                     job.skillsRequired.toLowerCase().contains(query) ||
                     job.jobDescription.toLowerCase().contains(query) ||
                     job.location.toLowerCase().contains(query);
 
-                final matchesLocation = selectedLocation == "All" ||
-                    job.location.trim().toLowerCase() == selectedLocation.trim().toLowerCase() ||
-                    (selectedLocation.contains("Bengaluru") && job.location.toLowerCase().contains("bangalore")) ||
-                    (selectedLocation.contains("Delhi") && job.location.toLowerCase().contains("delhi"));
+                final matchesLocation =
+                    selectedLocation == "All" ||
+                    job.location.trim().toLowerCase() ==
+                        selectedLocation.trim().toLowerCase() ||
+                    (selectedLocation.contains("Bengaluru") &&
+                        job.location.toLowerCase().contains("bangalore")) ||
+                    (selectedLocation.contains("Delhi") &&
+                        job.location.toLowerCase().contains("delhi"));
 
-                final matchesSalary =
-                    SalaryHelper.matchesFilter(job.salary, selectedSalary);
+                final matchesSalary = SalaryHelper.matchesFilter(
+                  job.salary,
+                  selectedSalary,
+                );
 
                 final isExpired = DateHelper.isExpired(job.lastDateToApply);
                 final matchesPast = showPast ? true : !isExpired;
 
-                return matchesSearch && matchesLocation && matchesSalary && matchesPast;
+                return matchesSearch &&
+                    matchesLocation &&
+                    matchesSalary &&
+                    matchesPast;
               }).toList();
 
               if (filteredJobs.isEmpty) {
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: Center(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 16.0,
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                              const Icon(
+                                Icons.search_off_rounded,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(height: 12),
                               const Text(
                                 "No jobs match your search or filters",
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 6),
@@ -1213,7 +1523,10 @@ class _JobListState extends State<JobList> {
                                 searchQuery.isNotEmpty
                                     ? "Try adjusting your query or resetting filters."
                                     : "Try selecting different filter options.",
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 16),
@@ -1228,12 +1541,17 @@ class _JobListState extends State<JobList> {
                                     showPast = false;
                                   });
                                 },
-                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                icon: const Icon(
+                                  Icons.refresh_rounded,
+                                  size: 18,
+                                ),
                                 label: const Text("Reset Search & Filters"),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF1A3A8F),
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
                             ],
@@ -1251,7 +1569,8 @@ class _JobListState extends State<JobList> {
                 },
                 child: ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredJobs.length,
                   itemBuilder: (context, index) {
@@ -1285,7 +1604,8 @@ class _JobListState extends State<JobList> {
           builder: (context, setSheetState) {
             return SafeArea(
               child: SingleChildScrollView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                   left: 20,
@@ -1301,7 +1621,10 @@ class _JobListState extends State<JobList> {
                       children: [
                         const Text(
                           "Filter Jobs",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close),
@@ -1317,14 +1640,22 @@ class _JobListState extends State<JobList> {
                       value: selectedLocation,
                       decoration: InputDecoration(
                         labelText: "Location",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                       ),
                       items: CityConstants.filterCities
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
                           .toList(),
                       onChanged: (value) {
-                        if (value != null) setSheetState(() => selectedLocation = value);
+                        if (value != null)
+                          setSheetState(() => selectedLocation = value);
                       },
                     ),
 
@@ -1335,14 +1666,22 @@ class _JobListState extends State<JobList> {
                       value: selectedSalary,
                       decoration: InputDecoration(
                         labelText: "Salary (LPA)",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                       ),
                       items: SalaryHelper.filterOptions
-                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
                           .toList(),
                       onChanged: (value) {
-                        if (value != null) setSheetState(() => selectedSalary = value);
+                        if (value != null)
+                          setSheetState(() => selectedSalary = value);
                       },
                     ),
 
@@ -1352,10 +1691,17 @@ class _JobListState extends State<JobList> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Show Past Jobs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const Text(
+                          "Show Past Jobs",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
                         Switch(
                           value: showPast,
-                          onChanged: (val) => setSheetState(() => showPast = val),
+                          onChanged: (val) =>
+                              setSheetState(() => showPast = val),
                           activeColor: const Color(0xFF1A3A8F),
                         ),
                       ],
@@ -1371,14 +1717,19 @@ class _JobListState extends State<JobList> {
                           backgroundColor: const Color(0xFF1A3A8F),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         onPressed: () {
                           AppFocusHelper.unfocus(context);
                           setState(() {});
                           Navigator.pop(ctx);
                         },
-                        child: const Text("Apply Filters", style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          "Apply Filters",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],
@@ -1461,10 +1812,15 @@ class _ProfileListState extends State<ProfileList> {
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                      child: const Center(child: Text("Error loading directory")),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: const Center(
+                        child: Text("Error loading directory"),
+                      ),
                     ),
                   ),
                 );
@@ -1475,10 +1831,15 @@ class _ProfileListState extends State<ProfileList> {
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                      child: Center(child: Text("No $roleLabel profiles found.")),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Center(
+                        child: Text("No $roleLabel profiles found."),
+                      ),
                     ),
                   ),
                 );
@@ -1508,8 +1869,10 @@ class _ProfileListState extends State<ProfileList> {
                   final name = faculty.userName?.toLowerCase() ?? "";
                   final dept = faculty.department?.toLowerCase() ?? "";
                   final designation = faculty.designation?.toLowerCase() ?? "";
-                  final qualification = faculty.qualification?.toLowerCase() ?? "";
-                  final specialization = faculty.specialization?.toLowerCase() ?? "";
+                  final qualification =
+                      faculty.qualification?.toLowerCase() ?? "";
+                  final specialization =
+                      faculty.specialization?.toLowerCase() ?? "";
                   final skills = faculty.skills?.toLowerCase() ?? "";
                   return name.contains(_searchQuery) ||
                       dept.contains(_searchQuery) ||
@@ -1524,21 +1887,35 @@ class _ProfileListState extends State<ProfileList> {
                 return LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: Center(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 16.0,
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.search_off_rounded, size: 48, color: Colors.grey),
+                              const Icon(
+                                Icons.search_off_rounded,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(height: 12),
                               Text(
                                 "No $roleLabel match your search",
-                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                               if (_searchQuery.isNotEmpty) ...[
@@ -1549,12 +1926,17 @@ class _ProfileListState extends State<ProfileList> {
                                     _searchController.clear();
                                     setState(() => _searchQuery = "");
                                   },
-                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  icon: const Icon(
+                                    Icons.clear_rounded,
+                                    size: 18,
+                                  ),
                                   label: const Text("Clear Search"),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF1A3A8F),
                                     foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1575,7 +1957,8 @@ class _ProfileListState extends State<ProfileList> {
                 },
                 child: ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
@@ -1588,13 +1971,15 @@ class _ProfileListState extends State<ProfileList> {
                     if (widget.role == "ALUMNI") {
                       final alumni = p as AlumniProfileModel;
                       name = alumni.userName ?? "Alumni Member";
-                      subtitle = "${alumni.designation ?? 'Graduate'} at ${alumni.companyName ?? 'GLS'}";
+                      subtitle =
+                          "${alumni.designation ?? 'Graduate'} at ${alumni.companyName ?? 'GLS'}";
                       userId = alumni.userId ?? 0;
                       profilePic = alumni.profilePictureUrl;
                     } else {
                       final faculty = p as FacultyProfileModel;
                       name = faculty.userName ?? "Faculty Member";
-                      subtitle = "${faculty.designation ?? 'Professor'} • ${faculty.department ?? 'GLS'}";
+                      subtitle =
+                          "${faculty.designation ?? 'Professor'} • ${faculty.department ?? 'GLS'}";
                       userId = faculty.userId ?? 0;
                       profilePic = faculty.profilePictureUrl;
                     }
@@ -1644,7 +2029,7 @@ class ProfileCard extends StatelessWidget {
           BoxShadow(
             color: const Color(0xFF1A3A8F).withOpacity(0.05),
             blurRadius: 8,
-          )
+          ),
         ],
       ),
       child: ListTile(
@@ -1656,10 +2041,7 @@ class ProfileCard extends StatelessWidget {
           backgroundColor: const Color(0xFFE0E7FF),
           foregroundColor: Colors.indigo,
         ),
-        title: Text(
-          name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(
           role,
           style: const TextStyle(fontSize: 12, color: Colors.black54),

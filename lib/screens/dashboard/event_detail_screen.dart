@@ -1,3 +1,4 @@
+import 'package:alumni_management/services/event_service.dart';
 import 'package:flutter/material.dart';
 import '../../config/api_config.dart';
 import '../../models/event_model.dart';
@@ -22,11 +23,37 @@ class EventDetailScreen extends StatefulWidget {
 
 class _EventDetailScreenState extends State<EventDetailScreen> {
   String myEmail = "";
+  bool _isRegistering = false;
+  bool _isRegistered = false;
+  bool _isCheckingRegistration = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserEmail();
+    _loadRegistrationStatus();
+  }
+
+  Future<void> _loadRegistrationStatus() async {
+    final eventId = widget.event.id;
+
+    if (eventId == null) {
+      if (mounted) {
+        setState(() => _isCheckingRegistration = false);
+      }
+      return;
+    }
+
+    final isRegistered = await EventService.isRegisteredForEvent(eventId);
+
+    if (!mounted) return;
+
+    setState(() {
+      if (isRegistered != null) {
+        _isRegistered = isRegistered;
+      }
+      _isCheckingRegistration = false;
+    });
   }
 
   Future<void> _loadUserEmail() async {
@@ -44,25 +71,34 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final isExpired = DateHelper.isExpired(widget.event.eventDate);
     final statusText = DateHelper.getEventStatus(widget.event.eventDate);
 
-    final isMyEvent = widget.event.createdByEmail != null &&
+    final isMyEvent =
+        widget.event.createdByEmail != null &&
         widget.event.createdByEmail!.isNotEmpty &&
         widget.event.createdByEmail!.trim().toLowerCase() == myEmail;
-    final hasOrganizer = widget.event.createdByEmail != null &&
+    final hasOrganizer =
+        widget.event.createdByEmail != null &&
         widget.event.createdByEmail!.isNotEmpty;
 
-    final hasImage = widget.event.imageUrl != null && widget.event.imageUrl!.trim().isNotEmpty;
+    final hasImage =
+        widget.event.imageUrl != null &&
+        widget.event.imageUrl!.trim().isNotEmpty;
     final imgUrl = hasImage
         ? (widget.event.imageUrl!.startsWith("http")
-            ? widget.event.imageUrl!
-            : "${ApiConfig.baseUrl}${widget.event.imageUrl}")
+              ? widget.event.imageUrl!
+              : "${ApiConfig.baseUrl}${widget.event.imageUrl}")
         : null;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF121212)
+          : const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A3A8F),
         elevation: 0,
-        title: const Text("Event Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Event Details",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           if (isMyEvent || widget.isAdmin)
@@ -73,7 +109,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => CreateEventScreen(eventToEdit: widget.event),
+                    builder: (_) =>
+                        CreateEventScreen(eventToEdit: widget.event),
                   ),
                 );
                 if (result == true && mounted) {
@@ -121,7 +158,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         height: 220,
                         color: const Color(0xFF1A3A8F).withValues(alpha: 0.1),
                         child: const Center(
-                          child: Icon(Icons.event, size: 64, color: Color(0xFF1A3A8F)),
+                          child: Icon(
+                            Icons.event,
+                            size: 64,
+                            color: Color(0xFF1A3A8F),
+                          ),
                         ),
                       ),
                     )
@@ -140,10 +181,15 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.event_available_rounded, size: 64, color: Colors.white70),
+                            const Icon(
+                              Icons.event_available_rounded,
+                              size: 64,
+                              color: Colors.white70,
+                            ),
                             const SizedBox(height: 10),
                             Text(
-                              widget.event.targetDepartment != null && widget.event.targetDepartment!.isNotEmpty
+                              widget.event.targetDepartment != null &&
+                                      widget.event.targetDepartment!.isNotEmpty
                                   ? widget.event.targetDepartment!
                                   : "GLS Campus Event",
                               style: const TextStyle(
@@ -160,7 +206,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     top: 14,
                     right: 14,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: isExpired
                             ? Colors.black.withValues(alpha: 0.75)
@@ -207,7 +256,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                        color: isDark
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade200,
                       ),
                     ),
                     child: Column(
@@ -215,7 +266,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         _buildMetaRow(
                           icon: Icons.calendar_today_outlined,
                           title: "Event Date",
-                          value: DateHelper.formatFriendlyDate(widget.event.eventDate),
+                          value: DateHelper.formatFriendlyDate(
+                            widget.event.eventDate,
+                          ),
                           isDark: isDark,
                         ),
                         const SizedBox(height: 12),
@@ -255,7 +308,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
                         ),
                       ),
                       child: Row(
@@ -263,7 +318,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           const CircleAvatar(
                             radius: 20,
                             backgroundColor: Color(0xFFF0F4FF),
-                            child: Icon(Icons.person, color: Color(0xFF1A3A8F), size: 22),
+                            child: Icon(
+                              Icons.person,
+                              color: Color(0xFF1A3A8F),
+                              size: 22,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -282,7 +341,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                   Text(
                                     widget.event.createdByEmail!,
                                     style: TextStyle(
-                                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                      color: isDark
+                                          ? Colors.grey.shade400
+                                          : Colors.grey.shade600,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -291,15 +352,21 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           ),
                           if (hasOrganizer && !isMyEvent)
                             IconButton(
-                              icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF1A3A8F)),
+                              icon: const Icon(
+                                Icons.chat_bubble_outline,
+                                color: Color(0xFF1A3A8F),
+                              ),
                               tooltip: "Chat with Organizer",
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => ChatDetailScreen(
-                                      name: widget.event.createdByName ?? "Organizer",
-                                      receiverEmail: widget.event.createdByEmail!,
+                                      name:
+                                          widget.event.createdByName ??
+                                          "Organizer",
+                                      receiverEmail:
+                                          widget.event.createdByEmail!,
                                     ),
                                   ),
                                 );
@@ -319,7 +386,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                        color: isDark
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade200,
                       ),
                     ),
                     child: Column(
@@ -340,7 +409,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           style: TextStyle(
                             fontSize: 13.5,
                             height: 1.5,
-                            color: isDark ? Colors.white70 : const Color(0xFF334155),
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF334155),
                           ),
                         ),
                       ],
@@ -348,16 +419,21 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   ),
 
                   // Important Note: Calm informational styling (NOT error or alarming amber styling)
-                  if (widget.event.note != null && widget.event.note!.isNotEmpty) ...[
+                  if (widget.event.note != null &&
+                      widget.event.note!.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1A2634) : const Color(0xFFF1F5F9),
+                        color: isDark
+                            ? const Color(0xFF1A2634)
+                            : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isDark ? const Color(0xFF2D3F54) : const Color(0xFFCBD5E1),
+                          color: isDark
+                              ? const Color(0xFF2D3F54)
+                              : const Color(0xFFCBD5E1),
                         ),
                       ),
                       child: Row(
@@ -366,7 +442,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           Icon(
                             Icons.info_outline,
                             size: 18,
-                            color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB),
+                            color: isDark
+                                ? const Color(0xFF93C5FD)
+                                : const Color(0xFF2563EB),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -378,7 +456,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12.5,
-                                    color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B),
+                                    color: isDark
+                                        ? const Color(0xFFE2E8F0)
+                                        : const Color(0xFF1E293B),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -387,7 +467,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                                   style: TextStyle(
                                     fontSize: 12.5,
                                     height: 1.4,
-                                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                                    color: isDark
+                                        ? const Color(0xFFCBD5E1)
+                                        : const Color(0xFF475569),
                                   ),
                                 ),
                               ],
@@ -422,34 +504,85 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: isMyEvent || isExpired
+              onPressed:
+                  isMyEvent ||
+                      isExpired ||
+                      _isRegistered ||
+                      _isRegistering ||
+                      _isCheckingRegistration
                   ? null
-                  : () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Registration will be available soon."),
-                      ),
-                    );
-                  },
+                  : () async {
+                      debugPrint("REGISTER TAPPED: eventId=${widget.event.id}");
+                      setState(() => _isRegistering = true);
+
+                      final eventId = widget.event.id;
+
+                      if (eventId == null) {
+                        setState(() => _isRegistering = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Unable to register: event ID is missing.",
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      final success = await EventService.registerForEvent(
+                        eventId,
+                      );
+
+                      if (!mounted) return;
+
+                      setState(() {
+                        _isRegistering = false;
+                        _isRegistered = success;
+                      });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            success
+                                ? "You are registered for this event."
+                                : "Registration failed. You may already be registered.",
+                          ),
+                        ),
+                      );
+                    },
               icon: Icon(
-                isMyEvent ? Icons.person_rounded : Icons.how_to_reg_rounded,
+                isMyEvent
+                    ? Icons.person_rounded
+                    : _isRegistered
+                    ? Icons.check_circle_outline
+                    : Icons.how_to_reg_rounded,
                 size: 18,
               ),
               label: Text(
-                isMyEvent ? "You organized this event" : "Register",
+                isMyEvent
+                    ? "You organized this event"
+                    : _isCheckingRegistration
+                    ? "Checking Registration..."
+                    : _isRegistering
+                    ? "Registering..."
+                    : _isRegistered
+                    ? "Registered"
+                    : "Register",
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A3A8F),
-                disabledBackgroundColor:
-                    isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                disabledBackgroundColor: isDark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade300,
                 foregroundColor: Colors.white,
-                disabledForegroundColor:
-                    isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                disabledForegroundColor: isDark
+                    ? Colors.grey.shade500
+                    : Colors.grey.shade600,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -461,7 +594,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         ),
       ),
     );
-  }  
+  }
+
   Widget _buildMetaRow({
     required IconData icon,
     required String title,
@@ -471,11 +605,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 18,
-          color: const Color(0xFF1A3A8F),
-        ),
+        Icon(icon, size: 18, color: const Color(0xFF1A3A8F)),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -484,10 +614,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
               const SizedBox(height: 2),
               Text(
@@ -496,9 +623,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? Colors.white
-                      : const Color(0xFF0F172A),
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
                 ),
               ),
             ],
